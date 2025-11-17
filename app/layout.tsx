@@ -1,0 +1,60 @@
+import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
+import './globals.css'
+import 'leaflet/dist/leaflet.css'
+import { Header } from '@/components/layout/Header'
+import { Footer } from '@/components/layout/Footer'
+import { AuthProvider } from '@/components/providers/AuthProvider'
+import { UserProgressProvider } from '@/components/providers/UserProgressProvider'
+
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
+
+export const metadata: Metadata = {
+  title: {
+    default: 'Peak Explorer - Rutas de Trekking y Vías Ferratas en España',
+    template: '%s | Peak Explorer',
+  },
+  description: 'Descubre las mejores rutas de trekking y vías ferratas de España. Guías completas con mapas GPX, fotos y consejos de seguridad.',
+  keywords: ['trekking españa', 'vías ferratas', 'rutas montaña', 'senderismo', 'escalada'],
+  authors: [{ name: 'Peak Explorer' }],
+  openGraph: {
+    type: 'website',
+    locale: 'es_ES',
+    url: 'https://peak-explorer.com',
+    siteName: 'Peak Explorer',
+    title: 'Peak Explorer - Rutas de Trekking y Vías Ferratas',
+    description: 'Descubre las mejores rutas de montaña de España',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Peak Explorer',
+    description: 'Rutas de trekking y vías ferratas en España',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="es" className="scroll-smooth">
+      <body className={`${inter.variable} font-sans antialiased`}>
+        <AuthProvider>
+          <UserProgressProvider>
+            <div className="flex min-h-screen flex-col">
+              <Header />
+              <main className="flex-1">{children}</main>
+              <Footer />
+            </div>
+          </UserProgressProvider>
+        </AuthProvider>
+      </body>
+    </html>
+  )
+}
+

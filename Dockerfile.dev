@@ -1,0 +1,25 @@
+# Dockerfile para desarrollo con hot-reload
+FROM node:20-alpine
+
+# Instalar dependencias del sistema
+RUN apk add --no-cache libc6-compat
+
+WORKDIR /app
+
+# Copiar archivos de dependencias
+COPY package.json package-lock.json* ./
+
+# Instalar dependencias
+RUN npm install --legacy-peer-deps
+
+# Exponer puerto
+EXPOSE 3000
+
+# Variables de entorno para desarrollo
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV WATCHPACK_POLLING=true
+
+# El código se montará como volumen, así que no lo copiamos aquí
+# El comando se ejecutará desde docker-compose.yml
+
