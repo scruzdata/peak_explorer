@@ -1,27 +1,202 @@
 'use client'
 
 import { useAuth } from '@/components/providers/AuthProvider'
-import { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, Eye } from 'lucide-react'
-import { getAllRoutesFresh } from '@/lib/routes'
-import { Route } from '@/types'
+import { useState, useEffect, useMemo } from 'react'
+import { Plus, Edit, Trash2, Eye, Loader2, Filter } from 'lucide-react'
+import { getAllRoutesForAdmin, deleteRouteFromFirestore } from '@/lib/routes'
+import { Route, RouteType, Difficulty } from '@/types'
+import { RouteForm } from './RouteForm'
+import Link from 'next/link'
 
 export function AdminPanel() {
-  const { user } = useAuth()
-  // Obtener rutas frescas y recargarlas periódicamente para reflejar cambios en data.ts
-  const [routes, setRoutes] = useState<Route[]>(getAllRoutesFresh())
+  const { user, signInAsAdmin } = useAuth()
+  const [routes, setRoutes] = useState<Route[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [editingRoute, setEditingRoute] = useState<Route | undefined>()
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  
+  // Estados para los filtros
+  const [filterType, setFilterType] = useState<RouteType | 'all'>('all')
+  const [filterRegion, setFilterRegion] = useState<string>('all')
+  const [filterDifficulty, setFilterDifficulty] = useState<Difficulty | 'all'>('all')
+  
+  // Cargar rutas SOLO desde Firestore (sin fallback a datos estáticos)
+  const loadRoutes = async () => {
+    setLoading(true)
+    try {
+      console.log('🔄 Cargando rutas desde Firestore para admin...')
+      // getAllRoutesForAdmin() SIEMPRE obtiene de Firestore, nunca usa datos estáticos
+      const firestoreRoutes = await getAllRoutesForAdmin()
+      console.log(`📦 Rutas obtenidas de Firestore: ${firestoreRoutes.length}`)
+      
+      if (firestoreRoutes.length > 0) {
+        console.log('✅ IDs de rutas válidas:', firestoreRoutes.map(r => ({ id: r.id.substring(0, 20) + '...', title: r.title })))
+      }
+      
+      setRoutes(firestoreRoutes)
+      
+      if (firestoreRoutes.length === 0) {
+        console.log('ℹ️  No hay rutas en Firestore. Crea tu primera ruta usando el botón "Nueva Ruta"')
+      }
+    } catch (error) {
+      console.error('❌ Error cargando rutas desde Firestore:', error)
+      // Si hay error, mostrar array vacío (no hacer fallback)
+      setRoutes([])
+    } finally {
+      setLoading(false)
+    }
+  }
   
   useEffect(() => {
-    // Recargar rutas cada vez que el componente se monte o se actualice
-    setRoutes(getAllRoutesFresh())
+    loadRoutes()
   }, [])
+  
+  const handleNewRoute = () => {
+    setEditingRoute(undefined)
+    setShowForm(true)
+  }
+  
+  const handleEditRoute = (route: Route) => {
+    console.log('✏️  Editando ruta:', route.id, route.title)
+    setEditingRoute(route)
+    setShowForm(true)
+    console.log('✅ Formulario abierto para edición')
+  }
+  
+  const handleDeleteRoute = async (id: string) => {
+    console.log('🗑️  Intentando eliminar ruta con ID:', id)
+    
+    // Verificar si es un ID de datos estáticos
+    if (id.startsWith('route-') && /^route-\d+$/.test(id)) {
+      alert('Esta ruta es de datos estáticos y no puede ser eliminada desde Firestore.\n\nSi quieres eliminarla, debes hacerlo desde el código fuente (lib/data.ts).')
+      console.warn('⚠️  Intento de eliminar ruta de datos estáticos:', id)
+      return
+    }
+    
+    if (!confirm('¿Estás seguro de que quieres eliminar esta ruta?')) {
+      console.log('❌ Eliminación cancelada por el usuario')
+      return
+    }
+    
+    setDeletingId(id)
+    try {
+      console.log('🔄 Llamando a deleteRouteFromFirestore con ID:', id)
+      const success = await deleteRouteFromFirestore(id)
+      console.log('📊 Resultado de deleteRouteFromFirestore:', success)
+      
+      if (success) {
+        console.log('✅ Ruta eliminada exitosamente, recargando lista...')
+        await loadRoutes()
+        console.log('✅ Lista recargada')
+      } else {
+        console.error('❌ Error: deleteRouteFromFirestore devolvió false')
+        alert('Error al eliminar la ruta. Revisa la consola para más detalles.')
+      }
+    } catch (error) {
+      console.error('Error eliminando ruta:', error)
+      alert('Error al eliminar la ruta')
+    } finally {
+      setDeletingId(null)
+    }
+  }
+  
+  const handleFormClose = () => {
+    setShowForm(false)
+    setEditingRoute(undefined)
+  }
+  
+  const handleFormSave = async () => {
+    // Esperar un poco más para que Firestore se actualice
+    console.log('🔄 Esperando actualización de Firestore...')
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    // Recargar rutas después de guardar
+    console.log('🔄 Recargando rutas después de guardar...')
+    await loadRoutes()
+    console.log('✅ Rutas recargadas')
+  }
+
+  // Obtener valores únicos para los filtros
+  const uniqueRegions = useMemo(() => {
+    const regions = new Set(routes.map((r: Route) => r.location.region))
+    return Array.from(regions).sort()
+  }, [routes])
+
+  const uniqueDifficulties = useMemo(() => {
+    const difficulties = new Set(routes.map((r: Route) => r.difficulty))
+    return Array.from(difficulties).sort()
+  }, [routes])
+
+  // Filtrar rutas según los filtros seleccionados
+  const filteredRoutes = useMemo(() => {
+    return routes.filter((route: Route) => {
+      // Filtro por tipo
+      if (filterType !== 'all' && route.type !== filterType) {
+        return false
+      }
+
+      // Filtro por región
+      if (filterRegion !== 'all' && route.location.region !== filterRegion) {
+        return false
+      }
+
+      // Filtro por dificultad
+      if (filterDifficulty !== 'all' && route.difficulty !== filterDifficulty) {
+        return false
+      }
+
+      return true
+    })
+  }, [routes, filterType, filterRegion, filterDifficulty])
 
   if (!user || user.role !== 'admin') {
+    const { signInAsAdmin } = useAuth()
+    
     return (
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
-          <h2 className="mb-2 text-xl font-semibold text-red-800">Acceso Denegado</h2>
-          <p className="text-red-600">No tienes permisos para acceder a esta página.</p>
+        <div className="rounded-lg border border-gray-200 bg-white p-8 text-center shadow-md max-w-md mx-auto">
+          <h2 className="mb-4 text-2xl font-semibold text-gray-800">Acceso al Panel Admin</h2>
+          
+          {!user ? (
+            <>
+              <p className="mb-6 text-gray-600">
+                Necesitas iniciar sesión como administrador para acceder a esta página.
+              </p>
+              <button
+                onClick={signInAsAdmin}
+                className="btn-primary w-full"
+              >
+                Iniciar Sesión como Admin
+              </button>
+              <p className="mt-4 text-xs text-gray-500">
+                ⚠️ Solo para desarrollo. En producción usarás autenticación real.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="mb-6 text-gray-600">
+                No tienes permisos de administrador. Tu rol actual es: <strong>{user.role}</strong>
+              </p>
+              <button
+                onClick={signInAsAdmin}
+                className="btn-primary w-full"
+              >
+                Cambiar a Admin
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary-600" />
+          <p className="mt-4 text-gray-600">Cargando rutas...</p>
         </div>
       </div>
     )
@@ -35,28 +210,113 @@ export function AdminPanel() {
             <h1 className="text-3xl font-bold">Panel de Administración</h1>
             <p className="mt-2 text-gray-600">Gestiona rutas y contenido</p>
           </div>
-          <button className="btn-primary flex items-center space-x-2">
+          <button 
+            onClick={handleNewRoute}
+            className="btn-primary flex items-center space-x-2"
+          >
             <Plus className="h-5 w-5" />
             <span>Nueva Ruta</span>
           </button>
         </div>
 
+        {/* Filtros */}
+        <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6 shadow-md">
+          <div className="mb-4 flex items-center space-x-2">
+            <Filter className="h-5 w-5 text-gray-600" />
+            <h2 className="text-lg font-semibold text-gray-800">Filtros</h2>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {/* Filtro por Tipo */}
+            <div>
+              <label htmlFor="filter-type" className="mb-2 block text-sm font-medium text-gray-700">
+                Tipo
+              </label>
+              <select
+                id="filter-type"
+                value={filterType}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilterType(e.target.value as RouteType | 'all')}
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              >
+                <option value="all">Todos los tipos</option>
+                <option value="trekking">Trekking</option>
+                <option value="ferrata">Via Ferrata</option>
+              </select>
+            </div>
+
+            {/* Filtro por Región */}
+            <div>
+              <label htmlFor="filter-region" className="mb-2 block text-sm font-medium text-gray-700">
+                Región
+              </label>
+              <select
+                id="filter-region"
+                value={filterRegion}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilterRegion(e.target.value)}
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              >
+                <option value="all">Todas las regiones</option>
+                {uniqueRegions.map((region: string) => (
+                  <option key={region} value={region}>
+                    {region}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Filtro por Dificultad */}
+            <div>
+              <label htmlFor="filter-difficulty" className="mb-2 block text-sm font-medium text-gray-700">
+                Dificultad
+              </label>
+              <select
+                id="filter-difficulty"
+                value={filterDifficulty}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilterDifficulty(e.target.value as Difficulty | 'all')}
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              >
+                <option value="all">Todas las dificultades</option>
+                {uniqueDifficulties.map((difficulty: Difficulty) => (
+                  <option key={difficulty} value={difficulty}>
+                    {difficulty}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          
+          {/* Botón para limpiar filtros */}
+          {(filterType !== 'all' || filterRegion !== 'all' || filterDifficulty !== 'all') && (
+            <div className="mt-4">
+              <button
+                onClick={() => {
+                  setFilterType('all')
+                  setFilterRegion('all')
+                  setFilterDifficulty('all')
+                }}
+                className="text-sm text-primary-600 hover:text-primary-800"
+              >
+                Limpiar filtros
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Stats */}
         <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
           <div className="rounded-lg bg-white p-6 shadow-md">
-            <div className="text-sm text-gray-600">Total Rutas</div>
-            <div className="mt-2 text-3xl font-bold">{routes.length}</div>
+            <div className="text-sm text-gray-600">Total Rutas {filteredRoutes.length !== routes.length && `(${filteredRoutes.length} filtradas)`}</div>
+            <div className="mt-2 text-3xl font-bold">{filteredRoutes.length}</div>
           </div>
           <div className="rounded-lg bg-white p-6 shadow-md">
             <div className="text-sm text-gray-600">Rutas de Trekking</div>
             <div className="mt-2 text-3xl font-bold">
-              {routes.filter(r => r.type === 'trekking').length}
+              {filteredRoutes.filter((r: Route) => r.type === 'trekking').length}
             </div>
           </div>
           <div className="rounded-lg bg-white p-6 shadow-md">
             <div className="text-sm text-gray-600">Vías Ferratas</div>
             <div className="mt-2 text-3xl font-bold">
-              {routes.filter(r => r.type === 'ferrata').length}
+              {filteredRoutes.filter((r: Route) => r.type === 'ferrata').length}
             </div>
           </div>
         </div>
@@ -85,8 +345,8 @@ export function AdminPanel() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
-                {routes.map((route) => (
-                  <tr key={route.id} className="hover:bg-gray-50">
+                {filteredRoutes.map((route: Route) => (
+                  <tr key={route.slug || route.id} className="hover:bg-gray-50">
                     <td className="whitespace-nowrap px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">{route.title}</div>
                     </td>
@@ -103,23 +363,44 @@ export function AdminPanel() {
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2">
-                        <button
+                        <Link
+                          href={`/rutas/${route.slug}`}
                           className="text-primary-600 hover:text-primary-900"
                           title="Ver"
+                          target="_blank"
                         >
                           <Eye className="h-5 w-5" />
-                        </button>
+                        </Link>
                         <button
-                          className="text-blue-600 hover:text-blue-900"
+                          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            console.log('🖱️  Click en botón editar para ruta:', route.id)
+                            handleEditRoute(route)
+                          }}
+                          className="text-blue-600 hover:text-blue-900 cursor-pointer"
                           title="Editar"
+                          type="button"
                         >
                           <Edit className="h-5 w-5" />
                         </button>
                         <button
-                          className="text-red-600 hover:text-red-900"
+                          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            console.log('🖱️  Click en botón eliminar para ruta:', route.id)
+                            handleDeleteRoute(route.id)
+                          }}
+                          className="text-red-600 hover:text-red-900 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Eliminar"
+                          disabled={deletingId === route.id}
+                          type="button"
                         >
-                          <Trash2 className="h-5 w-5" />
+                          {deletingId === route.id ? (
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-5 w-5" />
+                          )}
                         </button>
                       </div>
                     </td>
@@ -130,6 +411,15 @@ export function AdminPanel() {
           </div>
         </div>
       </div>
+
+      {/* Formulario de creación/edición */}
+      {showForm && (
+        <RouteForm
+          route={editingRoute}
+          onClose={handleFormClose}
+          onSave={handleFormSave}
+        />
+      )}
     </div>
   )
 }

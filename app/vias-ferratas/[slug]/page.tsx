@@ -1,9 +1,9 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { RouteDetail } from '@/components/routes/RouteDetail'
-import { getRouteBySlug } from '@/lib/routes'
+import { getRouteBySlugAsync } from '@/lib/routes'
 
-// Forzar recarga dinámica para ver cambios en data.ts
+// Forzar recarga dinámica para obtener datos frescos de Firestore
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
@@ -14,7 +14,7 @@ interface PageProps {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const route = getRouteBySlug(params.slug, 'ferrata')
+  const route = await getRouteBySlugAsync(params.slug, 'ferrata')
   
   if (!route) {
     return {
@@ -41,8 +41,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export default function FerrataPage({ params }: PageProps) {
-  const route = getRouteBySlug(params.slug, 'ferrata')
+export default async function FerrataPage({ params }: PageProps) {
+  const route = await getRouteBySlugAsync(params.slug, 'ferrata')
 
   if (!route) {
     notFound()

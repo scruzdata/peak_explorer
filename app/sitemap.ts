@@ -1,11 +1,11 @@
 import { MetadataRoute } from 'next'
-import { getAllRoutesFresh } from '@/lib/routes'
+import { getAllRoutesAsync } from '@/lib/routes'
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://peak-explorer.com'
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://peak-explorer.com'
 
-  // Obtener rutas frescas para reflejar cambios en data.ts
-  const allRoutes = getAllRoutesFresh()
+  // Obtener rutas desde Firestore (con fallback a datos estáticos si no está configurado)
+  const allRoutes = await getAllRoutesAsync()
   const routes = allRoutes.map((route) => ({
     url: `${baseUrl}/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`,
     lastModified: new Date(route.updatedAt),

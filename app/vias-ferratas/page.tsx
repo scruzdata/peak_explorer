@@ -1,8 +1,8 @@
 import { Metadata } from 'next'
 import { RouteList } from '@/components/routes/RouteList'
-import { getFerratasFresh } from '@/lib/routes'
+import { getFerratasAsync } from '@/lib/routes'
 
-// Forzar recarga dinámica para ver cambios en data.ts
+// Forzar recarga dinámica para obtener datos frescos de Firestore
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
@@ -12,9 +12,9 @@ export const metadata: Metadata = {
   keywords: ['vías ferratas', 'ferrata españa', 'escalada', 'k2 k3 k4 k5 k6'],
 }
 
-export default function ViasFerratasPage() {
-  // Obtener rutas frescas en cada render para reflejar cambios en data.ts
-  const allFerratas = getFerratasFresh()
+export default async function ViasFerratasPage() {
+  // Obtener rutas desde Firestore (solo datos estáticos si Firestore no está configurado)
+  const allFerratas = await getFerratasAsync()
   
   return (
     <div className="min-h-screen bg-gray-50">

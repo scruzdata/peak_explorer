@@ -1,16 +1,20 @@
 import Link from 'next/link'
 import { ArrowRight, Mountain, Zap, MapPin } from 'lucide-react'
 import { RouteCard } from '@/components/routes/RouteCard'
-import { getTrekkingRoutesFresh, getFerratasFresh } from '@/lib/routes'
+import { getTrekkingRoutesAsync, getFerratasAsync } from '@/lib/routes'
 
-// Forzar recarga dinámica para ver cambios en data.ts
+// Forzar recarga dinámica para obtener datos frescos de Firestore
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-export default function HomePage() {
-  // Obtener rutas destacadas (primeras 3 de cada tipo) - usando funciones para recargar datos
-  const allTrekkingRoutes = getTrekkingRoutesFresh()
-  const allFerratas = getFerratasFresh()
+export default async function HomePage() {
+  // Obtener rutas desde Firestore (solo datos estáticos si Firestore no está configurado)
+  const [allTrekkingRoutes, allFerratas] = await Promise.all([
+    getTrekkingRoutesAsync(),
+    getFerratasAsync(),
+  ])
+  
+  // Obtener rutas destacadas (primeras 3 de cada tipo)
   const featuredTrekking = allTrekkingRoutes.slice(0, 3)
   const featuredFerratas = allFerratas.slice(0, 2)
 

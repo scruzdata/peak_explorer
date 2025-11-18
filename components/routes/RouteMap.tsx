@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { Route } from '@/types'
 import dynamic from 'next/dynamic'
-import { Car, RotateCcw, Play, Pause, Square, Download, Eye, EyeOff, Menu, X, Maximize2, Minimize2 } from 'lucide-react'
+import { Car, RotateCcw, Play, Pause, Square, Download, Eye, EyeOff, Menu, X, Maximize2, Minimize2, UtensilsCrossed } from 'lucide-react'
 import { calculateSlope, getSlopeColor } from '@/lib/utils'
 
 // Dynamic import para evitar problemas de SSR con Mapbox
@@ -48,8 +48,10 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
   const [isAnimating, setIsAnimating] = useState(false)
   const [animationIndex, setAnimationIndex] = useState(0)
   const [showParking, setShowParking] = useState(true)
+  const [showRestaurants, setShowRestaurants] = useState(true)
   const [showTrack, setShowTrack] = useState(true)
   const [showSlopeColors, setShowSlopeColors] = useState(false)
+  const [selectedRestaurant, setSelectedRestaurant] = useState<number | null>(null)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const animationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -58,7 +60,7 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
    * Calcula el bounding box y el viewState inicial para mostrar toda la ruta
    */
   const initialViewState = useMemo(() => {
-    // Recopilar todos los puntos (track + parking)
+    // Recopilar todos los puntos (track + parking + restaurants)
     const allPoints: { lat: number; lng: number }[] = []
     
     // Añadir puntos del track
@@ -69,6 +71,11 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
     // Añadir puntos del parking
     if (route.parking && route.parking.length > 0) {
       allPoints.push(...route.parking)
+    }
+    
+    // Añadir puntos de restaurantes
+    if (route.restaurants && route.restaurants.length > 0) {
+      allPoints.push(...route.restaurants.map(r => ({ lat: r.lat, lng: r.lng })))
     }
     
     // Si no hay puntos, usar la ubicación de la ruta
@@ -116,7 +123,7 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
       pitch: 0,
       bearing: 0,
     }
-  }, [route.track, route.parking, route.location.coordinates])
+  }, [route.track, route.parking, route.restaurants, route.location.coordinates])
   
   const [viewState, setViewState] = useState(initialViewState)
 
@@ -575,6 +582,73 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
             )}
           </Marker>
         ))}
+
+        {/* Marcadores de restaurantes */}
+        {showRestaurants && route.restaurants && route.restaurants.length > 0 && route.restaurants.map((restaurant, index) => (
+          <Marker
+            key={`restaurant-${index}`}
+            longitude={restaurant.lng}
+            latitude={restaurant.lat}
+            anchor="bottom"
+          >
+            <div
+              className="cursor-pointer"
+              onClick={() => setSelectedRestaurant(selectedRestaurant === index ? null : index)}
+            >
+              <div className="relative">
+                {/* Forma de gota/pin clásica */}
+                <div 
+                  className="bg-orange-500 shadow-lg hover:bg-orange-600 transition-colors"
+                  style={{
+                    width: '32px',
+                    height: '40px',
+                    borderRadius: '50% 50% 50% 0',
+                    transform: 'rotate(-45deg)',
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  {/* Icono de restaurante rotado para compensar la rotación del fondo */}
+                  <div style={{ transform: 'rotate(45deg)' }}>
+                    <UtensilsCrossed className="h-4 w-4 text-white" />
+                  </div>
+                </div>
+                {/* Punto inferior de la gota */}
+                <div 
+                  className="absolute bg-orange-500"
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    bottom: '-4px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                  }}
+                />
+              </div>
+            </div>
+            {selectedRestaurant === index && (
+              <Popup
+                longitude={restaurant.lng}
+                latitude={restaurant.lat}
+                anchor="bottom"
+                onClose={() => setSelectedRestaurant(null)}
+                closeButton={true}
+                closeOnClick={false}
+              >
+                <div className="p-2">
+                  <h3 className="font-semibold text-sm">{restaurant.name || `Restaurante ${index + 1}`}</h3>
+                  <p className="text-xs text-gray-600">
+                    {restaurant.lat.toFixed(6)}, {restaurant.lng.toFixed(6)}
+                  </p>
+                </div>
+              </Popup>
+            )}
+          </Marker>
+        ))}
       </Map>
 
       {/* Menú desplegable de controles */}
@@ -662,6 +736,23 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
               >
                 {showParking ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
                 <span>Parking</span>
+              </button>
+            )}
+            {route.restaurants && route.restaurants.length > 0 && (
+              <button
+                onClick={() => {
+                  setShowRestaurants(!showRestaurants)
+                  setIsMenuOpen(false)
+                }}
+                className={`px-2 py-1.5 text-left hover:bg-gray-50 transition-colors text-xs font-medium flex items-center gap-1.5 ${
+                  showRestaurants 
+                    ? 'text-gray-700' 
+                    : 'text-gray-500'
+                }`}
+                title="Mostrar/ocultar restaurantes"
+              >
+                {showRestaurants ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                <span>Restaurantes</span>
               </button>
             )}
             <button
@@ -851,6 +942,70 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
                     )}
                   </Marker>
                 ))}
+
+                {/* Marcadores de restaurantes en pantalla completa */}
+                {showRestaurants && route.restaurants && route.restaurants.length > 0 && route.restaurants.map((restaurant, index) => (
+                  <Marker
+                    key={`fullscreen-restaurant-${index}`}
+                    longitude={restaurant.lng}
+                    latitude={restaurant.lat}
+                    anchor="bottom"
+                  >
+                    <div
+                      className="cursor-pointer"
+                      onClick={() => setSelectedRestaurant(selectedRestaurant === index ? null : index)}
+                    >
+                      <div className="relative">
+                        <div 
+                          className="bg-orange-500 shadow-lg hover:bg-orange-600 transition-colors"
+                          style={{
+                            width: '32px',
+                            height: '40px',
+                            borderRadius: '50% 50% 50% 0',
+                            transform: 'rotate(-45deg)',
+                            position: 'relative',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <div style={{ transform: 'rotate(45deg)' }}>
+                            <UtensilsCrossed className="h-4 w-4 text-white" />
+                          </div>
+                        </div>
+                        <div 
+                          className="absolute bg-orange-500"
+                          style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            bottom: '-4px',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                          }}
+                        />
+                      </div>
+                    </div>
+                    {selectedRestaurant === index && (
+                      <Popup
+                        longitude={restaurant.lng}
+                        latitude={restaurant.lat}
+                        anchor="bottom"
+                        onClose={() => setSelectedRestaurant(null)}
+                        closeButton={true}
+                        closeOnClick={false}
+                      >
+                        <div className="p-2">
+                          <h3 className="font-semibold text-sm">{restaurant.name || `Restaurante ${index + 1}`}</h3>
+                          <p className="text-xs text-gray-600">
+                            {restaurant.lat.toFixed(6)}, {restaurant.lng.toFixed(6)}
+                          </p>
+                        </div>
+                      </Popup>
+                    )}
+                  </Marker>
+                ))}
               </Map>
             </div>
 
@@ -937,6 +1092,23 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
                     >
                       {showParking ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
                       <span>Parking</span>
+                    </button>
+                  )}
+                  {route.restaurants && route.restaurants.length > 0 && (
+                    <button
+                      onClick={() => {
+                        setShowRestaurants(!showRestaurants)
+                        setIsMenuOpen(false)
+                      }}
+                      className={`px-2 py-1.5 text-left hover:bg-gray-50 transition-colors text-xs font-medium flex items-center gap-1.5 ${
+                        showRestaurants 
+                          ? 'text-gray-700' 
+                          : 'text-gray-500'
+                      }`}
+                      title="Mostrar/ocultar restaurantes"
+                    >
+                      {showRestaurants ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                      <span>Restaurantes</span>
                     </button>
                   )}
                   <button

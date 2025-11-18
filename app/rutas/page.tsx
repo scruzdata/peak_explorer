@@ -1,8 +1,8 @@
 import { Metadata } from 'next'
 import { RouteList } from '@/components/routes/RouteList'
-import { getTrekkingRoutesFresh } from '@/lib/routes'
+import { getTrekkingRoutesAsync } from '@/lib/routes'
 
-// Forzar recarga dinámica para ver cambios en data.ts
+// Forzar recarga dinámica para obtener datos frescos de Firestore
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
@@ -12,9 +12,9 @@ export const metadata: Metadata = {
   keywords: ['rutas montaña', 'trekking españa', 'senderismo', 'rutas hiking'],
 }
 
-export default function RutasPage() {
-  // Obtener rutas frescas en cada render para reflejar cambios en data.ts
-  const allTrekkingRoutes = getTrekkingRoutesFresh()
+export default async function RutasPage() {
+  // Obtener rutas desde Firestore (solo datos estáticos si Firestore no está configurado)
+  const allTrekkingRoutes = await getTrekkingRoutesAsync()
   
   return (
     <div className="min-h-screen bg-gray-50">

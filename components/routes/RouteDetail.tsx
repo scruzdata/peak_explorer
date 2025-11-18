@@ -9,7 +9,6 @@ import { useUserProgress } from '@/components/providers/UserProgressProvider'
 import { RouteMap } from './RouteMap'
 import { RouteElevationProfile } from './RouteElevationProfile'
 import { RouteStorytelling } from './RouteStorytelling'
-import { RouteChecklist } from './RouteChecklist'
 import { ReadingProgress } from './ReadingProgress'
 import { RouteGallery } from './RouteGallery'
 import { RouteWeather } from './RouteWeather'
@@ -22,7 +21,8 @@ import {
   Download, 
   CheckCircle2,
   ExternalLink,
-  AlertTriangle
+  AlertTriangle,
+  Info
 } from 'lucide-react'
 import confetti from 'canvas-confetti'
 
@@ -34,6 +34,12 @@ export function RouteDetail({ route }: RouteDetailProps) {
   const { isBookmarked, addBookmark, removeBookmark, completeRoute, isCompleted, unlockBadge, progress } = useUserProgress()
   const [showCompletionModal, setShowCompletionModal] = useState(false)
   const [hoveredTrackIndex, setHoveredTrackIndex] = useState<number | null>(null)
+  const [showDogsInfo, setShowDogsInfo] = useState(false)
+  const [showApproachInfo, setShowApproachInfo] = useState(false)
+  const [showReturnInfo, setShowReturnInfo] = useState(false)
+  const [showBestSeasonInfo, setShowBestSeasonInfo] = useState(false)
+  const [showOrientationInfo, setShowOrientationInfo] = useState(false)
+  const [showFoodInfo, setShowFoodInfo] = useState(false)
   const bookmarked = isBookmarked(route.id)
   const completed = isCompleted(route.id)
 
@@ -94,10 +100,16 @@ export function RouteDetail({ route }: RouteDetailProps) {
   }
 
   const handleDownloadGPX = () => {
+    // Verificar que existe el GPX antes de descargar
+    if (!route.gpx?.url) {
+      console.warn('No hay archivo GPX disponible para esta ruta')
+      return
+    }
+    
     // Simular descarga
     const link = document.createElement('a')
     link.href = route.gpx.url
-    link.download = route.gpx.filename
+    link.download = route.gpx.filename || 'ruta.gpx'
     link.click()
     
     // Badge por primer GPX descargado
@@ -160,13 +172,15 @@ export function RouteDetail({ route }: RouteDetailProps) {
         <div className="sticky top-16 z-30 border-b border-gray-200 bg-white/95 backdrop-blur">
           <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
             <div className="flex flex-wrap items-center gap-4">
-              <button
-                onClick={handleDownloadGPX}
-                className="flex items-center space-x-2 rounded-lg bg-primary-600 px-4 py-2 font-medium text-white hover:bg-primary-700 transition-colors"
-              >
-                <Download className="h-5 w-5" />
-                <span>Descargar GPX</span>
-              </button>
+              {route.gpx?.url && (
+                <button
+                  onClick={handleDownloadGPX}
+                  className="flex items-center space-x-2 rounded-lg bg-primary-600 px-4 py-2 font-medium text-white hover:bg-primary-700 transition-colors"
+                >
+                  <Download className="h-5 w-5" />
+                  <span>Descargar GPX</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -217,8 +231,32 @@ export function RouteDetail({ route }: RouteDetailProps) {
                       </div>
                     )}
                     {route.dogs && (
-                      <div className="rounded-lg bg-gray-50 p-3">
-                        <div className="mb-0.5 text-xs text-gray-600">Perros</div>
+                      <div className="rounded-lg bg-gray-50 p-3 relative">
+                        <div className="mb-0.5 text-xs text-gray-600 flex items-center gap-1">
+                          Perros
+                          {route.dogs === 'Atados' && (
+                            <div 
+                              className="relative inline-block"
+                              onMouseEnter={() => setShowDogsInfo(true)}
+                              onMouseLeave={() => setShowDogsInfo(false)}
+                            >
+                              <button
+                                onClick={() => setShowDogsInfo(!showDogsInfo)}
+                                className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none flex items-center"
+                                aria-label="Información sobre perros atados"
+                              >
+                                <Info className="h-4 w-4" />
+                              </button>
+                              {showDogsInfo && (
+                                <div className="absolute left-0 top-5 z-50 w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl">
+                                  <p className="mb-1 font-semibold">Información importante:</p>
+                                  <p>Hay animales sueltos en la ruta. Por favor, mantén a tu perro atado para evitar molestias o conflictos con el ganado.</p>
+                                  <div className="absolute -top-1 left-4 w-2 h-2 rotate-45 bg-gray-900"></div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                         <div className="text-lg font-bold text-gray-900">
                           {route.dogs}
                         </div>
@@ -275,29 +313,147 @@ export function RouteDetail({ route }: RouteDetailProps) {
 
             {/* Sidebar */}
             <aside className="space-y-6">
-              {/* Checklist */}
-              <RouteChecklist routeId={route.id} />
-
               {/* Info Card */}
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-6">
                 <h3 className="mb-4 text-lg font-semibold">Información</h3>
                 <dl className="space-y-3 text-sm">
-                  <div>
-                    <dt className="font-medium text-gray-600">Aproximación</dt>
+                  <div className="relative">
+                    <dt className="font-medium text-gray-600 flex items-center gap-1">
+                      Aproximación
+                      {route.approachInfo && (
+                        <div 
+                          className="relative inline-block"
+                          onMouseEnter={() => setShowApproachInfo(true)}
+                          onMouseLeave={() => setShowApproachInfo(false)}
+                        >
+                          <button
+                            onClick={() => setShowApproachInfo(!showApproachInfo)}
+                            className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none flex items-center"
+                            aria-label="Información adicional sobre aproximación"
+                          >
+                            <Info className="h-4 w-4" />
+                          </button>
+                          {showApproachInfo && (
+                            <div className="absolute left-0 top-5 z-50 w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl">
+                              <p>{route.approachInfo}</p>
+                              <div className="absolute -top-1 left-4 w-2 h-2 rotate-45 bg-gray-900"></div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </dt>
                     <dd className="text-gray-900">{route.approach || 'No especificada'}</dd>
                   </div>
-                  <div>
-                    <dt className="font-medium text-gray-600">Retorno</dt>
+                  <div className="relative">
+                    <dt className="font-medium text-gray-600 flex items-center gap-1">
+                      Retorno
+                      {route.returnInfo && (
+                        <div 
+                          className="relative inline-block"
+                          onMouseEnter={() => setShowReturnInfo(true)}
+                          onMouseLeave={() => setShowReturnInfo(false)}
+                        >
+                          <button
+                            onClick={() => setShowReturnInfo(!showReturnInfo)}
+                            className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none flex items-center"
+                            aria-label="Información adicional sobre retorno"
+                          >
+                            <Info className="h-4 w-4" />
+                          </button>
+                          {showReturnInfo && (
+                            <div className="absolute left-0 top-5 z-50 w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl">
+                              <p>{route.returnInfo}</p>
+                              <div className="absolute -top-1 left-4 w-2 h-2 rotate-45 bg-gray-900"></div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </dt>
                     <dd className="text-gray-900">{route.return || 'No especificado'}</dd>
                   </div>
-                  <div>
-                    <dt className="font-medium text-gray-600">Mejor Época</dt>
+                  <div className="relative">
+                    <dt className="font-medium text-gray-600 flex items-center gap-1">
+                      Mejor Época
+                      {route.bestSeasonInfo && (
+                        <div 
+                          className="relative inline-block"
+                          onMouseEnter={() => setShowBestSeasonInfo(true)}
+                          onMouseLeave={() => setShowBestSeasonInfo(false)}
+                        >
+                          <button
+                            onClick={() => setShowBestSeasonInfo(!showBestSeasonInfo)}
+                            className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none flex items-center"
+                            aria-label="Información adicional sobre mejor época"
+                          >
+                            <Info className="h-4 w-4" />
+                          </button>
+                          {showBestSeasonInfo && (
+                            <div className="absolute left-0 top-5 z-50 w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl">
+                              <p>{route.bestSeasonInfo}</p>
+                              <div className="absolute -top-1 left-4 w-2 h-2 rotate-45 bg-gray-900"></div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </dt>
                     <dd className="text-gray-900">{route.bestSeason.join(', ')}</dd>
                   </div>
-                  <div>
-                    <dt className="font-medium text-gray-600">Orientación</dt>
+                  <div className="relative">
+                    <dt className="font-medium text-gray-600 flex items-center gap-1">
+                      Orientación
+                      {route.orientationInfo && (
+                        <div 
+                          className="relative inline-block"
+                          onMouseEnter={() => setShowOrientationInfo(true)}
+                          onMouseLeave={() => setShowOrientationInfo(false)}
+                        >
+                          <button
+                            onClick={() => setShowOrientationInfo(!showOrientationInfo)}
+                            className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none flex items-center"
+                            aria-label="Información adicional sobre orientación"
+                          >
+                            <Info className="h-4 w-4" />
+                          </button>
+                          {showOrientationInfo && (
+                            <div className="absolute left-0 top-5 z-50 w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl">
+                              <p>{route.orientationInfo}</p>
+                              <div className="absolute -top-1 left-4 w-2 h-2 rotate-45 bg-gray-900"></div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </dt>
                     <dd className="text-gray-900">{route.orientation}</dd>
                   </div>
+                  {route.food && (
+                    <div className="relative">
+                      <dt className="font-medium text-gray-600 flex items-center gap-1">
+                        Comida
+                        {route.foodInfo && (
+                          <div 
+                            className="relative inline-block"
+                            onMouseEnter={() => setShowFoodInfo(true)}
+                            onMouseLeave={() => setShowFoodInfo(false)}
+                          >
+                            <button
+                              onClick={() => setShowFoodInfo(!showFoodInfo)}
+                              className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none flex items-center"
+                              aria-label="Información adicional sobre comida"
+                            >
+                              <Info className="h-4 w-4" />
+                            </button>
+                            {showFoodInfo && (
+                              <div className="absolute left-0 top-5 z-50 w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl">
+                                <p>{route.foodInfo}</p>
+                                <div className="absolute -top-1 left-4 w-2 h-2 rotate-45 bg-gray-900"></div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </dt>
+                      <dd className="text-gray-900">{route.food}</dd>
+                    </div>
+                  )}
                 </dl>
               </div>
 

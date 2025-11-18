@@ -46,10 +46,16 @@ export interface Route {
   elevation: number // metros
   duration: string // "4-5 horas"
   approach?: string // "1h desde parking"
+  approachInfo?: string // Información adicional sobre la aproximación
   return?: string
+  returnInfo?: string // Información adicional sobre el retorno
   features: RouteFeature[]
   bestSeason: Season[]
+  bestSeasonInfo?: string // Información adicional sobre la mejor época
   orientation: string
+  orientationInfo?: string // Información adicional sobre la orientación
+  food?: string // Información sobre comida/restaurantes
+  foodInfo?: string // Información adicional sobre comida
   status: RouteStatus
   routeType?: RouteTypeShape // Tipo de ruta: Circular o Inicio-Fin
   dogs?: DogsAllowed // Perros permitidos: Sí, No, Sueltos, Atados
@@ -65,6 +71,11 @@ export interface Route {
     lat: number
     lng: number
   }[]
+  restaurants?: {
+    lat: number
+    lng: number
+    name?: string
+  }[]
   track?: {
     lat: number
     lng: number,
@@ -72,7 +83,7 @@ export interface Route {
   }[] // Coordenadas del track de la ruta
   heroImage: ImageData
   gallery: ImageData[]
-  gpx: GPXData
+  gpx?: GPXData // Opcional: algunas rutas pueden no tener archivo GPX
   equipment: AffiliateLink[]
   accommodations: AffiliateLink[]
   safetyTips: string[]

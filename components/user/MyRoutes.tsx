@@ -2,13 +2,37 @@
 
 import { useAuth } from '@/components/providers/AuthProvider'
 import { useUserProgress } from '@/components/providers/UserProgressProvider'
-import { getAllRoutesFresh } from '@/lib/routes'
+import { getAllRoutesAsync } from '@/lib/routes'
 import { RouteCard } from '@/components/routes/RouteCard'
-import { Bookmark, CheckCircle2 } from 'lucide-react'
+import { Bookmark, CheckCircle2, Loader2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Route } from '@/types'
 
 export function MyRoutes() {
   const { user } = useAuth()
   const { progress } = useUserProgress()
+  const [allRoutes, setAllRoutes] = useState<Route[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    // Cargar rutas desde Firestore
+    const loadRoutes = async () => {
+      try {
+        const routes = await getAllRoutesAsync()
+        setAllRoutes(routes)
+      } catch (error) {
+        console.error('Error cargando rutas:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    if (user && progress) {
+      loadRoutes()
+    } else {
+      setLoading(false)
+    }
+  }, [user, progress])
 
   if (!user || !progress) {
     return (
@@ -18,8 +42,16 @@ export function MyRoutes() {
     )
   }
 
-  // Obtener rutas frescas para reflejar cambios en data.ts
-  const allRoutes = getAllRoutesFresh()
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+        </div>
+      </div>
+    )
+  }
+
   const bookmarkedRoutes = allRoutes.filter(r => progress.bookmarks.includes(r.id))
   const completedRoutes = allRoutes.filter(r => 
     progress.completedRoutes.some(cr => cr.routeId === r.id)

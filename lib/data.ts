@@ -16,17 +16,23 @@ export const commonFeatures: RouteFeature[] = [
 export const sampleTrekkingRoutes: Omit<Route, 'id' | 'slug' | 'createdAt' | 'updatedAt'>[] = [
   {
     type: 'trekking',
-    title: 'Ruta del Cares - Garganta Divina',
+    title: 'Ruta del Cares - Garganta Divinplplpl',
     summary: ' La ruta más emblemática de los Picos de Europa. Un sendero tallado en la roca que recorre la garganta del río Cares entre Caín y Poncebos.',
     difficulty: 'Moderada',
     distance: 24,
     elevation: 400,
-    duration: '6-7 horas',
+    duration: '6-7 horas ida y vuelta',
     approach: 'Parking en Poncebos (gratuito)',
+    approachInfo: 'El parking puede llenarse en temporada alta. Llega temprano o considera usar transporte público. Hay un servicio de autobús desde Arenas de Cabrales.',
     return: 'Mismo punto de inicio',
+    returnInfo: 'Existen taxis privados que pueden llevarte de vuelta e incluso hay empresas que te llevan en todoterreno atravesando los paisajes de los Picos de Europa.',
     features: [commonFeatures[4], commonFeatures[5], commonFeatures[0]],
     bestSeason: ['Primavera', 'Verano', 'Otoño'],
+    bestSeasonInfo: 'En invierno puede haber nieve y hielo, haciendo la ruta peligrosa. En verano es muy transitada, especialmente los fines de semana, hay poca sombra y se puede hacer muy caluroso. Primavera y otoño ofrecen el mejor equilibrio entre buen tiempo y menor afluencia.',
     orientation: 'Bien señalizada con marcas blancas y amarillas. Seguir siempre el sendero principal.',
+    orientationInfo: 'El sendero está tallado en la roca y es imposible perderse. Las marcas de pintura blanca y amarilla son muy visibles. En caso de niebla, extremar precaución cerca de los bordes.',
+    food: 'Restaurantes en Caín y Poncebos',
+    foodInfo: 'En Caín hay varios restaurantes donde puedes comer. En Poncebos también hay opciones. Es recomendable reservar en temporada alta. Lleva siempre agua y algo de comida para el camino. Lleva comida y agua para improvisar un pícnic, pues no hay ningún lugar donde comprar provisiones en el camino.',
     status: 'Abierta',
     location: {
       region: 'Asturias',
@@ -36,7 +42,11 @@ export const sampleTrekkingRoutes: Omit<Route, 'id' | 'slug' | 'createdAt' | 'up
     routeType: 'Circular',
     dogs: 'Atados',
     parking: [
-      { lat: 43.257185, lng: -4.832603 }, // Parking en Poncebos
+      { lat: 43.257185, lng: -4.832603 }, 
+    ],
+    restaurants: [
+      { lat: 43.257316,  lng:-4.832469, name: 'Hotel Garganta del Cares' }, // Aproximadamente en Caín
+      { lat: 43.213649, lng: -4.904009, name: 'La Taberna de Cain' }, // Aproximadamente en Poncebos
     ],
     track: undefined, // Track cargado desde tracks.ts
     heroImage: {
@@ -104,6 +114,12 @@ export const sampleTrekkingRoutes: Omit<Route, 'id' | 'slug' | 'createdAt' | 'up
       {
         type: 'equipment',
         title: 'Bastones de Trekking',
+        url: 'https://example.com/afiliado/bastones',
+        description: 'Recomendados para el descenso',
+      },
+      {
+        type: 'equipment',
+        title: 'Zapatillas de Trekking',
         url: 'https://example.com/afiliado/bastones',
         description: 'Recomendados para el descenso',
       },
