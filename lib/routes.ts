@@ -2,6 +2,7 @@ import { Route } from '@/types'
 import { generateSlug } from '@/lib/utils'
 import { sampleTrekkingRoutes, sampleFerratas } from './data'
 import { getRouteTrack } from './tracks'
+import { getTrackByRouteSlug } from './firebase/tracks'
 
 // Función helper para verificar si Firestore está disponible
 async function getFirestoreRoutes() {
@@ -77,10 +78,18 @@ async function getTrekkingRoutesFromFirestore(): Promise<Route[]> {
   
   const routes = await firestoreRoutes.getRoutesByTypeFromFirestore('trekking')
   
-  return routes.map(route => ({
-    ...route,
-    track: getRouteTrack(route.slug),
-  }))
+  // Obtener tracks desde Firestore para cada ruta
+  const routesWithTracks = await Promise.all(
+    routes.map(async (route) => {
+      const track = await getTrackByRouteSlug(route.slug)
+      return {
+        ...route,
+        track: track || undefined,
+      }
+    })
+  )
+  
+  return routesWithTracks
 }
 
 async function getFerratasFromFirestore(): Promise<Route[]> {
@@ -95,10 +104,18 @@ async function getFerratasFromFirestore(): Promise<Route[]> {
   
   const routes = await firestoreRoutes.getRoutesByTypeFromFirestore('ferrata')
   
-  return routes.map(route => ({
-    ...route,
-    track: getRouteTrack(route.slug),
-  }))
+  // Obtener tracks desde Firestore para cada ruta
+  const routesWithTracks = await Promise.all(
+    routes.map(async (route) => {
+      const track = await getTrackByRouteSlug(route.slug)
+      return {
+        ...route,
+        track: track || undefined,
+      }
+    })
+  )
+  
+  return routesWithTracks
 }
 
 async function getAllRoutesFromFirestore(): Promise<Route[]> {
@@ -109,10 +126,18 @@ async function getAllRoutesFromFirestore(): Promise<Route[]> {
   
   const routes = await firestoreRoutes.getAllRoutesFromFirestore()
   
-  return routes.map(route => ({
-    ...route,
-    track: getRouteTrack(route.slug),
-  }))
+  // Obtener tracks desde Firestore para cada ruta
+  const routesWithTracks = await Promise.all(
+    routes.map(async (route) => {
+      const track = await getTrackByRouteSlug(route.slug)
+      return {
+        ...route,
+        track: track || undefined,
+      }
+    })
+  )
+  
+  return routesWithTracks
 }
 
 // Exportar como funciones para forzar recarga en cada acceso (sincrónicas para compatibilidad)
@@ -203,9 +228,11 @@ export async function getRouteBySlugAsync(
     
     const route = await firestoreRoutes.getRouteBySlugFromFirestore(slug, type)
     if (route) {
+      // Obtener track desde Firestore
+      const track = await getTrackByRouteSlug(route.slug)
       return {
         ...route,
-        track: getRouteTrack(route.slug),
+        track: track || undefined,
       }
     }
     return null
@@ -231,10 +258,18 @@ export async function getAllRoutesForAdmin(): Promise<Route[]> {
     
     const routes = await firestoreRoutes.getAllRoutesFromFirestore()
     
-    return routes.map(route => ({
-      ...route,
-      track: getRouteTrack(route.slug),
-    }))
+    // Obtener tracks desde Firestore para cada ruta
+    const routesWithTracks = await Promise.all(
+      routes.map(async (route) => {
+        const track = await getTrackByRouteSlug(route.slug)
+        return {
+          ...route,
+          track: track || undefined,
+        }
+      })
+    )
+    
+    return routesWithTracks
   } catch (error) {
     console.error('Error obteniendo rutas para admin:', error)
     return []
