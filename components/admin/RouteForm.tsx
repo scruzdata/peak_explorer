@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { Route, RouteType, Difficulty, FerrataGrade, Season, RouteStatus, RouteTypeShape, DogsAllowed } from '@/types'
 import { createRouteInFirestore, updateRouteInFirestore } from '@/lib/routes'
+import { saveTrackInFirestore } from '@/lib/firebase/tracks'
+import { generateSlug } from '@/lib/utils'
 import { X, Save, Loader2 } from 'lucide-react'
 import { commonFeatures } from '@/lib/data'
 
@@ -17,59 +19,71 @@ interface RouteFormProps {
  */
 export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
   // Verificar si es una ruta de Firestore (IDs de Firestore no empiezan con "route-")
-  const isFirestoreRoute = route ? !route.id.startsWith('route-') : false
+  // También excluir rutas temporales del GPX (empiezan con "temp-gpx-")
+  const isFirestoreRoute = route ? !route.id.startsWith('route-') && !route.id.startsWith('temp-gpx-') : false
   const isEditing = !!route && isFirestoreRoute
   const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState<Partial<Route>>({
-    type: route?.type || 'trekking',
-    title: route?.title || '',
-    summary: route?.summary || '',
-    difficulty: route?.difficulty || 'Moderada',
-    ferrataGrade: route?.ferrataGrade,
-    distance: route?.distance || 0,
-    elevation: route?.elevation || 0,
-    duration: route?.duration || '',
-    approach: route?.approach || '',
-    approachInfo: route?.approachInfo || '',
-    return: route?.return || '',
-    returnInfo: route?.returnInfo || '',
-    features: route?.features || [],
-    bestSeason: route?.bestSeason || [],
-    bestSeasonInfo: route?.bestSeasonInfo || '',
-    orientation: route?.orientation || '',
-    orientationInfo: route?.orientationInfo || '',
-    food: route?.food || '',
-    foodInfo: route?.foodInfo || '',
-    status: route?.status || 'Abierta',
-    routeType: route?.routeType || 'Circular',
-    dogs: route?.dogs || 'Atados',
-    location: route?.location || {
+  
+  // Función para inicializar formData desde route
+  const initializeFormData = (routeData?: Route): Partial<Route> => ({
+    type: routeData?.type || 'trekking',
+    title: routeData?.title || '',
+    summary: routeData?.summary || '',
+    difficulty: routeData?.difficulty || 'Moderada',
+    ferrataGrade: routeData?.ferrataGrade,
+    distance: routeData?.distance || 0,
+    elevation: routeData?.elevation || 0,
+    duration: routeData?.duration || '',
+    approach: routeData?.approach || '',
+    approachInfo: routeData?.approachInfo || '',
+    return: routeData?.return || '',
+    returnInfo: routeData?.returnInfo || '',
+    features: routeData?.features || [],
+    bestSeason: routeData?.bestSeason || [],
+    bestSeasonInfo: routeData?.bestSeasonInfo || '',
+    orientation: routeData?.orientation || '',
+    orientationInfo: routeData?.orientationInfo || '',
+    food: routeData?.food || '',
+    foodInfo: routeData?.foodInfo || '',
+    status: routeData?.status || 'Abierta',
+    routeType: routeData?.routeType || 'Circular',
+    dogs: routeData?.dogs || 'Atados',
+    location: routeData?.location || {
       region: '',
       province: '',
       coordinates: { lat: 0, lng: 0 },
     },
-    parking: route?.parking || [],
-    restaurants: route?.restaurants || [],
-    heroImage: route?.heroImage || {
+    parking: routeData?.parking || [],
+    restaurants: routeData?.restaurants || [],
+    heroImage: routeData?.heroImage || {
       url: '',
       alt: '',
       width: 1200,
       height: 800,
     },
-    gallery: route?.gallery || [],
-    gpx: route?.gpx || undefined,
-    equipment: route?.equipment || [],
-    accommodations: route?.accommodations || [],
-    safetyTips: route?.safetyTips || [],
-    storytelling: route?.storytelling || '',
-    seo: route?.seo || {
+    gallery: routeData?.gallery || [],
+    gpx: routeData?.gpx || undefined,
+    equipment: routeData?.equipment || [],
+    accommodations: routeData?.accommodations || [],
+    safetyTips: routeData?.safetyTips || [],
+    storytelling: routeData?.storytelling || '',
+    seo: routeData?.seo || {
       metaTitle: '',
       metaDescription: '',
       keywords: [],
     },
-    views: route?.views || 0,
-    downloads: route?.downloads || 0,
+    views: routeData?.views || 0,
+    downloads: routeData?.downloads || 0,
   })
+
+  const [formData, setFormData] = useState<Partial<Route>>(initializeFormData(route))
+
+  // Actualizar formData cuando cambie la prop route (útil para datos del GPX)
+  useEffect(() => {
+    if (route) {
+      setFormData(initializeFormData(route))
+    }
+  }, [route])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -167,6 +181,35 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
           console.log('✅ Ruta creada exitosamente con ID:', result)
         } else {
           throw new Error('No se pudo crear la ruta')
+        }
+      }
+      
+      // Guardar el track en Firestore si existe
+      const trackToSave = dataToSave.track || route?.track
+      if (trackToSave && Array.isArray(trackToSave) && trackToSave.length > 0) {
+        try {
+          const routeTitle = dataToSave.title || route?.title || 'Ruta sin título'
+          const routeSlug = generateSlug(routeTitle)
+          console.log(`📦 Intentando guardar track para ruta: ${routeSlug} (${trackToSave.length} puntos)`)
+          await saveTrackInFirestore(routeSlug, trackToSave)
+          console.log(`✅ Track guardado en Firestore para ruta: ${routeSlug} (${trackToSave.length} puntos)`)
+        } catch (trackError: any) {
+          // Si falla el guardado del track, registrar el error pero no fallar el proceso completo
+          console.error('⚠️  Error guardando track en Firestore:', trackError)
+          console.error('Detalles del error:', {
+            message: trackError?.message,
+            code: trackError?.code,
+            stack: trackError?.stack,
+          })
+          console.error('La ruta se guardó correctamente pero el track no se pudo guardar')
+        }
+      } else {
+        console.log('ℹ️  No hay track para guardar o el track está vacío')
+        if (dataToSave.track) {
+          console.log('Track en dataToSave:', Array.isArray(dataToSave.track), dataToSave.track?.length)
+        }
+        if (route?.track) {
+          console.log('Track en route:', Array.isArray(route.track), route.track?.length)
         }
       }
       

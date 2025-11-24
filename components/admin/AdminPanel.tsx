@@ -6,6 +6,7 @@ import { Plus, Edit, Trash2, Eye, Loader2, Filter } from 'lucide-react'
 import { getAllRoutesForAdmin, deleteRouteFromFirestore } from '@/lib/routes'
 import { Route, RouteType, Difficulty } from '@/types'
 import { RouteForm } from './RouteForm'
+import { GPXUploader } from './GPXUploader'
 import Link from 'next/link'
 
 export function AdminPanel() {
@@ -117,6 +118,73 @@ export function AdminPanel() {
     console.log('✅ Rutas recargadas')
   }
 
+  /**
+   * Maneja el éxito del procesamiento de GPX
+   * Crea una ruta temporal con los datos procesados y abre el formulario
+   */
+  const handleGPXSuccess = (routeData: Partial<Route>) => {
+    // Crear una ruta temporal con los datos del GPX procesado
+    const tempRoute: Route = {
+      id: 'temp-gpx-' + Date.now(),
+      slug: '',
+      type: routeData.type || 'trekking',
+      title: routeData.title || 'Nueva Ruta desde GPX',
+      summary: routeData.summary || '',
+      difficulty: routeData.difficulty || 'Moderada',
+      ferrataGrade: routeData.ferrataGrade,
+      distance: routeData.distance || 0,
+      elevation: routeData.elevation || 0,
+      duration: routeData.duration || '',
+      approach: routeData.approach,
+      approachInfo: routeData.approachInfo,
+      return: routeData.return,
+      returnInfo: routeData.returnInfo,
+      features: routeData.features || [],
+      bestSeason: routeData.bestSeason || [],
+      bestSeasonInfo: routeData.bestSeasonInfo,
+      orientation: routeData.orientation || '',
+      orientationInfo: routeData.orientationInfo,
+      food: routeData.food,
+      foodInfo: routeData.foodInfo,
+      status: routeData.status || 'Abierta',
+      routeType: routeData.routeType,
+      dogs: routeData.dogs,
+      location: routeData.location || {
+        region: '',
+        province: '',
+        coordinates: { lat: 0, lng: 0 },
+      },
+      parking: routeData.parking || [],
+      restaurants: routeData.restaurants || [],
+      track: routeData.track,
+      heroImage: routeData.heroImage || {
+        url: '',
+        alt: '',
+        width: 1200,
+        height: 800,
+      },
+      gallery: routeData.gallery || [],
+      gpx: routeData.gpx,
+      equipment: routeData.equipment || [],
+      accommodations: routeData.accommodations || [],
+      safetyTips: routeData.safetyTips || [],
+      storytelling: routeData.storytelling || '',
+      seo: routeData.seo || {
+        metaTitle: '',
+        metaDescription: '',
+        keywords: [],
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      views: 0,
+      downloads: 0,
+    }
+
+    // Abrir el formulario con los datos del GPX
+    setEditingRoute(tempRoute)
+    setShowForm(true)
+  }
+
   // Obtener valores únicos para los filtros
   const uniqueRegions = useMemo(() => {
     const regions = new Set(routes.map((r: Route) => r.location.region))
@@ -217,6 +285,16 @@ export function AdminPanel() {
             <Plus className="h-5 w-5" />
             <span>Nueva Ruta</span>
           </button>
+        </div>
+
+        {/* Componente de subida de GPX */}
+        <div className="mb-6">
+          <GPXUploader
+            onSuccess={handleGPXSuccess}
+            onError={(error) => {
+              console.error('Error procesando GPX:', error)
+            }}
+          />
         </div>
 
         {/* Filtros */}
