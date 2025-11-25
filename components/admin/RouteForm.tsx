@@ -1,11 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import remarkBreaks from 'remark-breaks'
+import type { Components } from 'react-markdown'
 import { Route, RouteType, Difficulty, FerrataGrade, Season, RouteStatus, RouteTypeShape, DogsAllowed } from '@/types'
 import { createRouteInFirestore, updateRouteInFirestore } from '@/lib/routes'
 import { saveTrackInFirestore } from '@/lib/firebase/tracks'
 import { generateSlug } from '@/lib/utils'
-import { X, Save, Loader2 } from 'lucide-react'
+import { X, Save, Loader2, Star } from 'lucide-react'
 import { commonFeatures } from '@/lib/data'
 
 interface RouteFormProps {
@@ -74,6 +78,7 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
     },
     views: routeData?.views || 0,
     downloads: routeData?.downloads || 0,
+    rating: routeData?.rating ?? 0,
   })
 
   const [formData, setFormData] = useState<Partial<Route>>(initializeFormData(route))
@@ -174,6 +179,7 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
           },
           views: dataToSave.views || 0,
           downloads: dataToSave.downloads || 0,
+          rating: dataToSave.rating ?? 0,
         }
         
         result = await createRouteInFirestore(fullRouteData)
@@ -302,6 +308,157 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
       tips.splice(index, 1)
       return { ...prev, safetyTips: tips }
     })
+  }
+
+  const addParkingSpot = () => {
+    setFormData(prev => ({
+      ...prev,
+      parking: [...(prev.parking || []), { lat: 0, lng: 0 }],
+    }))
+  }
+
+  const updateParkingSpot = (index: number, field: 'lat' | 'lng', value: number) => {
+    setFormData(prev => {
+      const parking = [...(prev.parking || [])]
+      parking[index] = { ...parking[index], [field]: value }
+      return { ...prev, parking }
+    })
+  }
+
+  const removeParkingSpot = (index: number) => {
+    setFormData(prev => {
+      const parking = [...(prev.parking || [])]
+      parking.splice(index, 1)
+      return { ...prev, parking }
+    })
+  }
+
+  const addRestaurant = () => {
+    setFormData(prev => ({
+      ...prev,
+      restaurants: [...(prev.restaurants || []), { lat: 0, lng: 0, name: '' }],
+    }))
+  }
+
+  const updateRestaurant = (index: number, field: 'lat' | 'lng' | 'name', value: number | string) => {
+    setFormData(prev => {
+      const restaurants = [...(prev.restaurants || [])]
+      restaurants[index] = { ...restaurants[index], [field]: value }
+      return { ...prev, restaurants }
+    })
+  }
+
+  const removeRestaurant = (index: number) => {
+    setFormData(prev => {
+      const restaurants = [...(prev.restaurants || [])]
+      restaurants.splice(index, 1)
+      return { ...prev, restaurants }
+    })
+  }
+
+  const addGalleryImage = () => {
+    setFormData(prev => ({
+      ...prev,
+      gallery: [
+        ...(prev.gallery || []),
+        {
+          url: '',
+          alt: '',
+          width: 1200,
+          height: 800,
+        },
+      ],
+    }))
+  }
+
+  const updateGalleryImage = (index: number, field: keyof NonNullable<Route['gallery']>[number], value: string | number) => {
+    setFormData(prev => {
+      const gallery = [...(prev.gallery || [])]
+      gallery[index] = { ...gallery[index], [field]: value }
+      return { ...prev, gallery }
+    })
+  }
+
+  const removeGalleryImage = (index: number) => {
+    setFormData(prev => {
+      const gallery = [...(prev.gallery || [])]
+      gallery.splice(index, 1)
+      return { ...prev, gallery }
+    })
+  }
+
+  type MarkdownAction = 'bold' | 'italic' | 'heading' | 'list' | 'quote' | 'code' | 'break' | 'link'
+  const storytellingRef = useRef<HTMLTextAreaElement>(null)
+
+  const applyMarkdown = (action: MarkdownAction) => {
+    const textarea = storytellingRef.current
+    if (!textarea) return
+
+    const value = formData.storytelling || ''
+    const start = textarea.selectionStart ?? value.length
+    const end = textarea.selectionEnd ?? value.length
+    const selection = value.slice(start, end)
+
+    const defaults: Record<MarkdownAction, string> = {
+      bold: 'texto en negrita',
+      italic: 'texto en cursiva',
+      heading: 'Título de sección',
+      list: 'Elemento de lista',
+      quote: 'Cita o nota',
+      code: 'console.log("hola")',
+      break: '',
+      link: 'enlace descriptivo',
+    }
+
+    const selectedText = selection || defaults[action]
+    let replacement = ''
+
+    switch (action) {
+      case 'bold':
+        replacement = `**${selectedText}**`
+        break
+      case 'italic':
+        replacement = `*${selectedText}*`
+        break
+      case 'heading':
+        replacement = `\n\n# ${selectedText}\n`
+        break
+      case 'list':
+        replacement = `\n- ${selectedText}`
+        break
+      case 'quote':
+        replacement = `\n> ${selectedText}`
+        break
+      case 'code':
+        replacement = `\n\`\`\`\n${selectedText}\n\`\`\`\n`
+        break
+      case 'break':
+        replacement = `\n\n${selectedText ? `${selectedText}\n\n` : ''}`
+        break
+      case 'link':
+        replacement = `[${selectedText}](https://ejemplo.com)`
+        break
+      default:
+        replacement = selectedText
+    }
+
+    const newValue = `${value.slice(0, start)}${replacement}${value.slice(end)}`
+    updateField('storytelling', newValue)
+
+    window.requestAnimationFrame(() => {
+      const cursor = start + replacement.length
+      textarea.focus()
+      textarea.setSelectionRange(cursor, cursor)
+    })
+  }
+
+  const previewComponents: Components = {
+    p: ({ node, ...props }) => (
+      <p className="mb-3 whitespace-pre-line" {...props} />
+    ),
+    li: ({ node, ...props }) => (
+      <li className="mb-1" {...props} />
+    ),
   }
 
   return (
@@ -446,6 +603,49 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
                   required
                 />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Rating</label>
+                <div className="flex items-center gap-2 mb-2">
+                  {[1, 2, 3, 4, 5].map((star) => {
+                    const isActive = (formData.rating ?? 0) >= star
+                    return (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => updateField('rating', star)}
+                        className="focus:outline-none"
+                        aria-label={`Asignar rating ${star}`}
+                      >
+                        <Star
+                          className={`h-5 w-5 ${isActive ? 'text-amber-500' : 'text-gray-300'}`}
+                          fill={isActive ? 'currentColor' : 'none'}
+                          strokeWidth={1.5}
+                        />
+                      </button>
+                    )
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => updateField('rating', undefined)}
+                    className="text-xs text-gray-500 hover:text-gray-700"
+                  >
+                    Limpiar
+                  </button>
+                </div>
+                <input
+                  type="number"
+                  min={0}
+                  max={5}
+                  step={0.1}
+                  value={formData.rating ?? ''}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    updateField('rating', value === '' ? undefined : parseFloat(value))
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+              </div>
             </div>
           </div>
 
@@ -507,6 +707,119 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
               </div>
             </div>
           </div>
+
+        {/* Puntos de Parking */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold border-b pb-2">Parking</h3>
+
+          {(formData.parking || []).map((point, index) => (
+            <div key={index} className="border border-gray-200 rounded-md p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-600">Parking #{index + 1}</span>
+                <button
+                  type="button"
+                  onClick={() => removeParkingSpot(index)}
+                  className="text-red-600 text-sm hover:text-red-800"
+                >
+                  Eliminar
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Latitud</label>
+                  <input
+                    type="number"
+                    step="0.000001"
+                    value={point?.lat || 0}
+                    onChange={(e) => updateParkingSpot(index, 'lat', parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Longitud</label>
+                  <input
+                    type="number"
+                    step="0.000001"
+                    value={point?.lng || 0}
+                    onChange={(e) => updateParkingSpot(index, 'lng', parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+
+          <button
+            type="button"
+            onClick={addParkingSpot}
+            className="text-primary-600 hover:text-primary-800 text-sm"
+          >
+            + Añadir parking
+          </button>
+        </div>
+
+        {/* Restaurantes cercanos */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold border-b pb-2">Restaurantes</h3>
+
+          {(formData.restaurants || []).map((restaurant, index) => (
+            <div key={index} className="border border-gray-200 rounded-md p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-600">Restaurante #{index + 1}</span>
+                <button
+                  type="button"
+                  onClick={() => removeRestaurant(index)}
+                  className="text-red-600 text-sm hover:text-red-800"
+                >
+                  Eliminar
+                </button>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Nombre</label>
+                <input
+                  type="text"
+                  value={restaurant?.name || ''}
+                  onChange={(e) => updateRestaurant(index, 'name', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  placeholder="Bar/Restaurante cercano"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Latitud</label>
+                  <input
+                    type="number"
+                    step="0.000001"
+                    value={restaurant?.lat || 0}
+                    onChange={(e) => updateRestaurant(index, 'lat', parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Longitud</label>
+                  <input
+                    type="number"
+                    step="0.000001"
+                    value={restaurant?.lng || 0}
+                    onChange={(e) => updateRestaurant(index, 'lng', parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+
+          <button
+            type="button"
+            onClick={addRestaurant}
+            className="text-primary-600 hover:text-primary-800 text-sm"
+          >
+            + Añadir restaurante
+          </button>
+        </div>
 
           {/* Características */}
           <div className="space-y-4">
@@ -577,13 +890,12 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
             <h3 className="text-lg font-semibold border-b pb-2">Imagen Principal</h3>
             
             <div>
-              <label className="block text-sm font-medium mb-1">URL de la imagen *</label>
+              <label className="block text-sm font-medium mb-1">URL de la imagen</label>
               <input
                 type="url"
                 value={formData.heroImage?.url || ''}
                 onChange={(e) => updateNestedField('heroImage', 'url', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                required
               />
             </div>
 
@@ -597,6 +909,77 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
               />
             </div>
           </div>
+
+        {/* Galería */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold border-b pb-2">Galería</h3>
+
+          {(formData.gallery || []).map((image, index) => (
+            <div key={index} className="border border-gray-200 rounded-md p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-600">Imagen #{index + 1}</span>
+                <button
+                  type="button"
+                  onClick={() => removeGalleryImage(index)}
+                  className="text-red-600 text-sm hover:text-red-800"
+                >
+                  Eliminar
+                </button>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">URL</label>
+                <input
+                  type="url"
+                  value={image?.url || ''}
+                  onChange={(e) => updateGalleryImage(index, 'url', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  placeholder="https://ejemplo.com/imagen.jpg"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Texto alternativo</label>
+                <input
+                  type="text"
+                  value={image?.alt || ''}
+                  onChange={(e) => updateGalleryImage(index, 'alt', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  placeholder="Descripción corta de la imagen"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Ancho (px)</label>
+                  <input
+                    type="number"
+                    value={image?.width || 0}
+                    onChange={(e) => updateGalleryImage(index, 'width', parseInt(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Alto (px)</label>
+                  <input
+                    type="number"
+                    value={image?.height || 0}
+                    onChange={(e) => updateGalleryImage(index, 'height', parseInt(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+
+          <button
+            type="button"
+            onClick={addGalleryImage}
+            className="text-primary-600 hover:text-primary-800 text-sm"
+          >
+            + Añadir imagen
+          </button>
+        </div>
 
           {/* GPX */}
           <div className="space-y-4">
@@ -662,15 +1045,65 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
 
           {/* Storytelling */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-2">Historia/Narrativa (Markdown)</h3>
-            
-            <textarea
-              value={formData.storytelling || ''}
-              onChange={(e) => updateField('storytelling', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm"
-              rows={10}
-              placeholder="# Título&#10;&#10;Contenido en Markdown..."
-            />
+            <div className="flex items-center justify-between border-b pb-2">
+              <h3 className="text-lg font-semibold">Historia/Narrativa (Markdown)</h3>
+              <span className="text-xs text-gray-500">El panel inferior muestra una vista previa en tiempo real</span>
+            </div>
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={() => applyMarkdown('bold')} className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
+                  Negrita
+                </button>
+                <button type="button" onClick={() => applyMarkdown('italic')} className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
+                  Cursiva
+                </button>
+                <button type="button" onClick={() => applyMarkdown('heading')} className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
+                  Título
+                </button>
+                <button type="button" onClick={() => applyMarkdown('list')} className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
+                  Lista
+                </button>
+                <button type="button" onClick={() => applyMarkdown('quote')} className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
+                  Cita
+                </button>
+                <button type="button" onClick={() => applyMarkdown('code')} className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
+                  Código
+                </button>
+                <button type="button" onClick={() => applyMarkdown('link')} className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
+                  Enlace
+                </button>
+                <button type="button" onClick={() => applyMarkdown('break')} className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
+                  Párrafo
+                </button>
+              </div>
+
+              <textarea
+                ref={storytellingRef}
+                value={formData.storytelling || ''}
+                onChange={(e) => updateField('storytelling', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm"
+                rows={12}
+                placeholder="# Título&#10;&#10;Contenido en Markdown..."
+              />
+              <p className="text-xs text-gray-500">
+                Usa Markdown para dar formato: títulos con <code>#</code>, listas con <code>-</code>, negritas <code>**texto**</code>, cursivas <code>*texto*</code> y respeta los saltos de línea para separar párrafos.
+              </p>
+
+              <div className="mt-4 border rounded-md p-4 bg-gray-50">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-semibold text-gray-700">Vista previa</h4>
+                  <span className="text-xs text-gray-500">Así se mostrará en la ruta</span>
+                </div>
+                <div className="prose prose-sm sm:prose lg:prose-lg max-w-none">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm, remarkBreaks]}
+                    components={previewComponents}
+                  >
+                    {formData.storytelling || '*La vista previa aparecerá aquí cuando escribas contenido.*'}
+                  </ReactMarkdown>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Botones */}

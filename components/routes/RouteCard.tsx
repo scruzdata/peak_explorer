@@ -3,28 +3,17 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { Clock, MapPin, TrendingUp, Bookmark, BookmarkCheck } from 'lucide-react'
+import { Clock, MapPin, TrendingUp, Star } from 'lucide-react'
 import { Route } from '@/types'
 import { formatDistance, formatElevation, getDifficultyColor, getFerrataGradeColor } from '@/lib/utils'
-import { useUserProgress } from '@/components/providers/UserProgressProvider'
 
 interface RouteCardProps {
   route: Route
 }
 
 export function RouteCard({ route }: RouteCardProps) {
-  const { isBookmarked, addBookmark, removeBookmark } = useUserProgress()
-  const bookmarked = isBookmarked(route.id)
-
-  const handleBookmark = (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (bookmarked) {
-      removeBookmark(route.id)
-    } else {
-      addBookmark(route.id)
-    }
-  }
+  const hasRating = typeof route.rating === 'number'
+  const ratingValue = hasRating ? Number(route.rating?.toFixed(1)) : null
 
   return (
     <motion.div
@@ -45,18 +34,13 @@ export function RouteCard({ route }: RouteCardProps) {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
           
-          {/* Bookmark Button */}
-          <button
-            onClick={handleBookmark}
-            className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur rounded-full hover:bg-white transition-colors z-10"
-            aria-label={bookmarked ? 'Quitar de favoritos' : 'Añadir a favoritos'}
-          >
-            {bookmarked ? (
-              <BookmarkCheck className="h-5 w-5 text-primary-600" />
-            ) : (
-              <Bookmark className="h-5 w-5 text-gray-700" />
-            )}
-          </button>
+          {/* Rating Badge */}
+          {hasRating && (
+            <div className="absolute top-3 right-3 flex items-center gap-1 rounded-full bg-white/90 px-3 py-1 text-sm font-semibold text-gray-900 shadow z-10">
+              <Star className="h-4 w-4 text-amber-500" fill="currentColor" strokeWidth={1.5} />
+              {ratingValue}
+            </div>
+          )}
 
           {/* Difficulty Badge */}
           <div className="absolute bottom-3 left-3">

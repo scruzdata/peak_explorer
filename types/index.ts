@@ -97,6 +97,7 @@ export interface Route {
   updatedAt: string
   views?: number
   downloads?: number
+  rating?: number
 }
 
 export interface User {
