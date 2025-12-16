@@ -9,11 +9,75 @@ import { formatDistance, formatElevation, getDifficultyColor, getFerrataGradeCol
 
 interface RouteCardProps {
   route: Route
+  compact?: boolean
+  onMouseEnter?: () => void
+  onMouseLeave?: () => void
 }
 
-export function RouteCard({ route }: RouteCardProps) {
+export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave }: RouteCardProps) {
   const hasRating = typeof route.rating === 'number'
   const ratingValue = hasRating ? Number(route.rating?.toFixed(1)) : null
+
+  if (compact) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.5 }}
+        className="group cursor-pointer"
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+      >
+        <Link href={`/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`}>
+          <div className="relative h-48 overflow-hidden rounded-xl mb-2">
+            <Image
+              src={route.heroImage.url}
+              alt={route.heroImage.alt}
+              fill
+              className="object-cover transition-transform duration-500 group-hover:scale-110"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 33vw"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+            
+            {/* Rating Badge */}
+            {hasRating && (
+              <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-white/95 px-2 py-1 text-xs font-semibold text-gray-900 shadow z-10">
+                <Star className="h-3 w-3 text-amber-500" fill="currentColor" strokeWidth={1.5} />
+                {ratingValue}
+              </div>
+            )}
+
+            {/* Difficulty Badge */}
+            <div className="absolute bottom-2 left-2">
+              <span className={`text-xs px-2 py-1 rounded-md font-medium ${getDifficultyColor(route.difficulty)}`}>
+                {route.difficulty}
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <h3 className="text-sm font-semibold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-1">
+              {route.title}
+            </h3>
+            <p className="text-xs text-gray-500 line-clamp-1">
+              {route.location.region}, {route.location.province}
+            </p>
+            <div className="flex items-center gap-3 text-xs text-gray-600 pt-1">
+              <div className="flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                <span>{formatDistance(route.distance)}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <TrendingUp className="h-3 w-3" />
+                <span>{formatElevation(route.elevation)}</span>
+              </div>
+            </div>
+          </div>
+        </Link>
+      </motion.div>
+    )
+  }
 
   return (
     <motion.div
@@ -22,6 +86,8 @@ export function RouteCard({ route }: RouteCardProps) {
       viewport={{ once: true }}
       transition={{ duration: 0.5 }}
       className="card card-hover group"
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       <Link href={`/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`}>
         <div className="relative h-48 overflow-hidden">

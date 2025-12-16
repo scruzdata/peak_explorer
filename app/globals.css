@@ -83,3 +83,8 @@ html {
   @apply outline-2 outline-offset-2 outline-primary-500;
 }
 
+/* Hide footer when scrolling grid in "both" view mode */
+body.hide-footer footer {
+  display: none;
+}
+
