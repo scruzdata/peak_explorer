@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { Route } from '@/types'
+import { Route, WebcamData } from '@/types'
 import { formatDistance, formatElevation, getDifficultyColor, getFerrataGradeColor } from '@/lib/utils'
 import { useUserProgress } from '@/components/providers/UserProgressProvider'
 import { RouteMap } from './RouteMap'
@@ -12,6 +12,7 @@ import { RouteStorytelling } from './RouteStorytelling'
 import { ReadingProgress } from './ReadingProgress'
 import { RouteGallery } from './RouteGallery'
 import { RouteWeather } from './RouteWeather'
+import { TwitterTimeline } from './TwitterTimeline'
 import { 
   Clock, 
   MapPin, 
@@ -40,12 +41,34 @@ export function RouteDetail({ route }: RouteDetailProps) {
   const [showBestSeasonInfo, setShowBestSeasonInfo] = useState(false)
   const [showOrientationInfo, setShowOrientationInfo] = useState(false)
   const [showFoodInfo, setShowFoodInfo] = useState(false)
+  const [selectedWebcamIndex, setSelectedWebcamIndex] = useState(0)
   const bookmarked = isBookmarked(route.id)
   const completed = isCompleted(route.id)
+
+  /**
+   * Normaliza webcams para manejar compatibilidad con formato antiguo (string[])
+   */
+  const normalizedWebcams: WebcamData[] = route.webcams && route.webcams.length > 0
+    ? route.webcams.map((webcam: any, index: number) => {
+        // Si es string (formato antiguo), convertir a WebcamData
+        if (typeof webcam === 'string') {
+          return { title: `Webcam ${index + 1}`, url: webcam }
+        }
+        // Si ya es WebcamData, usar tal cual
+        return webcam
+      })
+    : []
 
   useEffect(() => {
     // Simular incremento de vistas
     // En producción, esto se haría en el servidor
+  }, [route.id])
+
+  /**
+   * Resetea el índice de webcam seleccionada cuando cambia la ruta
+   */
+  useEffect(() => {
+    setSelectedWebcamIndex(0)
   }, [route.id])
 
   const handleBookmark = () => {
@@ -463,6 +486,56 @@ export function RouteDetail({ route }: RouteDetailProps) {
                 lng={route.location.coordinates.lng}
                 useIframe={false}
               />
+
+              {/* Webcams */}
+              {normalizedWebcams.length > 0 && (
+                <div className="rounded-lg border border-gray-200 bg-white p-6">
+                  <h3 className="mb-4 text-lg font-semibold">Webcams</h3>
+                  
+                  {/* Lista de webcams para seleccionar */}
+                  {normalizedWebcams.length > 1 && (
+                    <div className="mb-4 flex flex-wrap gap-2 border-b border-gray-200 pb-4">
+                      {normalizedWebcams.map((webcam, index) => (
+                        <button
+                          key={index}
+                          onClick={() => setSelectedWebcamIndex(index)}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            selectedWebcamIndex === index
+                              ? 'bg-primary-600 text-white'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                        >
+                          {webcam.title || `Webcam ${index + 1}`}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Iframe de la webcam seleccionada */}
+                  <div className="w-full">
+                    {normalizedWebcams[selectedWebcamIndex] && (
+                      <>
+                        <h4 className="mb-2 text-sm font-medium text-gray-700">
+                          {normalizedWebcams[selectedWebcamIndex].title || `Webcam ${selectedWebcamIndex + 1}`}
+                        </h4>
+                        <iframe
+                          src={normalizedWebcams[selectedWebcamIndex].url}
+                          className="w-full rounded-lg border border-gray-200"
+                          style={{ height: '400px' }}
+                          allow="camera; microphone"
+                          loading="lazy"
+                          title={normalizedWebcams[selectedWebcamIndex].title || `Webcam ${selectedWebcamIndex + 1}`}
+                        />
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Twitter Timeline */}
+              {route.twitterHashtag && route.twitterHashtag.trim() && (
+                <TwitterTimeline hashtag={route.twitterHashtag} />
+              )}
 
               {/* Equipment */}
               {route.equipment.length > 0 && (

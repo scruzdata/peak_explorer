@@ -34,6 +34,11 @@ export interface AffiliateLink {
   description?: string
 }
 
+export interface WebcamData {
+  title: string
+  url: string
+}
+
 export interface Route {
   id: string
   slug: string
@@ -87,6 +92,8 @@ export interface Route {
   equipment: AffiliateLink[]
   accommodations: AffiliateLink[]
   safetyTips: string[]
+  webcams?: WebcamData[] // Webcams con título y URL
+  twitterHashtag?: string // Hashtag de Twitter para mostrar timeline
   storytelling: string // Markdown content
   seo: {
     metaTitle: string

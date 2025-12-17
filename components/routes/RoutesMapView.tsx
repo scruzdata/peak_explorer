@@ -119,47 +119,16 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
 
   /**
    * Calcula el viewState inicial para mostrar toda España
+   * Siempre muestra el mapa completo de España independientemente de las rutas
    */
   const initialViewState = useMemo(() => {
-    if (routesWithCoordinates.length === 0) {
-      // Centro de España por defecto
-      return {
-        longitude: -3.7038,
-        latitude: 40.4168,
-        zoom: 6,
-      }
-    }
-
-    // Calcular bounding box de todas las rutas
-    const lats = routesWithCoordinates.map(r => r.location.coordinates.lat)
-    const lngs = routesWithCoordinates.map(r => r.location.coordinates.lng)
-    const minLat = Math.min(...lats)
-    const maxLat = Math.max(...lats)
-    const minLng = Math.min(...lngs)
-    const maxLng = Math.max(...lngs)
-
-    // Calcular centro
-    const centerLat = (minLat + maxLat) / 2
-    const centerLng = (minLng + maxLng) / 2
-
-    // Calcular zoom basado en el área cubierta
-    const latDiff = maxLat - minLat
-    const lngDiff = maxLng - minLng
-    const maxDiff = Math.max(latDiff, lngDiff)
-    
-    let zoom = 6
-    if (maxDiff > 10) zoom = 5
-    else if (maxDiff > 5) zoom = 6
-    else if (maxDiff > 2) zoom = 7
-    else if (maxDiff > 1) zoom = 8
-    else zoom = 9
-
+    // Centro geográfico de España
     return {
-      longitude: centerLng,
-      latitude: centerLat,
-      zoom,
+      longitude: -3.7038, // Madrid (centro aproximado de España)
+      latitude: 40.4168,  // Madrid (centro aproximado de España)
+      zoom: 5,          // Zoom que muestra toda España
     }
-  }, [routesWithCoordinates])
+  }, [])
 
   /**
    * Notifica el viewState inicial cuando el componente se monta

@@ -20,7 +20,7 @@ export function RouteList({ routes, type }: RouteListProps) {
   const [selectedGrade, setSelectedGrade] = useState<FerrataGrade | 'all'>('all')
   const [selectedSeason, setSelectedSeason] = useState<Season | 'all'>('all')
   const [selectedRegion, setSelectedRegion] = useState<string>('all')
-  const [viewMode, setViewMode] = useState<ViewMode>('grid')
+  const [viewMode, setViewMode] = useState<ViewMode>('both')
   const [hoveredRouteId, setHoveredRouteId] = useState<string | null>(null)
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false)
   const [mapViewState, setMapViewState] = useState<{latitude: number; longitude: number; zoom: number} | null>(null)

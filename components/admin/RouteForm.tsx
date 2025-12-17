@@ -5,7 +5,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import type { Components } from 'react-markdown'
-import { Route, RouteType, Difficulty, FerrataGrade, Season, RouteStatus, RouteTypeShape, DogsAllowed } from '@/types'
+import { Route, RouteType, Difficulty, FerrataGrade, Season, RouteStatus, RouteTypeShape, DogsAllowed, WebcamData } from '@/types'
 import { createRouteInFirestore, updateRouteInFirestore } from '@/lib/routes'
 import { saveTrackInFirestore } from '@/lib/firebase/tracks'
 import { generateSlug } from '@/lib/utils'
@@ -28,6 +28,25 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
   const isEditing = !!route && isFirestoreRoute
   const [loading, setLoading] = useState(false)
   
+  /**
+   * Convierte webcams antiguas (string[]) al nuevo formato (WebcamData[])
+   * Mantiene compatibilidad con datos existentes
+   */
+  const normalizeWebcams = (webcams: any): WebcamData[] => {
+    if (!webcams || webcams.length === 0) return []
+    
+    // Si es un array de strings (formato antiguo), convertir a WebcamData[]
+    if (typeof webcams[0] === 'string') {
+      return webcams.map((url: string, index: number) => ({
+        title: `Webcam ${index + 1}`,
+        url: url,
+      }))
+    }
+    
+    // Si ya es WebcamData[], retornar tal cual
+    return webcams
+  }
+
   // Función para inicializar formData desde route
   const initializeFormData = (routeData?: Route): Partial<Route> => ({
     type: routeData?.type || 'trekking',
@@ -70,6 +89,8 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
     equipment: routeData?.equipment || [],
     accommodations: routeData?.accommodations || [],
     safetyTips: routeData?.safetyTips || [],
+    webcams: normalizeWebcams(routeData?.webcams),
+    twitterHashtag: routeData?.twitterHashtag || '',
     storytelling: routeData?.storytelling || '',
     seo: routeData?.seo || {
       metaTitle: '',
@@ -171,6 +192,8 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
           equipment: dataToSave.equipment || [],
           accommodations: dataToSave.accommodations || [],
           safetyTips: dataToSave.safetyTips || [],
+          webcams: dataToSave.webcams || [],
+          twitterHashtag: dataToSave.twitterHashtag || '',
           storytelling: dataToSave.storytelling || '',
           seo: dataToSave.seo || {
             metaTitle: '',
@@ -307,6 +330,49 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
       const tips = [...(prev.safetyTips || [])]
       tips.splice(index, 1)
       return { ...prev, safetyTips: tips }
+    })
+  }
+
+  /**
+   * Añade una nueva webcam al formulario
+   */
+  const addWebcam = () => {
+    setFormData(prev => ({
+      ...prev,
+      webcams: [...(prev.webcams || []), { title: '', url: '' }],
+    }))
+  }
+
+  /**
+   * Actualiza el título de una webcam en el índice especificado
+   */
+  const updateWebcamTitle = (index: number, title: string) => {
+    setFormData(prev => {
+      const webcams = [...(prev.webcams || [])]
+      webcams[index] = { ...webcams[index], title }
+      return { ...prev, webcams }
+    })
+  }
+
+  /**
+   * Actualiza la URL de una webcam en el índice especificado
+   */
+  const updateWebcamUrl = (index: number, url: string) => {
+    setFormData(prev => {
+      const webcams = [...(prev.webcams || [])]
+      webcams[index] = { ...webcams[index], url }
+      return { ...prev, webcams }
+    })
+  }
+
+  /**
+   * Elimina una webcam del formulario
+   */
+  const removeWebcam = (index: number) => {
+    setFormData(prev => {
+      const webcams = [...(prev.webcams || [])]
+      webcams.splice(index, 1)
+      return { ...prev, webcams }
     })
   }
 
@@ -1041,6 +1107,71 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
             >
               + Añadir consejo
             </button>
+          </div>
+
+          {/* Webcams */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold border-b pb-2">Webcams</h3>
+            <p className="text-sm text-gray-600">
+              Añade webcams con título y URL que se mostrarán en formato iframe. Ejemplo: https://www.meteocam.es/webcam/...
+            </p>
+            
+            {formData.webcams?.map((webcam, index) => (
+              <div key={index} className="space-y-2 p-4 border border-gray-200 rounded-lg">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={webcam.title || ''}
+                    onChange={(e) => updateWebcamTitle(index, e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
+                    placeholder="Título de la webcam (ej: Webcam Pico Veleta)"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeWebcam(index)}
+                    className="px-3 py-2 text-red-600 hover:text-red-800 whitespace-nowrap"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+                <input
+                  type="url"
+                  value={webcam.url || ''}
+                  onChange={(e) => updateWebcamUrl(index, e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  placeholder="https://ejemplo.com/webcam"
+                />
+              </div>
+            ))}
+            
+            <button
+              type="button"
+              onClick={addWebcam}
+              className="text-primary-600 hover:text-primary-800 text-sm"
+            >
+              + Añadir webcam
+            </button>
+          </div>
+
+          {/* Twitter Hashtag */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold border-b pb-2">Twitter Hashtag</h3>
+            <p className="text-sm text-gray-600">
+              Añade un hashtag de Twitter para mostrar un timeline con las noticias más recientes relacionadas con la ruta. Ejemplo: #PicoVeleta o #Mulhacen
+            </p>
+            <div>
+              <label className="block text-sm font-medium mb-1">Hashtag de Twitter</label>
+              <input
+                type="text"
+                value={formData.twitterHashtag || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, twitterHashtag: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="#NombreRuta"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                El hashtag se mostrará sin el símbolo # si lo incluyes. Ejemplo: escribe "PicoVeleta" o "#PicoVeleta"
+              </p>
+            </div>
           </div>
 
           {/* Storytelling */}
