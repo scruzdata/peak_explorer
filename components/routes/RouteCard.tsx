@@ -12,9 +12,10 @@ interface RouteCardProps {
   compact?: boolean
   onMouseEnter?: () => void
   onMouseLeave?: () => void
+  isHovered?: boolean
 }
 
-export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave }: RouteCardProps) {
+export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, isHovered = false }: RouteCardProps) {
   const hasRating = typeof route.rating === 'number'
   const ratingValue = hasRating ? Number(route.rating?.toFixed(1)) : null
 
@@ -25,11 +26,13 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave }
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.5 }}
-        className="group cursor-pointer"
+        className={`group cursor-pointer transition-all duration-300 ${
+          isHovered ? 'ring-2 ring-primary-500 ring-offset-2 rounded-xl scale-105 shadow-lg' : ''
+        }`}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
       >
-        <Link href={`/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`}>
+        <Link href={`/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`} target="_blank" rel="noopener noreferrer">
           <div className="relative h-48 overflow-hidden rounded-xl mb-2">
             <Image
               src={route.heroImage.url}
@@ -85,11 +88,13 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave }
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.5 }}
-      className="card card-hover group"
+      className={`card card-hover group transition-all duration-300 ${
+        isHovered ? 'ring-2 ring-primary-500 ring-offset-2 scale-105 shadow-xl' : ''
+      }`}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
-      <Link href={`/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`}>
+      <Link href={`/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`} target="_blank" rel="noopener noreferrer">
         <div className="relative h-48 overflow-hidden">
           <Image
             src={route.heroImage.url}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { Route, Difficulty, FerrataGrade, Season } from '@/types'
 import { RouteCard } from './RouteCard'
 import { RouteFilters } from './RouteFilters'
@@ -23,15 +23,89 @@ export function RouteList({ routes, type }: RouteListProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [hoveredRouteId, setHoveredRouteId] = useState<string | null>(null)
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false)
+  const [mapViewState, setMapViewState] = useState<{latitude: number; longitude: number; zoom: number} | null>(null)
+  const [debouncedViewState, setDebouncedViewState] = useState<{latitude: number; longitude: number; zoom: number} | null>(null)
   const gridEndRef = useRef<HTMLDivElement>(null)
   const gridContainerRef = useRef<HTMLDivElement>(null)
+  const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const regions = useMemo(() => {
     const uniqueRegions = new Set(routes.map(r => r.location.region))
     return Array.from(uniqueRegions).sort()
   }, [routes])
 
-  const filteredRoutes = useMemo(() => {
+  /**
+   * Debounce del viewState del mapa para suavizar la actualización de la cuadrícula
+   */
+  useEffect(() => {
+    // Limpiar timeout anterior si existe
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current)
+    }
+
+    // Si no hay viewState, actualizar inmediatamente
+    if (!mapViewState) {
+      setDebouncedViewState(null)
+      return
+    }
+
+    // Aplicar debounce de 300ms
+    debounceTimeoutRef.current = setTimeout(() => {
+      setDebouncedViewState(mapViewState)
+    }, 300)
+
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current)
+      }
+    }
+  }, [mapViewState])
+
+  /**
+   * Calcula si una ruta está dentro del viewport del mapa basándose en el viewState
+   * Usa una aproximación simple basada en el zoom level con un margen adicional para capturar rutas en los bordes
+   */
+  const isRouteInViewport = useCallback((route: Route, viewState: {latitude: number; longitude: number; zoom: number}): boolean => {
+    if (!route.location?.coordinates?.lat || !route.location?.coordinates?.lng) {
+      return false
+    }
+
+    const { latitude: centerLat, longitude: centerLng, zoom } = viewState
+    
+    // Calcular el rango visible basándose en el zoom
+    // Aproximación: a mayor zoom, menor es el área visible
+    // Fórmula simplificada que funciona bien para España (latitud ~40°)
+    const baseLatRange = 180 / Math.pow(2, zoom)
+    const baseLngRange = 360 / Math.pow(2, zoom)
+    
+    // Ajustar por el aspect ratio del viewport (el mapa en modo "both" es más alto que ancho)
+    // Asumiendo un viewport de aproximadamente 600px x 800px (ratio ~0.75)
+    const aspectRatio = 0.75
+    let latRange = baseLatRange / aspectRatio
+    let lngRange = baseLngRange
+    
+    // Añadir un margen del 40% para capturar rutas que están parcialmente visibles en los bordes
+    const margin = 1.2
+    latRange = latRange * margin
+    lngRange = lngRange * margin
+    
+    // Calcular los límites del viewport
+    const minLat = centerLat - latRange / 2
+    const maxLat = centerLat + latRange / 2
+    const minLng = centerLng - lngRange / 2
+    const maxLng = centerLng + lngRange / 2
+    
+    // Verificar si la ruta está dentro del viewport
+    const routeLat = route.location.coordinates.lat
+    const routeLng = route.location.coordinates.lng
+    
+    return routeLat >= minLat && routeLat <= maxLat && routeLng >= minLng && routeLng <= maxLng
+  }, [])
+
+  /**
+   * Rutas filtradas sin el filtro de viewport (para el mapa)
+   */
+  const filteredRoutesForMap = useMemo(() => {
     return routes.filter(route => {
       // Search filter
       if (searchQuery) {
@@ -69,6 +143,21 @@ export function RouteList({ routes, type }: RouteListProps) {
       return true
     })
   }, [routes, searchQuery, selectedDifficulty, selectedGrade, selectedSeason, selectedRegion, type])
+
+  /**
+   * Rutas filtradas con el filtro de viewport (para la cuadrícula en modo "both")
+   * Usa el viewState con debounce para suavizar las actualizaciones
+   */
+  const filteredRoutes = useMemo(() => {
+    let routesToFilter = filteredRoutesForMap
+
+    // Aplicar filtro de viewport solo en modo "both"
+    if (viewMode === 'both' && debouncedViewState) {
+      routesToFilter = routesToFilter.filter(route => isRouteInViewport(route, debouncedViewState))
+    }
+
+    return routesToFilter
+  }, [filteredRoutesForMap, viewMode, debouncedViewState, isRouteInViewport])
 
   /**
    * Detecta cuando se ha llegado al final del scroll del grid en modo "both"
@@ -245,70 +334,99 @@ export function RouteList({ routes, type }: RouteListProps) {
 
       {/* Results Count */}
       <div className={`${viewMode === 'both' ? 'px-4 sm:px-6 lg:px-8' : ''} mb-6 text-sm text-gray-600`}>
-        Mostrando {filteredRoutes.length} de {routes.length} rutas
+        {viewMode === 'both' ? (
+          <>
+            {filteredRoutes.length > 0 ? (
+              <>Mostrando {filteredRoutes.length} {filteredRoutes.length === 1 ? 'ruta' : 'rutas'} visible{filteredRoutes.length === 1 ? '' : 's'} en el mapa</>
+            ) : (
+              <>No hay rutas visibles en esta zona del mapa</>
+            )}
+            {filteredRoutesForMap.length > 0 && filteredRoutes.length !== filteredRoutesForMap.length && (
+              <span className="text-gray-500"> ({filteredRoutesForMap.length} {filteredRoutesForMap.length === 1 ? 'ruta' : 'rutas'} en total)</span>
+            )}
+          </>
+        ) : (
+          <>Mostrando {filteredRoutes.length} de {routes.length} rutas</>
+        )}
       </div>
 
       {/* Content based on view mode */}
-      {filteredRoutes.length > 0 ? (
+      {viewMode === 'both' ? (
+        // Modo "both": siempre mostrar mapa y cuadrícula, incluso si la cuadrícula está vacía
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 h-[calc(100vh-280px)]">
+          {/* Grid View - Left side - 3 columnas compactas estilo Airbnb */}
+          <div 
+            ref={gridContainerRef}
+            className="overflow-y-auto px-4 sm:px-6 lg:px-8 py-4"
+          >
+            {filteredRoutes.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredRoutes.map((route) => (
+                  <RouteCard 
+                    key={route.id} 
+                    route={route} 
+                    compact={true}
+                    isHovered={hoveredRouteId === route.id}
+                    onMouseEnter={() => setHoveredRouteId(route.id)}
+                    onMouseLeave={() => setHoveredRouteId(null)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-gray-500 text-center">
+                  No hay rutas visibles en esta zona del mapa
+                </p>
+              </div>
+            )}
+            {/* Elemento invisible al final para detectar el scroll */}
+            <div ref={gridEndRef} className="h-1 w-full" />
+          </div>
+          {/* Map View - Right side */}
+          <div className="hidden lg:block overflow-hidden h-full px-4 pb-6">
+            <RoutesMapView 
+              routes={filteredRoutesForMap} 
+              type={type} 
+              fullHeight={true}
+              hoveredRouteId={hoveredRouteId}
+              onViewStateChange={setMapViewState}
+              onMarkerHover={setHoveredRouteId}
+            />
+          </div>
+          {/* Map View - Mobile: mostrar debajo del grid */}
+          <div className="lg:hidden h-[400px] px-4 sm:px-6">
+            <RoutesMapView 
+              routes={filteredRoutesForMap} 
+              type={type}
+              hoveredRouteId={hoveredRouteId}
+              onMarkerHover={setHoveredRouteId}
+            />
+          </div>
+        </div>
+      ) : filteredRoutes.length > 0 ? (
+        // Modos "map" o "grid" individuales: solo mostrar si hay rutas
         <>
-          {viewMode === 'both' ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 h-[calc(100vh-280px)]">
-              {/* Grid View - Left side - 3 columnas compactas estilo Airbnb */}
-              <div 
-                ref={gridContainerRef}
-                className="overflow-y-auto px-4 sm:px-6 lg:px-8 py-4"
-              >
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredRoutes.map((route) => (
-                    <RouteCard 
-                      key={route.id} 
-                      route={route} 
-                      compact={true}
-                      onMouseEnter={() => setHoveredRouteId(route.id)}
-                      onMouseLeave={() => setHoveredRouteId(null)}
-                    />
-                  ))}
-                </div>
-                {/* Elemento invisible al final para detectar el scroll */}
-                <div ref={gridEndRef} className="h-1 w-full" />
-              </div>
-              {/* Map View - Right side */}
-              <div className="hidden lg:block overflow-hidden h-full">
-                <RoutesMapView 
-                  routes={filteredRoutes} 
-                  type={type} 
-                  fullHeight={true}
-                  hoveredRouteId={hoveredRouteId}
+          {/* Map View Only */}
+          {viewMode === 'map' && (
+            <RoutesMapView routes={filteredRoutes} type={type} />
+          )}
+          {/* Grid View Only */}
+          {viewMode === 'grid' && (
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+              {filteredRoutes.map((route) => (
+                <RouteCard 
+                  key={route.id} 
+                  route={route}
+                  isHovered={hoveredRouteId === route.id}
+                  onMouseEnter={() => setHoveredRouteId(route.id)}
+                  onMouseLeave={() => setHoveredRouteId(null)}
                 />
-              </div>
-              {/* Map View - Mobile: mostrar debajo del grid */}
-              <div className="lg:hidden h-[400px] px-4 sm:px-6">
-                <RoutesMapView routes={filteredRoutes} type={type} />
-              </div>
+              ))}
             </div>
-          ) : (
-            <>
-              {/* Map View Only */}
-              {viewMode === 'map' && (
-                <RoutesMapView routes={filteredRoutes} type={type} />
-              )}
-              {/* Grid View Only */}
-              {viewMode === 'grid' && (
-                <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-                  {filteredRoutes.map((route) => (
-                    <RouteCard 
-                      key={route.id} 
-                      route={route}
-                      onMouseEnter={() => setHoveredRouteId(route.id)}
-                      onMouseLeave={() => setHoveredRouteId(null)}
-                    />
-                  ))}
-                </div>
-              )}
-            </>
           )}
         </>
       ) : (
+        // Mensaje cuando no hay rutas (solo en modos individuales, no en "both")
         <div className="py-12 text-center">
           <p className="text-lg text-gray-600">No se encontraron rutas con los filtros seleccionados.</p>
           <button

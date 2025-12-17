@@ -30,13 +30,15 @@ interface RoutesMapViewProps {
   type: 'trekking' | 'ferrata'
   fullHeight?: boolean
   hoveredRouteId?: string | null
+  onViewStateChange?: (viewState: {latitude: number; longitude: number; zoom: number} | null) => void
+  onMarkerHover?: (routeId: string | null) => void
 }
 
 /**
  * Componente que muestra todas las rutas en un mapa de España usando Mapbox
  * Muestra el POI principal de cada ruta y permite navegar al detalle
  */
-export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId = null }: RoutesMapViewProps) {
+export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId = null, onViewStateChange, onMarkerHover }: RoutesMapViewProps) {
   const router = useRouter()
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null)
   const [mapStyle, setMapStyle] = useState<'satellite-streets-v12' | 'outdoors-v12'>('outdoors-v12')
@@ -58,11 +60,11 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
     style.textContent = `
       .mapboxgl-popup-content {
         padding: 0 !important;
-        max-width: 220px !important;
-        width: 200px !important;
+        max-width: 180px !important;
+        width: 160px !important;
         overflow: hidden !important;
         box-sizing: border-box !important;
-        border-radius: 12px !important;
+        border-radius: 10px !important;
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15) !important;
       }
       .mapboxgl-popup-content > * {
@@ -160,7 +162,17 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
   }, [routesWithCoordinates])
 
   /**
+   * Notifica el viewState inicial cuando el componente se monta
+   */
+  useEffect(() => {
+    if (initialViewState && onViewStateChange) {
+      onViewStateChange(initialViewState)
+    }
+  }, [initialViewState, onViewStateChange])
+
+  /**
    * Calcula el anchor del popup basado en la posición del marcador en el viewport
+   * Considera la altura del popup para evitar que se corte
    */
   useEffect(() => {
     if (!selectedRoute || !viewState) {
@@ -174,26 +186,34 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
     // Calcular la distancia en grados desde el centro del viewport
     // A mayor zoom, menor es el área visible
     const latRange = 180 / Math.pow(2, zoom)
-    const distanceFromCenter = Math.abs(markerLat - viewportLat)
+    const distanceFromCenter = markerLat - viewportLat
     
-    // Si el marcador está en el 30% superior del viewport, usar anchor 'top'
-    // Si está en el 30% inferior, usar 'bottom'
-    // Si está en el medio, usar 'bottom' por defecto
-    if (distanceFromCenter > latRange * 0.3 && markerLat > viewportLat) {
+    // El popup tiene aproximadamente 200px de altura (imagen 144px + contenido ~60px)
+    // Necesitamos calcular cuántos grados representa esto en el viewport actual
+    // Aproximadamente, a zoom 6, 1 grado ≈ 111km, y el viewport muestra ~10-15 grados
+    // Usar un umbral más conservador (40% en lugar de 25%) para asegurar espacio suficiente
+    const threshold = latRange * 0.08
+    
+    // Prioridad: primero verificar si está cerca del borde superior
+    // Si el marcador está en el 40% superior, SIEMPRE usar 'top' (popup debajo)
+    if (distanceFromCenter > threshold) {
+      // Marcador está en la parte superior -> popup debe aparecer debajo
       setPopupAnchor('top')
-    } else if (distanceFromCenter > latRange * 0.3 && markerLat < viewportLat) {
+    } else if (distanceFromCenter < -threshold) {
+      // Marcador está en la parte inferior -> popup debe aparecer arriba
       setPopupAnchor('bottom')
     } else {
-      // Si está cerca del borde izquierdo o derecho, usar 'left' o 'right'
+      // Si está en el medio, verificar los bordes laterales
       const markerLng = selectedRoute.location.coordinates.lng
       const viewportLng = viewState.longitude
       const lngRange = 360 / Math.pow(2, zoom)
-      const lngDistance = Math.abs(markerLng - viewportLng)
+      const lngDistance = markerLng - viewportLng
+      const lngThreshold = lngRange * 0.35
       
-      if (lngDistance > lngRange * 0.4) {
+      if (Math.abs(lngDistance) > lngThreshold) {
         // Si el marcador está a la izquierda del centro, el popup debe aparecer a la derecha
         // Si el marcador está a la derecha del centro, el popup debe aparecer a la izquierda
-        if (markerLng < viewportLng) {
+        if (lngDistance < 0) {
           // Marcador a la izquierda -> popup a la derecha del marcador
           setPopupAnchor('left')
         } else {
@@ -201,18 +221,19 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
           setPopupAnchor('right')
         }
       } else {
+        // Por defecto, popup abajo (más seguro que arriba)
         setPopupAnchor('bottom')
       }
     }
   }, [selectedRoute, viewState])
 
   /**
-   * Maneja el click en un marcador para navegar al detalle de la ruta
+   * Maneja el click en un marcador para navegar al detalle de la ruta en una nueva pestaña
    */
   const handleMarkerClick = useCallback((route: Route) => {
     const url = `/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`
-    router.push(url)
-  }, [router])
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }, [])
 
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 
@@ -230,10 +251,13 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
   }
 
   return (
-    <div className={`relative w-full overflow-hidden border border-gray-200 ${fullHeight ? 'h-full rounded-none' : 'h-[600px] rounded-lg'}`}>
+    <div className={`relative w-full overflow-hidden border border-gray-200 ${fullHeight ? 'h-full rounded-lg' : 'h-[600px] rounded-lg'}`}>
       <Map
         initialViewState={initialViewState}
-        onMove={(evt: any) => setViewState(evt.viewState)}
+        onMove={(evt: any) => {
+          setViewState(evt.viewState)
+          onViewStateChange?.(evt.viewState)
+        }}
         style={{ width: '100%', height: '100%' }}
         mapStyle={`mapbox://styles/mapbox/${mapStyle}`}
         mapboxAccessToken={mapboxToken}
@@ -253,7 +277,11 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
                 setSelectedRoute(route)
               }}
             >
-              <div className="relative cursor-pointer group">
+              <div 
+                className="relative cursor-pointer group"
+                onMouseEnter={() => onMarkerHover?.(route.id)}
+                onMouseLeave={() => onMarkerHover?.(null)}
+              >
                 <div className={`p-2 rounded-full bg-white shadow-lg border-2 transition-all duration-300 ${
                   isHovered 
                     ? 'scale-150 border-primary-600 shadow-xl z-50' 
@@ -297,37 +325,38 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
             longitude={selectedRoute.location.coordinates.lng}
             latitude={selectedRoute.location.coordinates.lat}
             anchor={popupAnchor}
+            offset={popupAnchor === 'top' ? [0, 15] : popupAnchor === 'bottom' ? [0, -15] : popupAnchor === 'left' ? [10, 0] : [-10, 0]}
             onClose={() => setSelectedRoute(null)}
             closeButton={true}
-            closeOnClick={false}
+            closeOnClick={true}
           >
-            <div className="w-full max-w-full overflow-hidden rounded-xl bg-white box-border">
+            <div className="w-full max-w-full overflow-hidden rounded-lg bg-white box-border">
               {/* Imagen de la ruta - ocupa todo el ancho y parte superior */}
-              <div className="relative h-36 w-full overflow-hidden box-border rounded-t-xl">
+              <div className="relative h-28 w-full overflow-hidden box-border rounded-t-lg">
                 <Image
                   src={selectedRoute.heroImage.url}
                   alt={selectedRoute.heroImage.alt}
                   fill
                   className="object-cover"
-                  sizes="200px"
+                  sizes="160px"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
                 
                 {/* Rating Badge - esquina superior derecha */}
                 {selectedRoute.rating && typeof selectedRoute.rating === 'number' && (
-                  <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-white/95 backdrop-blur-sm px-2 py-1 text-xs font-semibold text-gray-900 shadow-lg border border-gray-200 z-10">
-                    <Star className="h-3 w-3 text-amber-500" fill="currentColor" strokeWidth={1.5} />
+                  <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 rounded-full bg-white/95 backdrop-blur-sm px-1.5 py-0.5 text-[10px] font-semibold text-gray-900 shadow-lg border border-gray-200 z-10">
+                    <Star className="h-2.5 w-2.5 text-amber-500" fill="currentColor" strokeWidth={1.5} />
                     <span>{selectedRoute.rating.toFixed(1)}</span>
                   </div>
                 )}
                 
                 {/* Badges de dificultad - esquina inferior izquierda */}
-                <div className="absolute bottom-2 left-2 flex items-center gap-1.5 z-10">
-                  <span className={`text-xs px-2 py-0.5 rounded-md font-medium shadow-sm ${getDifficultyColor(selectedRoute.difficulty)}`}>
+                <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 z-10">
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium shadow-sm ${getDifficultyColor(selectedRoute.difficulty)}`}>
                     {selectedRoute.difficulty}
                   </span>
                   {selectedRoute.ferrataGrade && (
-                    <span className="text-xs px-2 py-0.5 rounded-md font-medium bg-blue-100 text-blue-800 shadow-sm">
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-md font-medium bg-blue-100 text-blue-800 shadow-sm">
                       {selectedRoute.ferrataGrade}
                     </span>
                   )}
@@ -335,15 +364,15 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
               </div>
               
               {/* Contenido del popup */}
-              <div className="p-3 w-full box-border">
-                <h3 className="font-bold text-gray-900 mb-1 line-clamp-1 w-full text-sm leading-tight">{selectedRoute.title}</h3>
-                <p className="text-xs text-gray-600 mb-2 line-clamp-2 w-full leading-snug">{selectedRoute.summary}</p>
-                <p className="text-xs text-gray-500 mb-3 w-full">
+              <div className="p-2 w-full box-border">
+                <h3 className="font-bold text-gray-900 mb-0.5 line-clamp-1 w-full text-xs leading-tight">{selectedRoute.title}</h3>
+                <p className="text-[10px] text-gray-600 mb-1.5 line-clamp-2 w-full leading-snug">{selectedRoute.summary}</p>
+                <p className="text-[10px] text-gray-500 mb-2 w-full">
                   {selectedRoute.location.region}, {selectedRoute.location.province}
                 </p>
                 <button
                   onClick={() => handleMarkerClick(selectedRoute)}
-                  className="w-full px-3 py-2 bg-primary-600 text-white text-xs font-semibold rounded-lg hover:bg-primary-700 transition-all duration-200 box-border shadow-sm hover:shadow-md"
+                  className="w-full px-2 py-1.5 bg-primary-600 text-white text-[10px] font-semibold rounded-md hover:bg-primary-700 transition-all duration-200 box-border shadow-sm hover:shadow-md"
                 >
                   Ver detalles
                 </button>
