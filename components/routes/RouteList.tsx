@@ -262,22 +262,40 @@ export function RouteList({ routes, type }: RouteListProps) {
   return (
     <div className={viewMode === 'both' ? 'w-full' : 'mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8'}>
       {/* Search and Filters */}
-      <div className={`${viewMode === 'both' ? 'px-4 sm:px-6 lg:px-8 pt-6' : ''} mb-8 space-y-4`}>
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-          {/* Search Bar */}
-          <div className="relative flex-1 w-full sm:max-w-md">
-            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Buscar rutas..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 pl-10 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
+      <div className={`${viewMode === 'both' ? 'px-4 sm:px-6 lg:px-8 pt-6' : ''} mb-8`}>
+        <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-end justify-between">
+          <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-end flex-1">
+            {/* Search Bar */}
+            <div className="relative flex-1 w-full lg:max-w-md">
+              <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Buscar rutas..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 pl-10 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+
+            {/* Filters */}
+            <div className="flex-1 lg:flex-none">
+              <RouteFilters
+                type={type}
+                selectedDifficulty={selectedDifficulty}
+                selectedGrade={selectedGrade}
+                selectedSeason={selectedSeason}
+                selectedRegion={selectedRegion}
+                regions={regions}
+                onDifficultyChange={setSelectedDifficulty}
+                onGradeChange={setSelectedGrade}
+                onSeasonChange={setSelectedSeason}
+                onRegionChange={setSelectedRegion}
+              />
+            </div>
           </div>
 
           {/* View Mode Toggle */}
-          <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+          <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1 lg:flex-shrink-0">
             <button
               onClick={() => setViewMode('grid')}
               className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
@@ -316,20 +334,6 @@ export function RouteList({ routes, type }: RouteListProps) {
             </button>
           </div>
         </div>
-
-        {/* Filters */}
-        <RouteFilters
-          type={type}
-          selectedDifficulty={selectedDifficulty}
-          selectedGrade={selectedGrade}
-          selectedSeason={selectedSeason}
-          selectedRegion={selectedRegion}
-          regions={regions}
-          onDifficultyChange={setSelectedDifficulty}
-          onGradeChange={setSelectedGrade}
-          onSeasonChange={setSelectedSeason}
-          onRegionChange={setSelectedRegion}
-        />
       </div>
 
       {/* Results Count */}
