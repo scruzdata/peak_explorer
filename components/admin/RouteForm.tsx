@@ -366,6 +366,17 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
   }
 
   /**
+   * Actualiza el código HTML de una webcam en el índice especificado
+   */
+  const updateWebcamHtml = (index: number, html: string) => {
+    setFormData(prev => {
+      const webcams = [...(prev.webcams || [])]
+      webcams[index] = { ...webcams[index], html: html || undefined }
+      return { ...prev, webcams }
+    })
+  }
+
+  /**
    * Elimina una webcam del formulario
    */
   const removeWebcam = (index: number) => {
@@ -1015,6 +1026,17 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-medium mb-1">Fuente (Opcional)</label>
+                <input
+                  type="text"
+                  value={image?.source || ''}
+                  onChange={(e) => updateGalleryImage(index, 'source', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  placeholder="Ej: Wikiloc, AllTrails, etc."
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Ancho (px)</label>
@@ -1113,7 +1135,7 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold border-b pb-2">Webcams</h3>
             <p className="text-sm text-gray-600">
-              Añade webcams con título y URL que se mostrarán en formato iframe. Ejemplo: https://www.meteocam.es/webcam/...
+              Añade webcams con título y URL (iframe) o código HTML directamente. Si añades código HTML, se renderizará en lugar del iframe.
             </p>
             
             {formData.webcams?.map((webcam, index) => (
@@ -1139,8 +1161,18 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
                   value={webcam.url || ''}
                   onChange={(e) => updateWebcamUrl(index, e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  placeholder="https://ejemplo.com/webcam"
+                  placeholder="https://ejemplo.com/webcam (para iframe)"
                 />
+                <textarea
+                  value={webcam.html || ''}
+                  onChange={(e) => updateWebcamHtml(index, e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm"
+                  placeholder="Código HTML opcional (ej: &lt;a href=&quot;...&quot;&gt;&lt;img src=&quot;...&quot;&gt;&lt;/a&gt;)"
+                  rows={3}
+                />
+                <p className="text-xs text-gray-500">
+                  Si añades código HTML, se usará en lugar de la URL. Deja vacío para usar el iframe con la URL.
+                </p>
               </div>
             ))}
             

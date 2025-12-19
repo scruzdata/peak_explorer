@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
     
     const params = new URLSearchParams({
       query: query,
-      max_results: '10',
+      max_results: '5',
       'tweet.fields': 'created_at,author_id,public_metrics',
       'user.fields': 'name,username,profile_image_url',
       expansions: 'author_id',

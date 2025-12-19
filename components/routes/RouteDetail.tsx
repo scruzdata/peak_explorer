@@ -209,53 +209,62 @@ export function RouteDetail({ route }: RouteDetailProps) {
         </div>
 
         {/* Main Content */}
-        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 gap-12 lg:grid-cols-3">
+        <div className="mx-auto max-w-[95rem] px-4 py-12 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+            {/* Twitter Timeline - Left Sidebar */}
+            {route.twitterHashtag && route.twitterHashtag.trim() && (
+              <aside className="lg:col-span-3 order-1 lg:order-1">
+                <div className="sticky top-24">
+                  <TwitterTimeline hashtag={route.twitterHashtag} />
+                </div>
+              </aside>
+            )}
+
             {/* Main Column */}
-            <div className="lg:col-span-2 space-y-12">
+            <div className={`space-y-12 ${route.twitterHashtag && route.twitterHashtag.trim() ? 'lg:col-span-6 order-2 lg:order-2' : 'lg:col-span-7 order-2 lg:order-2'}`}>
               {/* Stats */}
-              <section className="space-y-3">
+              <section className="space-y-2">
                 {/* Primera fila */}
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                  <div className="rounded-lg bg-gray-50 p-3">
-                    <div className="mb-0.5 text-xs text-gray-600">Distancia</div>
-                    <div className="text-lg font-bold text-gray-900">
+                <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                  <div className="rounded-lg bg-gray-50 p-2">
+                    <div className="mb-0.5 text-[10px] text-gray-600">Distancia</div>
+                    <div className="text-sm font-bold text-gray-900">
                       {formatDistance(route.distance)}
                     </div>
                   </div>
-                  <div className="rounded-lg bg-gray-50 p-3">
-                    <div className="mb-0.5 text-xs text-gray-600">Desnivel</div>
-                    <div className="text-lg font-bold text-gray-900">
+                  <div className="rounded-lg bg-gray-50 p-2">
+                    <div className="mb-0.5 text-[10px] text-gray-600">Desnivel</div>
+                    <div className="text-sm font-bold text-gray-900">
                       {formatElevation(route.elevation)}
                     </div>
                   </div>
-                  <div className="rounded-lg bg-gray-50 p-3">
-                    <div className="mb-0.5 text-xs text-gray-600">Duración</div>
-                    <div className="text-lg font-bold text-gray-900">
+                  <div className="rounded-lg bg-gray-50 p-2">
+                    <div className="mb-0.5 text-[10px] text-gray-600">Duración</div>
+                    <div className="text-sm font-bold text-gray-900">
                       {route.duration}
                     </div>
                   </div>
-                  <div className="rounded-lg bg-gray-50 p-3">
-                    <div className="mb-0.5 text-xs text-gray-600">Estado</div>
-                    <div className="text-lg font-bold text-gray-900">
+                  <div className="rounded-lg bg-gray-50 p-2">
+                    <div className="mb-0.5 text-[10px] text-gray-600">Estado</div>
+                    <div className="text-sm font-bold text-gray-900">
                       {route.status}
                     </div>
                   </div>
                 </div>
                 {/* Segunda fila */}
                 {(route.routeType || route.dogs) && (
-                  <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                  <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
                     {route.routeType && (
-                      <div className="rounded-lg bg-gray-50 p-3">
-                        <div className="mb-0.5 text-xs text-gray-600">Tipo de ruta</div>
-                        <div className="text-lg font-bold text-gray-900">
+                      <div className="rounded-lg bg-gray-50 p-2">
+                        <div className="mb-0.5 text-[10px] text-gray-600">Tipo de ruta</div>
+                        <div className="text-sm font-bold text-gray-900">
                           {route.routeType}
                         </div>
                       </div>
                     )}
                     {route.dogs && (
-                      <div className="rounded-lg bg-gray-50 p-3 relative">
-                        <div className="mb-0.5 text-xs text-gray-600 flex items-center gap-1">
+                      <div className="rounded-lg bg-gray-50 p-2 relative">
+                        <div className="mb-0.5 text-[10px] text-gray-600 flex items-center gap-1">
                           Perros
                           {route.dogs === 'Atados' && (
                             <div 
@@ -268,7 +277,7 @@ export function RouteDetail({ route }: RouteDetailProps) {
                                 className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none flex items-center"
                                 aria-label="Información sobre perros atados"
                               >
-                                <Info className="h-4 w-4" />
+                                <Info className="h-3 w-3" />
                               </button>
                               {showDogsInfo && (
                                 <div className="absolute left-0 top-5 z-50 w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl">
@@ -280,7 +289,7 @@ export function RouteDetail({ route }: RouteDetailProps) {
                             </div>
                           )}
                         </div>
-                        <div className="text-lg font-bold text-gray-900">
+                        <div className="text-sm font-bold text-gray-900">
                           {route.dogs}
                         </div>
                       </div>
@@ -334,8 +343,8 @@ export function RouteDetail({ route }: RouteDetailProps) {
               )}
             </div>
 
-            {/* Sidebar */}
-            <aside className="space-y-6">
+            {/* Right Sidebar */}
+            <aside className={`space-y-6 ${route.twitterHashtag && route.twitterHashtag.trim() ? 'lg:col-span-3 order-3 lg:order-3' : 'lg:col-span-5 order-3 lg:order-3'}`}>
               {/* Info Card */}
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-6">
                 <h3 className="mb-4 text-lg font-semibold">Información</h3>
@@ -511,30 +520,34 @@ export function RouteDetail({ route }: RouteDetailProps) {
                     </div>
                   )}
                   
-                  {/* Iframe de la webcam seleccionada */}
+                  {/* Contenido de la webcam seleccionada (HTML o iframe) */}
                   <div className="w-full">
                     {normalizedWebcams[selectedWebcamIndex] && (
                       <>
                         <h4 className="mb-2 text-sm font-medium text-gray-700">
                           {normalizedWebcams[selectedWebcamIndex].title || `Webcam ${selectedWebcamIndex + 1}`}
                         </h4>
-                        <iframe
-                          src={normalizedWebcams[selectedWebcamIndex].url}
-                          className="w-full rounded-lg border border-gray-200"
-                          style={{ height: '400px' }}
-                          allow="camera; microphone"
-                          loading="lazy"
-                          title={normalizedWebcams[selectedWebcamIndex].title || `Webcam ${selectedWebcamIndex + 1}`}
-                        />
+                        {normalizedWebcams[selectedWebcamIndex].html ? (
+                          // Renderizar código HTML directamente
+                          <div
+                            className="w-full rounded-lg border border-gray-200 p-4"
+                            dangerouslySetInnerHTML={{ __html: normalizedWebcams[selectedWebcamIndex].html! }}
+                          />
+                        ) : (
+                          // Renderizar iframe con la URL
+                          <iframe
+                            src={normalizedWebcams[selectedWebcamIndex].url}
+                            className="w-full rounded-lg border border-gray-200"
+                            style={{ height: '400px' }}
+                            allow="camera; microphone"
+                            loading="lazy"
+                            title={normalizedWebcams[selectedWebcamIndex].title || `Webcam ${selectedWebcamIndex + 1}`}
+                          />
+                        )}
                       </>
                     )}
                   </div>
                 </div>
-              )}
-
-              {/* Twitter Timeline */}
-              {route.twitterHashtag && route.twitterHashtag.trim() && (
-                <TwitterTimeline hashtag={route.twitterHashtag} />
               )}
 
               {/* Equipment */}

@@ -169,19 +169,19 @@ export function TwitterTimeline({ hashtag }: TwitterTimelineProps) {
     // Reemplazar URLs con enlaces
     let formatted = text.replace(
       /(https?:\/\/[^\s]+)/g,
-      '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-[#1DA1F2] hover:underline">$1</a>'
+      '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-[#1DA1F2] hover:underline text-xs">$1</a>'
     )
     
     // Reemplazar hashtags con enlaces
     formatted = formatted.replace(
       /#(\w+)/g,
-      '<a href="https://twitter.com/hashtag/$1" target="_blank" rel="noopener noreferrer" class="text-[#1DA1F2] hover:underline">#$1</a>'
+      '<a href="https://twitter.com/hashtag/$1" target="_blank" rel="noopener noreferrer" class="text-[#1DA1F2] hover:underline text-xs">#$1</a>'
     )
     
     // Reemplazar menciones con enlaces
     formatted = formatted.replace(
       /@(\w+)/g,
-      '<a href="https://twitter.com/$1" target="_blank" rel="noopener noreferrer" class="text-[#1DA1F2] hover:underline">@$1</a>'
+      '<a href="https://twitter.com/$1" target="_blank" rel="noopener noreferrer" class="text-[#1DA1F2] hover:underline text-xs">@$1</a>'
     )
     
     return formatted
@@ -206,35 +206,41 @@ export function TwitterTimeline({ hashtag }: TwitterTimelineProps) {
   const cleanHashtag = hashtag.replace(/^#/, '').trim()
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Noticias de Twitter</h3>
+    <div className="rounded-lg border border-gray-200 bg-white p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-base font-semibold flex items-center gap-2">
+          {/* Icono X (Twitter nuevo) */}
+          <span>Noticias recientes de </span>
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+          </svg>
+        </h3>
         <a
           href={`https://twitter.com/hashtag/${encodeURIComponent(cleanHashtag)}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm text-[#1DA1F2] hover:underline flex items-center gap-1"
+          className="text-xs text-[#1DA1F2] hover:underline flex items-center gap-1"
         >
           Ver más
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
           </svg>
         </a>
       </div>
 
       {isLoading && (
-        <div className="flex items-center justify-center py-8">
-          <div className="text-sm text-gray-500">Cargando tweets...</div>
+        <div className="flex items-center justify-center py-6">
+          <div className="text-xs text-gray-500">Cargando tweets...</div>
         </div>
       )}
 
       {error && (
-        <div className={`p-4 rounded-lg border mb-4 ${
+        <div className={`p-3 rounded-lg border mb-3 ${
           error.includes('rate limit') || error.includes('Demasiadas solicitudes')
             ? 'bg-orange-50 border-orange-200'
             : 'bg-yellow-50 border-yellow-200'
         }`}>
-          <p className={`text-sm ${
+          <p className={`text-xs ${
             error.includes('rate limit') || error.includes('Demasiadas solicitudes')
               ? 'text-orange-800'
               : 'text-yellow-800'
@@ -242,7 +248,7 @@ export function TwitterTimeline({ hashtag }: TwitterTimelineProps) {
             {error}
           </p>
           {!error.includes('rate limit') && !error.includes('Demasiadas solicitudes') && (
-            <p className="text-xs text-yellow-700 mt-2">
+            <p className="text-[10px] text-yellow-700 mt-1.5">
               Asegúrate de configurar TWITTER_BEARER_TOKEN en .env.local
             </p>
           )}
@@ -250,33 +256,33 @@ export function TwitterTimeline({ hashtag }: TwitterTimelineProps) {
       )}
 
       {!isLoading && !error && tweets.length === 0 && (
-        <div className="text-center py-8 text-gray-500 text-sm">
+        <div className="text-center py-6 text-gray-500 text-xs">
           No se encontraron tweets para #{cleanHashtag}
         </div>
       )}
 
       {!isLoading && !error && tweets.length > 0 && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {tweets.map((tweet) => (
             <a
               key={tweet.id}
               href={tweet.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="block p-4 border border-gray-200 rounded-lg hover:border-[#1DA1F2] hover:shadow-md transition-all"
+              className="block p-3 border border-gray-200 rounded-lg hover:border-[#1DA1F2] hover:shadow-md transition-all"
             >
-              <div className="flex gap-3">
+              <div className="flex gap-2">
                 {/* Avatar del usuario */}
                 <div className="flex-shrink-0">
                   {tweet.author.profileImageUrl ? (
                     <img
                       src={tweet.author.profileImageUrl}
                       alt={tweet.author.name}
-                      className="w-10 h-10 rounded-full"
+                      className="w-8 h-8 rounded-full"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
-                      <svg className="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+                    <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                       </svg>
                     </div>
@@ -285,34 +291,34 @@ export function TwitterTimeline({ hashtag }: TwitterTimelineProps) {
 
                 {/* Contenido del tweet */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-gray-900">{tweet.author.name}</span>
-                    <span className="text-gray-500 text-sm">@{tweet.author.username}</span>
-                    <span className="text-gray-400 text-sm">·</span>
-                    <span className="text-gray-500 text-sm">{formatRelativeTime(tweet.createdAt)}</span>
+                  <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                    <span className="font-semibold text-gray-900 text-xs">{tweet.author.name}</span>
+                    <span className="text-gray-500 text-[10px]">@{tweet.author.username}</span>
+                    <span className="text-gray-400 text-[10px]">·</span>
+                    <span className="text-gray-500 text-[10px]">{formatRelativeTime(tweet.createdAt)}</span>
                   </div>
 
                   <p
-                    className="text-gray-900 mb-3 whitespace-pre-wrap break-words"
+                    className="text-gray-900 mb-2 whitespace-pre-wrap break-words text-xs leading-relaxed"
                     dangerouslySetInnerHTML={{ __html: formatTweetText(tweet.text) }}
                   />
 
                   {/* Métricas del tweet */}
-                  <div className="flex items-center gap-4 text-gray-500 text-sm">
-                    <div className="flex items-center gap-1">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="flex items-center gap-3 text-gray-500 text-[10px]">
+                    <div className="flex items-center gap-0.5">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
                       {tweet.metrics.replies}
                     </div>
-                    <div className="flex items-center gap-1">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="flex items-center gap-0.5">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
                       {tweet.metrics.retweets}
                     </div>
-                    <div className="flex items-center gap-1">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="flex items-center gap-0.5">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                       </svg>
                       {tweet.metrics.likes}

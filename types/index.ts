@@ -25,6 +25,7 @@ export interface ImageData {
   width: number
   height: number
   lqip?: string // Low Quality Image Placeholder
+  source?: string // Fuente o atribución de la imagen
 }
 
 export interface AffiliateLink {
@@ -37,6 +38,7 @@ export interface AffiliateLink {
 export interface WebcamData {
   title: string
   url: string
+  html?: string // Código HTML opcional para renderizar directamente (ej: enlaces con imágenes embebidas)
 }
 
 export interface Route {
