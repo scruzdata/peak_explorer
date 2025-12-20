@@ -262,9 +262,9 @@ export function RouteList({ routes, type }: RouteListProps) {
   return (
     <div className={viewMode === 'both' ? 'w-full' : 'mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8'}>
       {/* Search and Filters */}
-      <div className={`${viewMode === 'both' ? 'px-4 sm:px-6 lg:px-8 pt-6' : ''} mb-8`}>
-        <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-end justify-between">
-          <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-end flex-1">
+      <div className={`${viewMode === 'both' ? 'px-4 sm:px-6 lg:px-8 pt-4' : ''} mb-4`}>
+        <div className="flex flex-col lg:flex-row gap-3 items-start lg:items-end justify-between">
+          <div className="flex flex-col lg:flex-row gap-3 items-start lg:items-end flex-1">
             {/* Search Bar */}
             <div className="relative flex-1 w-full lg:max-w-md">
               <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
@@ -273,7 +273,7 @@ export function RouteList({ routes, type }: RouteListProps) {
                 placeholder="Buscar rutas..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 pl-10 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-1.5 pl-10 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
 
@@ -357,7 +357,7 @@ export function RouteList({ routes, type }: RouteListProps) {
       {/* Content based on view mode */}
       {viewMode === 'both' ? (
         // Modo "both": siempre mostrar mapa y cuadrícula, incluso si la cuadrícula está vacía
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 h-[calc(100vh-280px)]">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 h-[calc(100vh-200px)]">
           {/* Grid View - Left side - 3 columnas compactas estilo Airbnb */}
           <div 
             ref={gridContainerRef}

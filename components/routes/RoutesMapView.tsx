@@ -232,61 +232,96 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
         mapboxAccessToken={mapboxToken}
         attributionControl={false}
       >
-        {/* Marcadores para cada ruta */}
-        {routesWithCoordinates.map((route) => {
-          const isHovered = hoveredRouteId === route.id
-          return (
-            <Marker
-              key={route.id}
-              longitude={route.location.coordinates.lng}
-              latitude={route.location.coordinates.lat}
-              anchor="bottom"
-              onClick={(e) => {
-                e.originalEvent.stopPropagation()
-                setSelectedRoute(route)
-              }}
-            >
-              <div 
-                className="relative cursor-pointer group"
-                onMouseEnter={() => onMarkerHover?.(route.id)}
-                onMouseLeave={() => onMarkerHover?.(null)}
+        {/* Marcadores para cada ruta - primero los no hovered */}
+        {routesWithCoordinates
+          .filter(route => hoveredRouteId !== route.id)
+          .map((route) => {
+            return (
+              <Marker
+                key={route.id}
+                longitude={route.location.coordinates.lng}
+                latitude={route.location.coordinates.lat}
+                anchor="bottom"
+                onClick={(e) => {
+                  e.originalEvent.stopPropagation()
+                  setSelectedRoute(route)
+                }}
               >
-                <div className={`p-2 rounded-full bg-white shadow-lg border-2 transition-all duration-300 ${
-                  isHovered 
-                    ? 'scale-150 border-primary-600 shadow-xl z-50' 
-                    : 'group-hover:scale-110'
-                } ${
-                  route.difficulty === 'Fácil' ? isHovered ? 'border-green-600' : 'border-green-600' :
-                  route.difficulty === 'Moderada' ? isHovered ? 'border-orange-600' : 'border-orange-600' :
-                  route.difficulty === 'Difícil' ? isHovered ? 'border-red-600' : 'border-red-600' :
-                  route.difficulty === 'Muy Difícil' ? isHovered ? 'border-purple-600' : 'border-purple-600' :
-                  isHovered ? 'border-gray-600' : 'border-gray-600'
-                }`}>
-                  <Mountain className={`h-5 w-5 transition-all duration-300 ${
-                    isHovered 
-                      ? 'text-primary-600' 
-                      : route.difficulty === 'Fácil' ? 'text-green-600' :
-                        route.difficulty === 'Moderada' ? 'text-orange-600' :
-                        route.difficulty === 'Difícil' ? 'text-red-600' :
-                        route.difficulty === 'Muy Difícil' ? 'text-purple-600' :
-                        'text-gray-600'
-                  }`} />
+                <div 
+                  className="relative cursor-pointer group"
+                  onMouseEnter={() => onMarkerHover?.(route.id)}
+                  onMouseLeave={() => onMarkerHover?.(null)}
+                >
+                  <div className={`p-2 rounded-full bg-white shadow-lg border-2 transition-all duration-300 group-hover:scale-110 ${
+                    route.difficulty === 'Fácil' ? 'border-green-600' :
+                    route.difficulty === 'Moderada' ? 'border-orange-600' :
+                    route.difficulty === 'Difícil' ? 'border-red-600' :
+                    route.difficulty === 'Muy Difícil' ? 'border-purple-600' :
+                    'border-gray-600'
+                  }`}>
+                    <Mountain className={`h-5 w-5 transition-all duration-300 ${
+                      route.difficulty === 'Fácil' ? 'text-green-600' :
+                      route.difficulty === 'Moderada' ? 'text-orange-600' :
+                      route.difficulty === 'Difícil' ? 'text-red-600' :
+                      route.difficulty === 'Muy Difícil' ? 'text-purple-600' :
+                      'text-gray-600'
+                    }`} />
+                  </div>
+                  {/* Tooltip al hover */}
+                  <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg whitespace-nowrap transition-opacity pointer-events-none opacity-0 group-hover:opacity-100 z-10`}>
+                    {route.title}
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                  </div>
                 </div>
-                {/* Tooltip al hover */}
-                <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg whitespace-nowrap transition-opacity pointer-events-none ${
-                  isHovered ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                }`}>
-                  {route.title}
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+              </Marker>
+            )
+          })}
+        
+        {/* Marcador hovered renderizado al final para que aparezca encima */}
+        {hoveredRouteId && routesWithCoordinates
+          .filter(route => hoveredRouteId === route.id)
+          .map((route) => {
+            return (
+              <Marker
+                key={route.id}
+                longitude={route.location.coordinates.lng}
+                latitude={route.location.coordinates.lat}
+                anchor="bottom"
+                onClick={(e) => {
+                  e.originalEvent.stopPropagation()
+                  setSelectedRoute(route)
+                }}
+              >
+                <div 
+                  className="relative cursor-pointer group"
+                  style={{ zIndex: 9999 }}
+                  onMouseEnter={() => onMarkerHover?.(route.id)}
+                  onMouseLeave={() => onMarkerHover?.(null)}
+                >
+                  <div className={`p-2 rounded-full bg-white shadow-lg border-2 transition-all duration-300 scale-150 shadow-xl ${
+                    route.difficulty === 'Fácil' ? 'border-green-600' :
+                    route.difficulty === 'Moderada' ? 'border-orange-600' :
+                    route.difficulty === 'Difícil' ? 'border-red-600' :
+                    route.difficulty === 'Muy Difícil' ? 'border-purple-600' :
+                    'border-gray-600'
+                  }`}
+                  style={{ zIndex: 9999 }}
+                  >
+                    <Mountain className={`h-5 w-5 transition-all duration-300 text-primary-600`} />
+                  </div>
+                  {/* Tooltip siempre visible cuando está hovered */}
+                  <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg whitespace-nowrap pointer-events-none z-[10000]`}
+                    style={{ zIndex: 10000 }}
+                  >
+                    {route.title}
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                  </div>
+                  {/* Anillo de resaltado cuando está hovered */}
+                  <div className="absolute inset-0 rounded-full border-4 border-primary-400 animate-ping opacity-75" style={{ zIndex: 9998 }}></div>
                 </div>
-                {/* Anillo de resaltado cuando está hovered */}
-                {isHovered && (
-                  <div className="absolute inset-0 rounded-full border-4 border-primary-400 animate-ping opacity-75"></div>
-                )}
-              </div>
-            </Marker>
-          )
-        })}
+              </Marker>
+            )
+          })}
 
         {/* Popup con información de la ruta */}
         {selectedRoute && (

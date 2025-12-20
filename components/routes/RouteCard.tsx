@@ -1,9 +1,10 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { motion } from 'framer-motion'
-import { Clock, MapPin, TrendingUp, Star } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Clock, MapPin, TrendingUp, Star, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Route } from '@/types'
 import { formatDistance, formatElevation, getDifficultyColor, getFerrataGradeColor } from '@/lib/utils'
 
@@ -18,6 +19,34 @@ interface RouteCardProps {
 export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, isHovered = false }: RouteCardProps) {
   const hasRating = typeof route.rating === 'number'
   const ratingValue = hasRating ? Number(route.rating?.toFixed(1)) : null
+  
+  // Combinar heroImage con gallery para el carrusel
+  const allImages = [route.heroImage, ...(route.gallery || [])]
+  const hasMultipleImages = allImages.length > 1
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+
+  // Resetear índice cuando cambie la ruta
+  useEffect(() => {
+    setCurrentImageIndex(0)
+  }, [route.id])
+
+  const goToPrevious = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setCurrentImageIndex((prev) => (prev === 0 ? allImages.length - 1 : prev - 1))
+  }
+
+  const goToNext = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setCurrentImageIndex((prev) => (prev === allImages.length - 1 ? 0 : prev + 1))
+  }
+
+  const goToImage = (index: number, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setCurrentImageIndex(index)
+  }
 
   if (compact) {
     return (
@@ -33,14 +62,25 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
         onMouseLeave={onMouseLeave}
       >
         <Link href={`/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`} target="_blank" rel="noopener noreferrer">
-          <div className="relative h-48 overflow-hidden rounded-xl mb-2">
-            <Image
-              src={route.heroImage.url}
-              alt={route.heroImage.alt}
-              fill
-              className="object-cover transition-transform duration-500 group-hover:scale-110"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 33vw"
-            />
+          <div className="relative h-48 overflow-hidden rounded-xl mb-2 group/image">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentImageIndex}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="absolute inset-0"
+              >
+                <Image
+                  src={allImages[currentImageIndex].url}
+                  alt={allImages[currentImageIndex].alt || route.title}
+                  fill
+                  className="object-cover transition-transform duration-500 group-hover:scale-110"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 33vw"
+                />
+              </motion.div>
+            </AnimatePresence>
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
             
             {/* Rating Badge */}
@@ -51,8 +91,49 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
               </div>
             )}
 
+            {/* Navigation Arrows */}
+            {hasMultipleImages && (
+              <>
+                {/* Left Arrow */}
+                <button
+                  onClick={goToPrevious}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 z-20 rounded-full bg-white/90 backdrop-blur-sm p-1.5 shadow-lg hover:bg-white transition-all opacity-0 group-hover/image:opacity-100"
+                  aria-label="Imagen anterior"
+                >
+                  <ChevronLeft className="h-4 w-4 text-gray-900" />
+                </button>
+                
+                {/* Right Arrow */}
+                <button
+                  onClick={goToNext}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 z-20 rounded-full bg-white/90 backdrop-blur-sm p-1.5 shadow-lg hover:bg-white transition-all opacity-0 group-hover/image:opacity-100"
+                  aria-label="Siguiente imagen"
+                >
+                  <ChevronRight className="h-4 w-4 text-gray-900" />
+                </button>
+              </>
+            )}
+
+            {/* Dots Indicator */}
+            {hasMultipleImages && (
+              <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
+                {allImages.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={(e) => goToImage(index, e)}
+                    className={`h-1.5 rounded-full transition-all ${
+                      index === currentImageIndex 
+                        ? 'w-6 bg-white' 
+                        : 'w-1.5 bg-white/60 hover:bg-white/80'
+                    }`}
+                    aria-label={`Ir a imagen ${index + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+
             {/* Difficulty Badge */}
-            <div className="absolute bottom-2 left-2">
+            <div className="absolute bottom-2 left-2 z-10">
               <span className={`text-xs px-2 py-1 rounded-md font-medium ${getDifficultyColor(route.difficulty)}`}>
                 {route.difficulty}
               </span>
@@ -95,14 +176,25 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
       onMouseLeave={onMouseLeave}
     >
       <Link href={`/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`} target="_blank" rel="noopener noreferrer">
-        <div className="relative h-48 overflow-hidden">
-          <Image
-            src={route.heroImage.url}
-            alt={route.heroImage.alt}
-            fill
-            className="object-cover transition-transform duration-500 group-hover:scale-110"
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          />
+        <div className="relative h-48 overflow-hidden group/image">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentImageIndex}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="absolute inset-0"
+            >
+              <Image
+                src={allImages[currentImageIndex].url}
+                alt={allImages[currentImageIndex].alt || route.title}
+                fill
+                className="object-cover transition-transform duration-500 group-hover:scale-110"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              />
+            </motion.div>
+          </AnimatePresence>
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
           
           {/* Rating Badge */}
@@ -113,8 +205,49 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
             </div>
           )}
 
+          {/* Navigation Arrows */}
+          {hasMultipleImages && (
+            <>
+              {/* Left Arrow */}
+              <button
+                onClick={goToPrevious}
+                className="absolute left-3 top-1/2 -translate-y-1/2 z-20 rounded-full bg-white/90 backdrop-blur-sm p-2 shadow-lg hover:bg-white transition-all opacity-0 group-hover/image:opacity-100"
+                aria-label="Imagen anterior"
+              >
+                <ChevronLeft className="h-5 w-5 text-gray-900" />
+              </button>
+              
+              {/* Right Arrow */}
+              <button
+                onClick={goToNext}
+                className="absolute right-3 top-1/2 -translate-y-1/2 z-20 rounded-full bg-white/90 backdrop-blur-sm p-2 shadow-lg hover:bg-white transition-all opacity-0 group-hover/image:opacity-100"
+                aria-label="Siguiente imagen"
+              >
+                <ChevronRight className="h-5 w-5 text-gray-900" />
+              </button>
+            </>
+          )}
+
+          {/* Dots Indicator */}
+          {hasMultipleImages && (
+            <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+              {allImages.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={(e) => goToImage(index, e)}
+                  className={`h-2 rounded-full transition-all ${
+                    index === currentImageIndex 
+                      ? 'w-8 bg-white' 
+                      : 'w-2 bg-white/60 hover:bg-white/80'
+                  }`}
+                  aria-label={`Ir a imagen ${index + 1}`}
+                />
+              ))}
+            </div>
+          )}
+
           {/* Difficulty Badge */}
-          <div className="absolute bottom-3 left-3">
+          <div className="absolute bottom-3 left-3 z-10">
             <span className={`badge ${getDifficultyColor(route.difficulty)}`}>
               {route.difficulty}
             </span>
