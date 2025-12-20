@@ -234,34 +234,18 @@ export function TwitterTimeline({ hashtag }: TwitterTimelineProps) {
                 rel="noopener noreferrer"
                 className="block p-3 border border-gray-200 rounded-lg hover:border-[#4285F4] hover:shadow-md transition-all"
               >
-                <div className="flex gap-3">
-                  {/* Contenido de la noticia */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start gap-2 mb-1.5">
-                      {/* Icono de Google News pequeño */}
-                      <svg className="w-4 h-4 text-[#4285F4] flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zm0 4v10h16V8H4zm2 2h12v2H6v-2zm0 4h8v2H6v-2z"/>
-                      </svg>
-                      <h4 className="font-semibold text-gray-900 text-sm leading-tight line-clamp-2 flex-1">
-                        {article.title}
-                      </h4>
-                    </div>
-
-                    {article.description && (
-                      <p className="text-gray-600 mb-2 text-xs leading-relaxed line-clamp-2">
-                        {article.description}
-                      </p>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-gray-900 text-sm leading-tight mb-2 line-clamp-2">
+                    {article.title}
+                  </h4>
+                  <div className="flex items-center gap-2 text-gray-500 text-[10px]">
+                    {article.source && (
+                      <>
+                        <span className="truncate">{article.source}</span>
+                        <span className="text-gray-400">·</span>
+                      </>
                     )}
-
-                    <div className="flex items-center gap-2 text-gray-500 text-[10px]">
-                      {article.source && (
-                        <>
-                          <span className="truncate">{article.source}</span>
-                          <span className="text-gray-400">·</span>
-                        </>
-                      )}
-                      <span>{formatRelativeTime(article.publishedAt)}</span>
-                    </div>
+                    <span>{formatRelativeTime(article.publishedAt)}</span>
                   </div>
                 </div>
               </a>
