@@ -9,33 +9,25 @@ interface TwitterTimelineProps {
 }
 
 /**
- * Interfaz para un tweet formateado
+ * Interfaz para una noticia de Google News
  */
-interface FormattedTweet {
+interface NewsArticle {
   id: string
-  text: string
-  createdAt: string
-  author: {
-    name: string
-    username: string
-    profileImageUrl?: string
-  }
-  metrics: {
-    retweets: number
-    likes: number
-    replies: number
-  }
+  title: string
+  description: string
+  publishedAt: string
   url: string
+  source?: string
 }
 
 /**
- * Componente que muestra tweets de Twitter usando la API v2
- * Muestra hasta 10 tweets recientes ordenados por fecha
+ * Componente que muestra noticias de Google News
+ * Muestra hasta 10 noticias recientes ordenadas por fecha
  */
 export function TwitterTimeline({ hashtag }: TwitterTimelineProps) {
-  console.log('[TwitterTimeline] Componente renderizado, hashtag prop:', hashtag)
+  console.log('[GoogleNewsTimeline] Componente renderizado, hashtag prop:', hashtag)
   
-  const [tweets, setTweets] = useState<FormattedTweet[]>([])
+  const [articles, setArticles] = useState<NewsArticle[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const fetchingRef = useRef(false)
@@ -58,22 +50,22 @@ export function TwitterTimeline({ hashtag }: TwitterTimelineProps) {
     }
     
     /**
-     * Obtiene los tweets desde la API
+     * Obtiene las noticias desde la API
      */
-    const fetchTweets = async () => {
+    const fetchNews = async () => {
       setIsLoading(true)
       setError(null)
 
       try {
-        const apiUrl = `/api/twitter?hashtag=${encodeURIComponent(cleanHashtag)}`
-        console.log('[TwitterTimeline] Llamando a:', apiUrl)
+        const apiUrl = `/api/news?hashtag=${encodeURIComponent(cleanHashtag)}`
+        console.log('[GoogleNewsTimeline] Llamando a:', apiUrl)
         
         const response = await fetch(apiUrl)
-        console.log('[TwitterTimeline] Respuesta recibida, status:', response.status, response.statusText)
+        console.log('[GoogleNewsTimeline] Respuesta recibida, status:', response.status, response.statusText)
         
         // Verificar si la respuesta tiene contenido antes de parsear
         const responseText = await response.text()
-        console.log('[TwitterTimeline] Response text length:', responseText.length)
+        console.log('[GoogleNewsTimeline] Response text length:', responseText.length)
         
         if (!responseText || responseText.trim() === '') {
           throw new Error('La respuesta del servidor está vacía')
@@ -89,50 +81,47 @@ export function TwitterTimeline({ hashtag }: TwitterTimelineProps) {
         }
 
         if (!response.ok) {
-          // Si es rate limit (429), intentar usar caché del navegador o mostrar mensaje
-          if (response.status === 429) {
-            // Verificar si hay datos en localStorage como fallback
-            const cachedKey = `twitter_cache_${cleanHashtag}`
-            const cachedData = localStorage.getItem(cachedKey)
-            if (cachedData) {
-              try {
-                const parsed = JSON.parse(cachedData)
-                const cacheAge = Date.now() - parsed.timestamp
-                if (cacheAge < 5 * 60 * 1000) { // 5 minutos
-                  console.log('[TwitterTimeline] Usando caché local debido a rate limit')
-                  setTweets(parsed.tweets)
-                  setIsLoading(false)
-                  fetchingRef.current = false
-                  return
-                }
-              } catch (e) {
-                // Ignorar error de parseo
+          // Verificar si hay datos en localStorage como fallback
+          const cachedKey = `news_cache_${cleanHashtag}`
+          const cachedData = localStorage.getItem(cachedKey)
+          if (cachedData) {
+            try {
+              const parsed = JSON.parse(cachedData)
+              const cacheAge = Date.now() - parsed.timestamp
+              if (cacheAge < 10 * 60 * 1000) { // 10 minutos
+                console.log('[GoogleNewsTimeline] Usando caché local debido a error')
+                setArticles(parsed.articles)
+                setIsLoading(false)
+                fetchingRef.current = false
+                return
               }
+            } catch (e) {
+              // Ignorar error de parseo
             }
           }
-          throw new Error(data.message || data.error || 'Error al obtener tweets')
+          throw new Error(data.message || data.error || 'Error al obtener noticias')
         }
 
-        if (data.success && data.tweets) {
-          console.log('[TwitterTimeline] Tweets obtenidos:', data.tweets.length)
-          setTweets(data.tweets)
+        if (data.success && data.articles) {
+          console.log('[GoogleNewsTimeline] Noticias obtenidas:', data.articles.length)
+          setArticles(data.articles)
           // Guardar en localStorage como fallback
           try {
-            const cachedKey = `twitter_cache_${cleanHashtag}`
+            const cachedKey = `news_cache_${cleanHashtag}`
             localStorage.setItem(cachedKey, JSON.stringify({
-              tweets: data.tweets,
+              articles: data.articles,
               timestamp: Date.now()
             }))
           } catch (e) {
             // Ignorar errores de localStorage
           }
         } else {
-          setTweets([])
+          setArticles([])
         }
       } catch (err) {
-        console.error('[TwitterTimeline] Error obteniendo tweets:', err)
-        setError(err instanceof Error ? err.message : 'Error al cargar tweets')
-        setTweets([])
+        console.error('[GoogleNewsTimeline] Error obteniendo noticias:', err)
+        setError(err instanceof Error ? err.message : 'Error al cargar noticias')
+        setArticles([])
       } finally {
         setIsLoading(false)
         fetchingRef.current = false
@@ -145,10 +134,10 @@ export function TwitterTimeline({ hashtag }: TwitterTimelineProps) {
       if (!mountedRef.current) {
         mountedRef.current = true
         fetchingRef.current = true
-        fetchTweets().catch(err => {
-          console.error('[TwitterTimeline] Error no capturado en fetchTweets:', err)
+        fetchNews().catch(err => {
+          console.error('[GoogleNewsTimeline] Error no capturado en fetchNews:', err)
           setIsLoading(false)
-          setError('Error al cargar tweets')
+          setError('Error al cargar noticias')
           fetchingRef.current = false
         })
       }
@@ -161,31 +150,6 @@ export function TwitterTimeline({ hashtag }: TwitterTimelineProps) {
       mountedRef.current = false
     }
   }, [hashtag])
-
-  /**
-   * Formatea el texto del tweet para mostrar enlaces y hashtags
-   */
-  const formatTweetText = (text: string) => {
-    // Reemplazar URLs con enlaces
-    let formatted = text.replace(
-      /(https?:\/\/[^\s]+)/g,
-      '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-[#1DA1F2] hover:underline text-xs">$1</a>'
-    )
-    
-    // Reemplazar hashtags con enlaces
-    formatted = formatted.replace(
-      /#(\w+)/g,
-      '<a href="https://twitter.com/hashtag/$1" target="_blank" rel="noopener noreferrer" class="text-[#1DA1F2] hover:underline text-xs">#$1</a>'
-    )
-    
-    // Reemplazar menciones con enlaces
-    formatted = formatted.replace(
-      /@(\w+)/g,
-      '<a href="https://twitter.com/$1" target="_blank" rel="noopener noreferrer" class="text-[#1DA1F2] hover:underline text-xs">@$1</a>'
-    )
-    
-    return formatted
-  }
 
   /**
    * Formatea la fecha relativa (hace X minutos/horas/días)
@@ -209,17 +173,22 @@ export function TwitterTimeline({ hashtag }: TwitterTimelineProps) {
     <div className="rounded-lg border border-gray-200 bg-white p-4">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-base font-semibold flex items-center gap-2">
-          {/* Icono X (Twitter nuevo) */}
-          <span>Noticias recientes de </span>
-          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-          </svg>
+          {/* Logo de Google News */}
+          <span className="flex items-center gap-0.5 font-normal">
+            <span className="text-[#4285F4]">G</span>
+            <span className="text-[#EA4335]">o</span>
+            <span className="text-[#FBBC05]">o</span>
+            <span className="text-[#4285F4]">g</span>
+            <span className="text-[#34A853]">l</span>
+            <span className="text-[#EA4335]">e</span>
+            <span className="text-gray-700 ml-1">News</span>
+          </span>
         </h3>
         <a
-          href={`https://twitter.com/hashtag/${encodeURIComponent(cleanHashtag)}`}
+          href={`https://news.google.com/search?q=${encodeURIComponent(cleanHashtag)}&hl=es&gl=ES&ceid=ES:es`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs text-[#1DA1F2] hover:underline flex items-center gap-1"
+          className="text-xs text-[#4285F4] hover:underline flex items-center gap-1"
         >
           Ver más
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -230,104 +199,74 @@ export function TwitterTimeline({ hashtag }: TwitterTimelineProps) {
 
       {isLoading && (
         <div className="flex items-center justify-center py-6">
-          <div className="text-xs text-gray-500">Cargando tweets...</div>
+          <div className="text-xs text-gray-500">Cargando noticias...</div>
         </div>
       )}
 
       {error && (
-        <div className={`p-3 rounded-lg border mb-3 ${
-          error.includes('rate limit') || error.includes('Demasiadas solicitudes')
-            ? 'bg-orange-50 border-orange-200'
-            : 'bg-yellow-50 border-yellow-200'
-        }`}>
-          <p className={`text-xs ${
-            error.includes('rate limit') || error.includes('Demasiadas solicitudes')
-              ? 'text-orange-800'
-              : 'text-yellow-800'
-          }`}>
+        <div className="p-3 rounded-lg border mb-3 bg-yellow-50 border-yellow-200">
+          <p className="text-xs text-yellow-800">
             {error}
           </p>
-          {!error.includes('rate limit') && !error.includes('Demasiadas solicitudes') && (
-            <p className="text-[10px] text-yellow-700 mt-1.5">
-              Asegúrate de configurar TWITTER_BEARER_TOKEN en .env.local
-            </p>
-          )}
         </div>
       )}
 
-      {!isLoading && !error && tweets.length === 0 && (
+      {!isLoading && !error && articles.length === 0 && (
         <div className="text-center py-6 text-gray-500 text-xs">
-          No se encontraron tweets para #{cleanHashtag}
+          No se encontraron noticias para #{cleanHashtag}
         </div>
       )}
 
-      {!isLoading && !error && tweets.length > 0 && (
-        <div className="space-y-3">
-          {tweets.map((tweet) => (
-            <a
-              key={tweet.id}
-              href={tweet.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block p-3 border border-gray-200 rounded-lg hover:border-[#1DA1F2] hover:shadow-md transition-all"
-            >
-              <div className="flex gap-2">
-                {/* Avatar del usuario */}
-                <div className="flex-shrink-0">
-                  {tweet.author.profileImageUrl ? (
-                    <img
-                      src={tweet.author.profileImageUrl}
-                      alt={tweet.author.name}
-                      className="w-8 h-8 rounded-full"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
-                      <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+      {!isLoading && !error && articles.length > 0 && (
+        <div 
+          className="max-h-[600px] overflow-y-auto pr-2 custom-scrollbar"
+          style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#cbd5e1 #f1f5f9'
+          }}
+        >
+          <div className="space-y-3">
+            {articles.map((article) => (
+              <a
+                key={article.id}
+                href={article.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block p-3 border border-gray-200 rounded-lg hover:border-[#4285F4] hover:shadow-md transition-all"
+              >
+                <div className="flex gap-3">
+                  {/* Contenido de la noticia */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start gap-2 mb-1.5">
+                      {/* Icono de Google News pequeño */}
+                      <svg className="w-4 h-4 text-[#4285F4] flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zm0 4v10h16V8H4zm2 2h12v2H6v-2zm0 4h8v2H6v-2z"/>
                       </svg>
+                      <h4 className="font-semibold text-gray-900 text-sm leading-tight line-clamp-2 flex-1">
+                        {article.title}
+                      </h4>
                     </div>
-                  )}
-                </div>
 
-                {/* Contenido del tweet */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                    <span className="font-semibold text-gray-900 text-xs">{tweet.author.name}</span>
-                    <span className="text-gray-500 text-[10px]">@{tweet.author.username}</span>
-                    <span className="text-gray-400 text-[10px]">·</span>
-                    <span className="text-gray-500 text-[10px]">{formatRelativeTime(tweet.createdAt)}</span>
-                  </div>
+                    {article.description && (
+                      <p className="text-gray-600 mb-2 text-xs leading-relaxed line-clamp-2">
+                        {article.description}
+                      </p>
+                    )}
 
-                  <p
-                    className="text-gray-900 mb-2 whitespace-pre-wrap break-words text-xs leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: formatTweetText(tweet.text) }}
-                  />
-
-                  {/* Métricas del tweet */}
-                  <div className="flex items-center gap-3 text-gray-500 text-[10px]">
-                    <div className="flex items-center gap-0.5">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                      {tweet.metrics.replies}
-                    </div>
-                    <div className="flex items-center gap-0.5">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                      {tweet.metrics.retweets}
-                    </div>
-                    <div className="flex items-center gap-0.5">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                      </svg>
-                      {tweet.metrics.likes}
+                    <div className="flex items-center gap-2 text-gray-500 text-[10px]">
+                      {article.source && (
+                        <>
+                          <span className="truncate">{article.source}</span>
+                          <span className="text-gray-400">·</span>
+                        </>
+                      )}
+                      <span>{formatRelativeTime(article.publishedAt)}</span>
                     </div>
                   </div>
                 </div>
-              </div>
-            </a>
-          ))}
+              </a>
+            ))}
+          </div>
         </div>
       )}
     </div>
