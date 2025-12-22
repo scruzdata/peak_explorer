@@ -84,6 +84,8 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
         longitude: route.location.coordinates.lng,
         latitude: route.location.coordinates.lat,
         zoom: 13,
+        pitch: 0,
+        bearing: 0,
       }
     }
     
@@ -213,7 +215,7 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
       latitude: initialViewState.latitude,
       zoom: initialViewState.zoom,
       pitch: is3D ? 60 : 0,
-      bearing: ('bearing' in initialViewState && typeof initialViewState.bearing === 'number') ? initialViewState.bearing : 0,
+      bearing: initialViewState.bearing ?? 0,
     })
   }, [initialViewState, is3D])
 
@@ -276,12 +278,11 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
         // Actualizar vista del mapa al siguiente punto
         const point = route.track![nextIndex]
         setViewState((prev: typeof initialViewState) => ({
-          ...prev,
           longitude: point.lng,
           latitude: point.lat,
           zoom: prev.zoom, // Mantener el zoom actual
-          pitch: 'pitch' in prev ? prev.pitch : 0,
-          bearing: 'bearing' in prev ? prev.bearing : 0,
+          pitch: prev.pitch ?? 0,
+          bearing: prev.bearing ?? 0,
         }))
 
         return nextIndex
