@@ -198,6 +198,7 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
       setViewState((current: typeof initialViewState) => ({
         ...current,
         pitch: newIs3D ? 60 : 0,
+        bearing: current.bearing ?? 0,
       }))
       return newIs3D
     })
@@ -210,6 +211,7 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
     setViewState({
       ...initialViewState,
       pitch: is3D ? 60 : 0,
+      bearing: 'bearing' in initialViewState ? initialViewState.bearing : 0,
     })
   }, [initialViewState, is3D])
 
@@ -276,8 +278,8 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
           longitude: point.lng,
           latitude: point.lat,
           zoom: prev.zoom, // Mantener el zoom actual
-          pitch: prev.pitch,
-          bearing: prev.bearing,
+          pitch: 'pitch' in prev ? prev.pitch : 0,
+          bearing: 'bearing' in prev ? prev.bearing : 0,
         }))
 
         return nextIndex
