@@ -298,6 +298,26 @@ export function RouteDetail({ route }: RouteDetailProps) {
                 )}
               </section>
 
+              {/* Route Features - Only for Ferratas */}
+              {route.type === 'ferrata' && route.features && route.features.length > 0 && (
+                <section>
+                  <h2 className="mb-4 text-2xl font-bold">Características de la ruta</h2>
+                  <div className="flex flex-wrap gap-3">
+                    {route.features.map((feature) => (
+                      <div
+                        key={feature.id}
+                        className="flex items-center gap-2 rounded-lg bg-gray-50 px-4 py-2 border border-gray-200 hover:bg-gray-100 transition-colors"
+                      >
+                        <span className="text-2xl" role="img" aria-label={feature.name}>
+                          {feature.icon}
+                        </span>
+                        <span className="text-sm font-medium text-gray-900">{feature.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
               {/* Map */}
               <section>
                 <h2 className="mb-4 text-2xl font-bold">Mapa y Track GPX</h2>

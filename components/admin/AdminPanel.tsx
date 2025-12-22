@@ -429,7 +429,11 @@ export function AdminPanel() {
                       <div className="text-sm font-medium text-gray-900">{route.title}</div>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
-                      <span className="inline-flex rounded-full px-2 text-xs font-semibold leading-5 bg-primary-100 text-primary-800">
+                      <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
+                        route.type === 'ferrata' 
+                          ? 'bg-red-100 text-red-800' 
+                          : 'bg-primary-100 text-primary-800'
+                      }`}>
                         {route.type === 'trekking' ? 'Trekking' : 'Ferrata'}
                       </span>
                     </td>
