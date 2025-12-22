@@ -209,9 +209,11 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
    */
   const resetView = useCallback(() => {
     setViewState({
-      ...initialViewState,
+      longitude: initialViewState.longitude,
+      latitude: initialViewState.latitude,
+      zoom: initialViewState.zoom,
       pitch: is3D ? 60 : 0,
-      bearing: 'bearing' in initialViewState ? initialViewState.bearing : 0,
+      bearing: ('bearing' in initialViewState && typeof initialViewState.bearing === 'number') ? initialViewState.bearing : 0,
     })
   }, [initialViewState, is3D])
 
