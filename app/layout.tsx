@@ -6,6 +6,7 @@ import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { AuthProvider } from '@/components/providers/AuthProvider'
 import { UserProgressProvider } from '@/components/providers/UserProgressProvider'
+import { SessionProvider } from '@/components/providers/SessionProvider'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
@@ -44,15 +45,17 @@ export default function RootLayout({
   return (
     <html lang="es" className="scroll-smooth">
       <body className={`${inter.variable} font-sans antialiased`}>
-        <AuthProvider>
-          <UserProgressProvider>
-            <div className="flex min-h-screen flex-col">
-              <Header />
-              <main className="flex-1">{children}</main>
-              <Footer />
-            </div>
-          </UserProgressProvider>
-        </AuthProvider>
+        <SessionProvider>
+          <AuthProvider>
+            <UserProgressProvider>
+              <div className="flex min-h-screen flex-col">
+                <Header />
+                <main className="flex-1">{children}</main>
+                <Footer />
+              </div>
+            </UserProgressProvider>
+          </AuthProvider>
+        </SessionProvider>
       </body>
     </html>
   )

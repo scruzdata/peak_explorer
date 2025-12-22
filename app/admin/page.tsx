@@ -1,5 +1,6 @@
 import { Metadata } from 'next'
 import { AdminPanel } from '@/components/admin/AdminPanel'
+import { AdminProtected } from '@/components/admin/AdminProtected'
 
 export const metadata: Metadata = {
   title: 'Panel de Administración - Peak Explorer',
@@ -11,6 +12,10 @@ export const metadata: Metadata = {
 }
 
 export default function AdminPage() {
-  return <AdminPanel />
+  return (
+    <AdminProtected>
+      <AdminPanel />
+    </AdminProtected>
+  )
 }
 
