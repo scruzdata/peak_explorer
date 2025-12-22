@@ -681,6 +681,8 @@ export async function getRouteMetadataFromAI(
   } catch (error) {
     console.error('❌ Error llamando a API de IA:', error)
     console.warn('⚠️  Usando datos simulados como fallback')
+    // Retornar un objeto vacío como fallback
+    return {}
   }
 }
 
