@@ -68,7 +68,9 @@ interface AIConfig {
  * Obtiene la configuración de la API de IA desde variables de entorno
  */
 function getAIConfig(): AIConfig {
-  const provider = (process.env.AI_PROVIDER || 'gemini')
+  const providerEnv = process.env.AI_PROVIDER || 'gemini'
+  const validProviders = ['openai', 'anthropic', 'gemini', 'custom'] as const
+  const provider = (validProviders.includes(providerEnv as any) ? providerEnv : 'gemini') as 'openai' | 'anthropic' | 'gemini' | 'custom'
   let apiKey = process.env.GEMINI_API_KEY
   let model = process.env.AI_MODEL
   
