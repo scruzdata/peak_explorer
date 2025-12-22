@@ -13,6 +13,7 @@ if (!googleClientId || !googleClientSecret) {
   console.error('Por favor, configura las credenciales de Google OAuth en tu archivo .env.local')
 }
 
+
 const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
