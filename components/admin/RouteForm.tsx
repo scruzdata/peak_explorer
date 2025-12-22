@@ -1259,7 +1259,7 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
                 </div>
                 <div className="prose prose-sm sm:prose lg:prose-lg max-w-none">
                   <ReactMarkdown
-                    remarkPlugins={[remarkGfm, remarkBreaks]}
+                    remarkPlugins={[remarkGfm, remarkBreaks] as any}
                     components={previewComponents}
                   >
                     {formData.storytelling || '*La vista previa aparecerá aquí cuando escribas contenido.*'}

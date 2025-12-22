@@ -24,7 +24,7 @@ export function RouteStorytelling({ content }: RouteStorytellingProps) {
       <h2 className="mb-6 text-2xl font-bold">La Experiencia</h2>
       <div className="prose prose-lg max-w-none">
         <ReactMarkdown
-          remarkPlugins={[remarkGfm, remarkBreaks]}
+          remarkPlugins={[remarkGfm, remarkBreaks] as any}
           components={markdownComponents}
         >
           {content}
