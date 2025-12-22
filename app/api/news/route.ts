@@ -15,6 +15,7 @@ export interface NewsArticle {
   publishedAt: string
   url: string
   source?: string
+  imageUrl?: string
 }
 
 interface GoogleNewsRSSItem {
@@ -23,6 +24,8 @@ interface GoogleNewsRSSItem {
   link: string[]
   pubDate: string[]
   source?: Array<{ _: string; url?: string }>
+  // Otros campos variables como media:content, media:thumbnail, enclosure, etc.
+  [key: string]: any
 }
 
 interface GoogleNewsRSS {
@@ -146,6 +149,41 @@ export async function GET(request: NextRequest) {
         const pubDate = item.pubDate?.[0] || new Date().toISOString()
         const source = item.source?.[0]?._ || item.source?.[0]?.url || ''
 
+        // Intentar extraer imagen de distintos campos habituales del RSS
+        let imageUrl = ''
+        const anyItem = item as any
+
+        const mediaContent =
+          anyItem['media:content'] ||
+          anyItem['media:thumbnail'] ||
+          (Array.isArray(anyItem['media:group']) && anyItem['media:group'][0]?.['media:content'])
+
+        const enclosure = anyItem.enclosure
+
+        const getUrlFromNode = (node: any): string | undefined => {
+          if (!node) return undefined
+          const n = Array.isArray(node) ? node[0] : node
+          if (n?.$?.url) return n.$.url
+          if (typeof n.url === 'string') return n.url
+          if (typeof n._ === 'string') return n._
+          return undefined
+        }
+
+        imageUrl = getUrlFromNode(mediaContent) || getUrlFromNode(enclosure) || ''
+
+        // Como último recurso, intentar sacar una imagen del HTML de la descripción
+        if (!imageUrl && description) {
+          const imgMatch = description.match(/<img[^>]+src=['"]([^'"]+)['"]/i)
+          if (imgMatch?.[1]) {
+            imageUrl = imgMatch[1]
+          }
+        }
+
+        if (index === 0) {
+          console.log('[Google News API] Campos item[0]:', Object.keys(item))
+          console.log('[Google News API] imageUrl detectada para primer item:', imageUrl)
+        }
+
         // Limpiar el título (Google News a veces incluye el nombre del sitio)
         const cleanTitle = title.replace(/\s*-\s*[^-]+$/, '').trim()
 
@@ -155,7 +193,8 @@ export async function GET(request: NextRequest) {
           description: description.replace(/<[^>]*>/g, '').trim(), // Remover HTML
           publishedAt: pubDate,
           url: link,
-          source: source
+          source: source,
+          imageUrl: imageUrl || undefined
         }
       })
       .filter(article => article.title && article.url) // Filtrar artículos inválidos

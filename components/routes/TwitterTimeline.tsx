@@ -18,6 +18,7 @@ interface NewsArticle {
   publishedAt: string
   url: string
   source?: string
+  imageUrl?: string
 }
 
 /**
@@ -234,18 +235,30 @@ export function TwitterTimeline({ hashtag }: TwitterTimelineProps) {
                 rel="noopener noreferrer"
                 className="block p-3 border border-gray-200 rounded-lg hover:border-[#4285F4] hover:shadow-md transition-all"
               >
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-gray-900 text-sm leading-tight mb-2 line-clamp-2">
-                    {article.title}
-                  </h4>
-                  <div className="flex items-center gap-2 text-gray-500 text-[10px]">
-                    {article.source && (
-                      <>
-                        <span className="truncate">{article.source}</span>
-                        <span className="text-gray-400">·</span>
-                      </>
-                    )}
-                    <span>{formatRelativeTime(article.publishedAt)}</span>
+                <div className="flex gap-3">
+                  {article.imageUrl && (
+                    <div className="flex-shrink-0">
+                      <img
+                        src={article.imageUrl}
+                        alt={article.title}
+                        className="w-16 h-16 rounded-md object-cover bg-gray-100"
+                        loading="lazy"
+                      />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-gray-900 text-sm leading-tight mb-1 line-clamp-2">
+                      {article.title}
+                    </h4>
+                    <div className="flex items-center gap-2 text-gray-500 text-[10px]">
+                      {article.source && (
+                        <>
+                          <span className="truncate">{article.source}</span>
+                          <span className="text-gray-400">·</span>
+                        </>
+                      )}
+                      <span>{formatRelativeTime(article.publishedAt)}</span>
+                    </div>
                   </div>
                 </div>
               </a>

@@ -21,7 +21,7 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
   const ratingValue = hasRating ? Number(route.rating?.toFixed(1)) : null
   
   // Combinar heroImage con gallery para el carrusel
-  const allImages = [route.heroImage, ...(route.gallery || [])]
+  const allImages = [route.heroImage, ...(route.gallery || []).slice(1) ]
   const hasMultipleImages = allImages.length > 1
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
