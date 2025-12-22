@@ -251,10 +251,20 @@ export function combineGPXAndAIData(
       keywords: [],
     },
     features: [],
-    gallery: aiData.gallery || [],
+    gallery: (aiData.gallery || []).map(img => ({
+      url: img.url,
+      alt: img.alt,
+      width: img.width ?? 800,
+      height: img.height ?? 600,
+    })),
     equipment: [],
     accommodations: [],
-    heroImage: aiData.heroImage || {
+    heroImage: aiData.heroImage ? {
+      url: aiData.heroImage.url,
+      alt: aiData.heroImage.alt,
+      width: aiData.heroImage.width ?? 1200,
+      height: aiData.heroImage.height ?? 800,
+    } : {
       url: '',
       alt: '',
       width: 1200,
