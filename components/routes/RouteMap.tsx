@@ -174,7 +174,11 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
    * Maneja el cambio de vista del mapa
    */
   const onMove = useCallback((evt: { viewState: { longitude: number; latitude: number; zoom: number; pitch?: number; bearing?: number } }) => {
-    setViewState(evt.viewState)
+    setViewState({
+      ...evt.viewState,
+      pitch: evt.viewState.pitch ?? 0,
+      bearing: evt.viewState.bearing ?? 0,
+    })
   }, [])
 
   /**
