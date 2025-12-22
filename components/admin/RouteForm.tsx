@@ -530,10 +530,10 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
   }
 
   const previewComponents: Components = {
-    p: ({ node, ...props }) => (
+    p: ({ ...props }) => (
       <p className="mb-3 whitespace-pre-line" {...props} />
     ),
-    li: ({ node, ...props }) => (
+    li: ({ ...props }) => (
       <li className="mb-1" {...props} />
     ),
   }

@@ -11,7 +11,7 @@ import {
   where,
   Timestamp,
 } from 'firebase/firestore'
-import { db, isFirebaseConfigured } from './config'
+import { db } from './config'
 import { TrackPoint, TrackId } from '@/lib/tracks'
 
 const TRACKS_COLLECTION = 'tracks'

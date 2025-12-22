@@ -10,10 +10,10 @@ interface RouteStorytellingProps {
 }
 
 const markdownComponents: Components = {
-  p: ({ node, ...props }) => (
+  p: ({ ...props }) => (
     <p className="mb-4 whitespace-pre-line" {...props} />
   ),
-  li: ({ node, ...props }) => (
+  li: ({ ...props }) => (
     <li className="mb-1" {...props} />
   ),
 }
