@@ -13,7 +13,7 @@ const markdownComponents: Components = {
   p: ({ node, ...props }) => (
     <p className="mb-4 whitespace-pre-line" {...props} />
   ),
-  li: ({ node, ordered, ...props }) => (
+  li: ({ node, ...props }) => (
     <li className="mb-1" {...props} />
   ),
 }
