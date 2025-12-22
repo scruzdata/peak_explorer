@@ -7,12 +7,31 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     // Obtener rutas desde Firestore (con fallback a datos estáticos si no está configurado)
     const allRoutes = await getAllRoutesAsync()
-    const routes = allRoutes.map((route) => ({
-      url: `${baseUrl}/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`,
-      lastModified: new Date(route.updatedAt),
-      changeFrequency: 'monthly' as const,
-      priority: 0.8,
-    }))
+    const now = new Date()
+    const routes = allRoutes
+      .filter((route) => route.slug) // Filtrar rutas sin slug
+      .map((route) => {
+        // Validar que updatedAt sea una fecha válida
+        let lastModified: Date
+        try {
+          const date = new Date(route.updatedAt)
+          // Verificar si la fecha es válida
+          if (isNaN(date.getTime())) {
+            lastModified = now
+          } else {
+            lastModified = date
+          }
+        } catch {
+          lastModified = now
+        }
+
+        return {
+          url: `${baseUrl}/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`,
+          lastModified,
+          changeFrequency: 'monthly' as const,
+          priority: 0.8,
+        }
+      })
 
     return [
       {
