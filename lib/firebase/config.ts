@@ -25,5 +25,16 @@ if (getApps().length === 0) {
 export const db: Firestore = getFirestore(app)
 export const auth: Auth = getAuth(app)
 
+/**
+ * Verifica si Firebase está configurado correctamente
+ */
+export function isFirebaseConfigured(): boolean {
+  return !!(
+    firebaseConfig.projectId &&
+    firebaseConfig.apiKey &&
+    firebaseConfig.authDomain
+  )
+}
+
 export default app
 
