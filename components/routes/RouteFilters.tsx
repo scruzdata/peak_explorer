@@ -1,6 +1,9 @@
 'use client'
 
+import { useState, useRef, useEffect } from 'react'
+import { ChevronDown } from 'lucide-react'
 import { Difficulty, FerrataGrade, Season } from '@/types'
+import { getFerrataGradeColor } from '@/lib/utils'
 
 interface RouteFiltersProps {
   type: 'trekking' | 'ferrata'
@@ -33,60 +36,53 @@ export function RouteFilters({
   const seasons: Season[] = ['Primavera', 'Verano', 'Otoño', 'Invierno', 'Todo el año']
 
   const activeFiltersCount = [
-    selectedDifficulty !== 'all',
-    selectedGrade !== 'all',
+    type === 'trekking' && selectedDifficulty !== 'all',
+    type === 'ferrata' && selectedGrade !== 'all',
     selectedSeason !== 'all',
     selectedRegion !== 'all',
   ].filter(Boolean).length
 
   // Función para limpiar todos los filtros
   const handleClearFilters = () => {
-    onDifficultyChange('all')
-    onGradeChange('all')
+    if (type === 'trekking') {
+      onDifficultyChange('all')
+    } else {
+      onGradeChange('all')
+    }
     onSeasonChange('all')
     onRegionChange('all')
   }
 
   return (
     <div className="flex items-end gap-3">
-      {/* Difficulty Filter */}
-      <div className="w-40">
-        <label className="mb-0.5 block text-xs font-medium text-gray-700">
-          Dificultad
-        </label>
-        <select
-          value={selectedDifficulty}
-          onChange={(e) => onDifficultyChange(e.target.value as Difficulty | 'all')}
-          className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
-        >
-          <option value="all">Todas</option>
-          {difficulties.map((diff) => (
-            <option key={diff} value={diff}>
-              {diff}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Grade Filter (only for ferratas) */}
-      {type === 'ferrata' && (
-        <div className="w-32">
+      {/* Difficulty Filter (only for trekking) */}
+      {type === 'trekking' && (
+        <div className="w-40">
           <label className="mb-0.5 block text-xs font-medium text-gray-700">
-            Grado K
+            Dificultad
           </label>
           <select
-            value={selectedGrade}
-            onChange={(e) => onGradeChange(e.target.value as FerrataGrade | 'all')}
+            value={selectedDifficulty}
+            onChange={(e) => onDifficultyChange(e.target.value as Difficulty | 'all')}
             className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
-            <option value="all">Todos</option>
-            {grades.map((grade) => (
-              <option key={grade} value={grade}>
-                {grade}
+            <option value="all">Todas</option>
+            {difficulties.map((diff) => (
+              <option key={diff} value={diff}>
+                {diff}
               </option>
             ))}
           </select>
         </div>
+      )}
+
+      {/* Grade Filter (only for ferratas) */}
+      {type === 'ferrata' && (
+        <GradeFilterDropdown
+          selectedGrade={selectedGrade}
+          grades={grades}
+          onGradeChange={onGradeChange}
+        />
       )}
 
       {/* Season Filter */}
@@ -135,6 +131,87 @@ export function RouteFilters({
         >
           Limpiar filtros
         </button>
+      )}
+    </div>
+  )
+}
+
+// Componente dropdown personalizado para el filtro de Grado K con colores
+function GradeFilterDropdown({
+  selectedGrade,
+  grades,
+  onGradeChange,
+}: {
+  selectedGrade: FerrataGrade | 'all'
+  grades: FerrataGrade[]
+  onGradeChange: (value: FerrataGrade | 'all') => void
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // Cerrar dropdown al hacer click fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isOpen])
+
+  const selectedGradeColor = selectedGrade !== 'all' ? getFerrataGradeColor(selectedGrade) : ''
+
+  return (
+    <div className="w-32 relative" ref={dropdownRef}>
+      <label className="mb-0.5 block text-xs font-medium text-gray-700">
+        Grado K
+      </label>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 flex items-center justify-between ${
+          selectedGrade !== 'all' ? selectedGradeColor : 'bg-white'
+        }`}
+      >
+        <span className={selectedGrade !== 'all' ? 'font-medium' : ''}>
+          {selectedGrade === 'all' ? 'Todos' : selectedGrade}
+        </span>
+        <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute z-50 mt-1 w-full bg-white rounded-lg border border-gray-200 shadow-lg overflow-hidden">
+          <button
+            type="button"
+            onClick={() => {
+              onGradeChange('all')
+              setIsOpen(false)
+            }}
+            className="w-full px-3 py-2 text-sm text-left hover:bg-gray-50 transition-colors"
+          >
+            Todos
+          </button>
+          {grades.map((grade) => (
+            <button
+              key={grade}
+              type="button"
+              onClick={() => {
+                onGradeChange(grade)
+                setIsOpen(false)
+              }}
+              className={`w-full px-3 py-2 text-sm text-left font-medium ${getFerrataGradeColor(grade)} hover:opacity-80 transition-opacity`}
+            >
+              {grade}
+            </button>
+          ))}
+        </div>
       )}
     </div>
   )

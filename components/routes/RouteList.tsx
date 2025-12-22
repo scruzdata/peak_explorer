@@ -118,9 +118,11 @@ export function RouteList({ routes, type }: RouteListProps) {
         if (!matchesSearch) return false
       }
 
-      // Difficulty filter
-      if (selectedDifficulty !== 'all' && route.difficulty !== selectedDifficulty) {
-        return false
+      // Difficulty filter (only for trekking)
+      if (type === 'trekking') {
+        if (selectedDifficulty !== 'all' && route.difficulty !== selectedDifficulty) {
+          return false
+        }
       }
 
       // Grade filter (only for ferratas)
@@ -370,6 +372,7 @@ export function RouteList({ routes, type }: RouteListProps) {
                     key={route.id} 
                     route={route} 
                     compact={true}
+                    type={type}
                     isHovered={hoveredRouteId === route.id}
                     onMouseEnter={() => setHoveredRouteId(route.id)}
                     onMouseLeave={() => setHoveredRouteId(null)}
@@ -421,6 +424,7 @@ export function RouteList({ routes, type }: RouteListProps) {
                 <RouteCard 
                   key={route.id} 
                   route={route}
+                  type={type}
                   isHovered={hoveredRouteId === route.id}
                   onMouseEnter={() => setHoveredRouteId(route.id)}
                   onMouseLeave={() => setHoveredRouteId(null)}

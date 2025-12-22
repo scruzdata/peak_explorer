@@ -1,12 +1,12 @@
 'use client'
 
 import { useMemo, useState, useCallback, useEffect } from 'react'
-import { Route } from '@/types'
+import { Route, FerrataGrade } from '@/types'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Mountain, Star } from 'lucide-react'
-import { getDifficultyColor } from '@/lib/utils'
+import { getDifficultyColor, getFerrataGradeColor } from '@/lib/utils'
 
 // Dynamic import para evitar problemas de SSR con Mapbox
 const Map = dynamic(
@@ -32,6 +32,47 @@ interface RoutesMapViewProps {
   hoveredRouteId?: string | null
   onViewStateChange?: (viewState: {latitude: number; longitude: number; zoom: number} | null) => void
   onMarkerHover?: (routeId: string | null) => void
+}
+
+/**
+ * Componente SVG que representa a una persona escalando una vía ferrata con casco, arnés y mochila
+ */
+function FerrataClimberIcon({ className, color }: { className?: string; color?: string }) {
+  return (
+    <svg
+      version="1.0"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 281 264"
+      preserveAspectRatio="xMidYMid meet"
+      className={className}
+      style={{ color }}
+      fill="currentColor"
+    >
+      <g transform="translate(0.000000,264.000000) scale(0.100000,-0.100000)" fill="currentColor" stroke="none">
+        <path d="M994 2310 c-12 -5 -25 -14 -30 -21 -4 -7 -7 -107 -7 -223 1 -201 2 -211 22 -227 12 -10 26 -19 31 -21 6 -2 5 -29 -2 -73 -13 -87 -4 -279 17 -360 38 -143 100 -192 229 -182 39 3 123 20 186 36 177 47 214 42 246 -35 17 -42 0 -105 -52 -188 -32 -51 -39 -57 -49 -42 -7 9 -15 16 -19 16 -9 0 -284 -158 -306 -175 -8 -7 -53 -17 -98 -23 -110 -15 -157 -30 -189 -59 -21 -20 -24 -30 -20 -61 10 -60 38 -75 129 -70 102 6 148 35 176 109 l19 51 31 -50 c17 -28 43 -59 57 -68 26 -17 28 -16 108 25 45 23 104 58 130 77 46 33 49 38 45 72 -3 20 -8 44 -12 53 -5 12 5 23 41 44 152 88 277 188 311 250 12 22 16 56 17 125 0 83 -3 101 -25 140 -28 49 -74 85 -129 99 -20 5 -109 14 -198 20 -186 11 -247 29 -259 76 -6 23 8 148 22 195 2 9 25 32 51 51 50 37 175 179 212 239 29 48 27 91 -5 130 -41 48 -79 63 -145 57 -31 -3 -68 -13 -83 -22 -36 -24 -74 -90 -81 -145 -4 -25 -18 -82 -32 -128 -28 -94 -25 -128 13 -143 23 -8 26 -13 20 -42 -16 -80 -27 -180 -20 -200 11 -38 56 -77 109 -93 27 -8 125 -19 217 -24 171 -9 204 -17 241 -58 27 -30 46 -90 47 -148 0 -84 -9 -110 -59 -159 -46 -45 -238 -185 -254 -185 -4 0 3 15 17 33 40 52 76 139 76 182 0 53 -36 115 -80 138 -42 22 -89 18 -228 -20 -71 -19 -122 -27 -190 -27 -93 -1 -94 -1 -122 31 -51 57 -75 190 -67 373 6 141 9 153 42 168 53 24 122 188 131 316 7 81 6 83 -20 104 -53 41 -175 77 -212 62z m145 -55 c72 -33 76 -43 61 -138 -24 -154 -94 -277 -157 -277 -57 0 -65 23 -58 162 4 70 2 149 -3 183 -8 49 -8 64 5 84 13 20 21 23 53 18 21 -2 65 -17 99 -32z m492 -6 c15 -10 32 -32 38 -48 11 -25 10 -35 -9 -71 -23 -45 -187 -231 -227 -257 -22 -15 -27 -15 -60 1 -41 19 -41 24 -5 161 12 44 24 97 27 118 16 102 149 156 236 96z m-32 -1359 c18 -38 30 -78 27 -87 -9 -28 -200 -143 -237 -143 -9 0 -37 31 -62 70 l-47 69 73 42 c39 23 101 59 137 80 36 21 68 38 71 39 3 0 21 -31 38 -70z m-353 -141 c-15 -77 -76 -119 -176 -122 -69 -2 -90 12 -90 58 0 30 4 35 44 50 35 14 146 36 220 44 5 1 6 -13 2 -30z"/>
+        <path d="M1002 2247 c-10 -12 -4 -35 29 -121 23 -58 45 -106 50 -106 20 0 80 46 84 65 3 11 6 38 8 59 2 36 -2 42 -45 73 -54 40 -108 52 -126 30z m96 -39 l54 -33 -5 -44 c-3 -31 -12 -50 -28 -62 -13 -10 -26 -19 -29 -19 -4 0 -59 143 -68 178 -6 20 19 14 76 -20z"/>
+        <path d="M1011 1921 c-14 -25 -5 -48 20 -56 27 -9 51 13 47 44 -4 34 -51 43 -67 12z"/>
+        <path d="M1452 2218 c-5 -7 -17 -31 -26 -53 -14 -33 -15 -47 -5 -88 6 -27 17 -51 25 -54 17 -6 169 114 184 147 10 21 9 27 -10 42 -27 22 -151 26 -168 6z m158 -31 c0 -7 -35 -41 -77 -76 l-77 -62 -13 35 c-10 30 -9 42 5 76 l17 40 73 0 c53 0 72 -4 72 -13z"/>
+        <path d="M1380 1955 c-26 -32 13 -81 48 -59 34 22 22 74 -18 74 -10 0 -23 -7 -30 -15z m43 -20 c8 -18 -11 -31 -25 -17 -11 11 -3 32 12 32 4 0 10 -7 13 -15z"/>
+        <path d="M1490 770 c-70 -46 -95 -70 -71 -70 19 0 161 95 161 108 0 18 -9 15 -90 -38z"/>
+      </g>
+    </svg>
+  )
+}
+
+/**
+ * Obtiene el color del borde según el grado K de la vía ferrata
+ */
+function getFerrataGradeBorderColor(grade: FerrataGrade | undefined): { border: string; text: string } {
+  const colors: Record<FerrataGrade, { border: string; text: string }> = {
+    'K1': { border: 'border-green-600', text: 'text-green-600' },
+    'K2': { border: 'border-blue-600', text: 'text-blue-600' },
+    'K3': { border: 'border-yellow-600', text: 'text-yellow-600' },
+    'K4': { border: 'border-orange-600', text: 'text-orange-600' },
+    'K5': { border: 'border-red-600', text: 'text-red-600' },
+    'K6': { border: 'border-purple-600', text: 'text-purple-600' },
+  }
+  return colors[grade as FerrataGrade] || { border: 'border-gray-600', text: 'text-gray-600' }
 }
 
 /**
@@ -252,20 +293,35 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
                   onMouseEnter={() => onMarkerHover?.(route.id)}
                   onMouseLeave={() => onMarkerHover?.(null)}
                 >
-                  <div className={`p-2 rounded-full bg-white shadow-lg border-2 transition-all duration-300 group-hover:scale-110 ${
-                    route.difficulty === 'Fácil' ? 'border-green-600' :
-                    route.difficulty === 'Moderada' ? 'border-orange-600' :
-                    route.difficulty === 'Difícil' ? 'border-red-600' :
-                    route.difficulty === 'Muy Difícil' ? 'border-purple-600' :
-                    'border-gray-600'
+                  <div className={`${type === 'ferrata' ? 'p-0.5' : 'p-2'} rounded-full bg-white shadow-lg border-2 transition-all duration-300 group-hover:scale-110 relative ${
+                    type === 'ferrata' && route.ferrataGrade
+                      ? getFerrataGradeBorderColor(route.ferrataGrade).border
+                      : route.difficulty === 'Fácil' ? 'border-green-600' :
+                        route.difficulty === 'Moderada' ? 'border-orange-600' :
+                        route.difficulty === 'Difícil' ? 'border-red-600' :
+                        route.difficulty === 'Muy Difícil' ? 'border-purple-600' :
+                        'border-gray-600'
                   }`}>
-                    <Mountain className={`h-5 w-5 transition-all duration-300 ${
-                      route.difficulty === 'Fácil' ? 'text-green-600' :
-                      route.difficulty === 'Moderada' ? 'text-orange-600' :
-                      route.difficulty === 'Difícil' ? 'text-red-600' :
-                      route.difficulty === 'Muy Difícil' ? 'text-purple-600' :
-                      'text-gray-600'
-                    }`} />
+                    {type === 'ferrata' ? (
+                      <FerrataClimberIcon className={`h-10 w-10 transition-all duration-300 ${
+                        route.ferrataGrade
+                          ? getFerrataGradeBorderColor(route.ferrataGrade).text
+                          : 'text-gray-600'
+                      }`} />
+                    ) : (
+                      <Mountain className={`h-5 w-5 transition-all duration-300 ${
+                        route.difficulty === 'Fácil' ? 'text-green-600' :
+                        route.difficulty === 'Moderada' ? 'text-orange-600' :
+                        route.difficulty === 'Difícil' ? 'text-red-600' :
+                        route.difficulty === 'Muy Difícil' ? 'text-purple-600' :
+                        'text-gray-600'
+                      }`} />
+                    )}
+                    {type === 'ferrata' && route.ferrataGrade && (
+                      <span className={`absolute -bottom-0.5 -right-0.5 text-[7px] px-0.5 py-0.5 rounded font-bold ${getFerrataGradeColor(route.ferrataGrade)} shadow-sm`}>
+                        {route.ferrataGrade}
+                      </span>
+                    )}
                   </div>
                   {/* Tooltip al hover */}
                   <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg whitespace-nowrap transition-opacity pointer-events-none opacity-0 group-hover:opacity-100 z-10`}>
@@ -298,16 +354,31 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
                   onMouseEnter={() => onMarkerHover?.(route.id)}
                   onMouseLeave={() => onMarkerHover?.(null)}
                 >
-                  <div className={`p-2 rounded-full bg-white shadow-lg border-2 transition-all duration-300 scale-150 shadow-xl ${
-                    route.difficulty === 'Fácil' ? 'border-green-600' :
-                    route.difficulty === 'Moderada' ? 'border-orange-600' :
-                    route.difficulty === 'Difícil' ? 'border-red-600' :
-                    route.difficulty === 'Muy Difícil' ? 'border-purple-600' :
-                    'border-gray-600'
+                  <div className={`${type === 'ferrata' ? 'p-0.5' : 'p-2'} rounded-full bg-white shadow-lg border-2 transition-all duration-300 scale-150 shadow-xl relative ${
+                    type === 'ferrata' && route.ferrataGrade
+                      ? getFerrataGradeBorderColor(route.ferrataGrade).border
+                      : route.difficulty === 'Fácil' ? 'border-green-600' :
+                        route.difficulty === 'Moderada' ? 'border-orange-600' :
+                        route.difficulty === 'Difícil' ? 'border-red-600' :
+                        route.difficulty === 'Muy Difícil' ? 'border-purple-600' :
+                        'border-gray-600'
                   }`}
                   style={{ zIndex: 9999 }}
                   >
-                    <Mountain className={`h-5 w-5 transition-all duration-300 text-primary-600`} />
+                    {type === 'ferrata' ? (
+                      <FerrataClimberIcon className={`h-10 w-10 transition-all duration-300 ${
+                        route.ferrataGrade
+                          ? getFerrataGradeBorderColor(route.ferrataGrade).text
+                          : 'text-primary-600'
+                      }`} />
+                    ) : (
+                      <Mountain className="h-5 w-5 transition-all duration-300 text-primary-600" />
+                    )}
+                    {type === 'ferrata' && route.ferrataGrade && (
+                      <span className={`absolute -bottom-0.5 -right-0.5 text-[7px] px-0.5 py-0.5 rounded font-bold ${getFerrataGradeColor(route.ferrataGrade)} shadow-sm`}>
+                        {route.ferrataGrade}
+                      </span>
+                    )}
                   </div>
                   {/* Tooltip siempre visible cuando está hovered */}
                   <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg whitespace-nowrap pointer-events-none z-[10000]`}
@@ -398,7 +469,15 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
 
       {/* Contador de rutas */}
       <div className="absolute bottom-4 left-4 px-3 py-2 bg-white rounded-lg shadow-md text-sm text-gray-700">
-        {routesWithCoordinates.length} {routesWithCoordinates.length === 1 ? 'ruta' : 'rutas'} en el mapa
+        {type === 'ferrata' ? (
+          <>
+            {routesWithCoordinates.length} {routesWithCoordinates.length === 1 ? 'vía ferrata' : 'vías ferratas'} en el mapa
+          </>
+        ) : (
+          <>
+            {routesWithCoordinates.length} {routesWithCoordinates.length === 1 ? 'ruta' : 'rutas'} en el mapa
+          </>
+        )}
       </div>
     </div>
   )

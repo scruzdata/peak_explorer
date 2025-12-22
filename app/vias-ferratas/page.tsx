@@ -18,18 +18,6 @@ export default async function ViasFerratasPage() {
   
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-accent-600 to-accent-800 text-white py-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <h1 className="text-4xl font-bold sm:text-5xl md:text-6xl mb-4">
-            Vías Ferratas
-          </h1>
-          <p className="text-xl text-accent-100 max-w-2xl">
-            Experiencias verticales de K2 a K6. Vías ferratas equipadas para todos los niveles en las montañas de España.
-          </p>
-        </div>
-      </section>
-
       {/* Routes List */}
       <RouteList routes={allFerratas} type="ferrata" />
     </div>

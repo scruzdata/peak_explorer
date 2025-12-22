@@ -14,9 +14,10 @@ interface RouteCardProps {
   onMouseEnter?: () => void
   onMouseLeave?: () => void
   isHovered?: boolean
+  type?: 'trekking' | 'ferrata'
 }
 
-export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, isHovered = false }: RouteCardProps) {
+export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, isHovered = false, type = 'trekking' }: RouteCardProps) {
   const hasRating = typeof route.rating === 'number'
   const ratingValue = hasRating ? Number(route.rating?.toFixed(1)) : null
   
@@ -132,11 +133,17 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
               </div>
             )}
 
-            {/* Difficulty Badge */}
+            {/* Difficulty/Grade Badge */}
             <div className="absolute bottom-2 left-2 z-10">
-              <span className={`text-xs px-2 py-1 rounded-md font-medium ${getDifficultyColor(route.difficulty)}`}>
-                {route.difficulty}
-              </span>
+              {type === 'ferrata' && route.ferrataGrade ? (
+                <span className={`text-xs px-2 py-1 rounded-md font-medium ${getFerrataGradeColor(route.ferrataGrade)}`}>
+                  {route.ferrataGrade}
+                </span>
+              ) : (
+                <span className={`text-xs px-2 py-1 rounded-md font-medium ${getDifficultyColor(route.difficulty)}`}>
+                  {route.difficulty}
+                </span>
+              )}
             </div>
           </div>
 
@@ -246,14 +253,15 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
             </div>
           )}
 
-          {/* Difficulty Badge */}
+          {/* Difficulty/Grade Badge */}
           <div className="absolute bottom-3 left-3 z-10">
-            <span className={`badge ${getDifficultyColor(route.difficulty)}`}>
-              {route.difficulty}
-            </span>
-            {route.ferrataGrade && (
-              <span className={`ml-2 badge ${getFerrataGradeColor(route.ferrataGrade)}`}>
+            {type === 'ferrata' && route.ferrataGrade ? (
+              <span className={`badge ${getFerrataGradeColor(route.ferrataGrade)}`}>
                 {route.ferrataGrade}
+              </span>
+            ) : (
+              <span className={`badge ${getDifficultyColor(route.difficulty)}`}>
+                {route.difficulty}
               </span>
             )}
           </div>
