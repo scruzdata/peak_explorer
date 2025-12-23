@@ -54,7 +54,7 @@ export function RouteFilters({
   }
 
   return (
-    <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-end gap-3 w-full">
+    <div className="w-full flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-end gap-3">
       {/* Difficulty Filter (only for trekking) */}
       {type === 'trekking' && (
         <div className="w-full sm:w-40">

@@ -5,7 +5,7 @@ import { Route, Difficulty, FerrataGrade, Season } from '@/types'
 import { RouteCard } from './RouteCard'
 import { RouteFilters } from './RouteFilters'
 import { RoutesMapView } from './RoutesMapView'
-import { Search, Grid3x3, Map, LayoutGrid } from 'lucide-react'
+import { Search, Grid3x3, Map, LayoutGrid, ChevronDown } from 'lucide-react'
 
 interface RouteListProps {
   routes: Route[]
@@ -22,6 +22,7 @@ export function RouteList({ routes, type }: RouteListProps) {
   const [selectedRegion, setSelectedRegion] = useState<string>('all')
   const [viewMode, setViewMode] = useState<ViewMode>('both')
   const [isMobile, setIsMobile] = useState(false)
+  const [showMobileFilters, setShowMobileFilters] = useState(false)
   const [hoveredRouteId, setHoveredRouteId] = useState<string | null>(null)
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false)
   const [mapViewState, setMapViewState] = useState<{latitude: number; longitude: number; zoom: number} | null>(null)
@@ -40,6 +41,10 @@ export function RouteList({ routes, type }: RouteListProps) {
       if (typeof window === 'undefined') return
       const isMobileViewport = window.innerWidth < 1024 // lg breakpoint de Tailwind
       setIsMobile(isMobileViewport)
+      if (!isMobileViewport) {
+        // Al pasar a escritorio, cerramos panel móvil de filtros
+        setShowMobileFilters(false)
+      }
     }
 
     handleResize()
@@ -291,6 +296,35 @@ export function RouteList({ routes, type }: RouteListProps) {
 
   return (
     <div className={viewMode === 'both' ? 'w-full' : 'mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8'}>
+      {/* Panel de filtros superpuesto en móvil */}
+      {isMobile && showMobileFilters && (
+        <div className="fixed inset-0 z-40 lg:hidden bg-black/40">
+          <div className="absolute top-20 left-0 right-0 mx-4 rounded-lg bg-white shadow-xl max-h-[70vh] overflow-y-auto p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-800">Filtros</h2>
+              <button
+                type="button"
+                onClick={() => setShowMobileFilters(false)}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                Cerrar
+              </button>
+            </div>
+            <RouteFilters
+              type={type}
+              selectedDifficulty={selectedDifficulty}
+              selectedGrade={selectedGrade}
+              selectedSeason={selectedSeason}
+              selectedRegion={selectedRegion}
+              regions={regions}
+              onDifficultyChange={setSelectedDifficulty}
+              onGradeChange={setSelectedGrade}
+              onSeasonChange={setSelectedSeason}
+              onRegionChange={setSelectedRegion}
+            />
+          </div>
+        </div>
+      )}
       {/* Search and Filters */}
       <div className={`${viewMode === 'both' ? 'px-4 sm:px-6 lg:px-8 pt-4' : ''} mb-4`}>
         <div className="flex flex-col lg:flex-row gap-3 items-start lg:items-end justify-between">
@@ -307,21 +341,23 @@ export function RouteList({ routes, type }: RouteListProps) {
               />
             </div>
 
-            {/* Filters */}
-            <div className="flex-1 lg:flex-none">
-              <RouteFilters
-                type={type}
-                selectedDifficulty={selectedDifficulty}
-                selectedGrade={selectedGrade}
-                selectedSeason={selectedSeason}
-                selectedRegion={selectedRegion}
-                regions={regions}
-                onDifficultyChange={setSelectedDifficulty}
-                onGradeChange={setSelectedGrade}
-                onSeasonChange={setSelectedSeason}
-                onRegionChange={setSelectedRegion}
-              />
-            </div>
+            {/* Filters - solo visibles en escritorio/tablet; en móvil van en panel superpuesto */}
+            {!isMobile && (
+              <div className="flex-1 lg:flex-none">
+                <RouteFilters
+                  type={type}
+                  selectedDifficulty={selectedDifficulty}
+                  selectedGrade={selectedGrade}
+                  selectedSeason={selectedSeason}
+                  selectedRegion={selectedRegion}
+                  regions={regions}
+                  onDifficultyChange={setSelectedDifficulty}
+                  onGradeChange={setSelectedGrade}
+                  onSeasonChange={setSelectedSeason}
+                  onRegionChange={setSelectedRegion}
+                />
+              </div>
+            )}
           </div>
 
           {/* View Mode Toggle */}
@@ -362,6 +398,15 @@ export function RouteList({ routes, type }: RouteListProps) {
             >
               <LayoutGrid className="h-4 w-4" />
               <span className="hidden sm:inline">Ambas</span>
+            </button>
+            {/* Botón de filtros para móvil, situado a la derecha del selector */}
+            <button
+              type="button"
+              onClick={() => setShowMobileFilters(true)}
+              className="flex lg:hidden items-center gap-1 rounded-md bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+            >
+              Filtros
+              <ChevronDown className={`h-4 w-4 transition-transform ${showMobileFilters ? 'rotate-180' : ''}`} />
             </button>
           </div>
         </div>
