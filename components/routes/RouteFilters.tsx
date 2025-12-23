@@ -54,10 +54,10 @@ export function RouteFilters({
   }
 
   return (
-    <div className="flex items-end gap-3">
+    <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-end gap-3 w-full">
       {/* Difficulty Filter (only for trekking) */}
       {type === 'trekking' && (
-        <div className="w-40">
+        <div className="w-full sm:w-40">
           <label className="mb-0.5 block text-xs font-medium text-gray-700">
             Dificultad
           </label>
@@ -86,7 +86,7 @@ export function RouteFilters({
       )}
 
       {/* Season Filter */}
-      <div className="w-40">
+      <div className="w-full sm:w-40">
         <label className="mb-0.5 block text-xs font-medium text-gray-700">
           Mejor Época
         </label>
@@ -105,7 +105,7 @@ export function RouteFilters({
       </div>
 
       {/* Region Filter */}
-      <div className="w-40">
+      <div className="w-full sm:w-40">
         <label className="mb-0.5 block text-xs font-medium text-gray-700">
           Región
         </label>
@@ -127,7 +127,7 @@ export function RouteFilters({
       {activeFiltersCount > 0 && (
         <button
           onClick={handleClearFilters}
-          className="rounded-lg border border-gray-300 bg-white px-4 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          className="mt-1 sm:mt-0 w-full sm:w-auto rounded-lg border border-gray-300 bg-white px-4 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
         >
           Limpiar filtros
         </button>
@@ -169,7 +169,7 @@ function GradeFilterDropdown({
   const selectedGradeColor = selectedGrade !== 'all' ? getFerrataGradeColor(selectedGrade) : ''
 
   return (
-    <div className="w-32 relative" ref={dropdownRef}>
+    <div className="w-full sm:w-32 relative" ref={dropdownRef}>
       <label className="mb-0.5 block text-xs font-medium text-gray-700">
         Grado K
       </label>

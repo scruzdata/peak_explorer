@@ -21,6 +21,7 @@ export function RouteList({ routes, type }: RouteListProps) {
   const [selectedSeason, setSelectedSeason] = useState<Season | 'all'>('all')
   const [selectedRegion, setSelectedRegion] = useState<string>('all')
   const [viewMode, setViewMode] = useState<ViewMode>('both')
+  const [isMobile, setIsMobile] = useState(false)
   const [hoveredRouteId, setHoveredRouteId] = useState<string | null>(null)
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false)
   const [mapViewState, setMapViewState] = useState<{latitude: number; longitude: number; zoom: number} | null>(null)
@@ -28,6 +29,33 @@ export function RouteList({ routes, type }: RouteListProps) {
   const gridEndRef = useRef<HTMLDivElement>(null)
   const gridContainerRef = useRef<HTMLDivElement>(null)
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  /**
+   * Detectar si estamos en móvil (viewport < lg) para:
+   * - Forzar vista por defecto "map" en móvil
+   * - Evitar el modo combinado "both" en móvil
+   */
+  useEffect(() => {
+    const handleResize = () => {
+      if (typeof window === 'undefined') return
+      const isMobileViewport = window.innerWidth < 1024 // lg breakpoint de Tailwind
+      setIsMobile(isMobileViewport)
+    }
+
+    handleResize()
+    window.addEventListener('resize', handleResize)
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [])
+
+  useEffect(() => {
+    // En móvil no permitimos el modo combinado, y por defecto mostramos el mapa
+    if (isMobile && viewMode === 'both') {
+      setViewMode('map')
+    }
+  }, [isMobile, viewMode])
 
   const regions = useMemo(() => {
     const uniqueRegions = new Set(routes.map(r => r.location.region))
@@ -322,14 +350,15 @@ export function RouteList({ routes, type }: RouteListProps) {
               <Map className="h-4 w-4" />
               <span className="hidden sm:inline">Mapa</span>
             </button>
+            {/* El modo combinado solo está disponible en escritorio (lg y superior) */}
             <button
               onClick={() => setViewMode('both')}
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
+              className={`hidden lg:flex px-3 py-2 rounded-md text-sm font-medium transition-colors items-center gap-2 ${
                 viewMode === 'both'
                   ? 'bg-white text-primary-600 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
-              title="Vista combinada"
+              title="Vista combinada (solo escritorio)"
             >
               <LayoutGrid className="h-4 w-4" />
               <span className="hidden sm:inline">Ambas</span>
