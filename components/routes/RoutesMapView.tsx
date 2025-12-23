@@ -193,6 +193,9 @@ export function RoutesMapView({
       return
     }
 
+    // Guardar el slug en una constante para evitar problemas de tipo en la función asíncrona
+    const routeSlug = trackRoute.slug
+
     let cancelled = false
 
     async function loadTrack() {
@@ -201,7 +204,7 @@ export function RoutesMapView({
         setTrackError(null)
 
         const { getTrackByRouteSlug } = await import('@/lib/firebase/tracks')
-        const points = await getTrackByRouteSlug(trackRoute.slug)
+        const points = await getTrackByRouteSlug(routeSlug)
 
         if (!cancelled) {
           if (points && points.length > 1) {
