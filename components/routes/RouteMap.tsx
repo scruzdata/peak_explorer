@@ -55,7 +55,9 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
   const [selectedRestaurant, setSelectedRestaurant] = useState<number | null>(null)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isInteractive, setIsInteractive] = useState(false)
   const [fullscreenHoveredIndex, setFullscreenHoveredIndex] = useState<number | null>(null)
+  const containerRef = useRef<HTMLDivElement | null>(null)
   const animationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   /**
@@ -173,6 +175,37 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
   useEffect(() => {
     setViewState(initialViewState)
   }, [initialViewState])
+
+  /**
+   * Desactiva la interacción del mapa cuando se hace clic fuera de su contenedor
+   * (solo en vista normal, no en pantalla completa)
+   */
+  useEffect(() => {
+    if (!isInteractive || isFullscreen) return
+
+    const handleClickOutsideMap = (event: MouseEvent) => {
+      const target = event.target as Node | null
+      if (containerRef.current && target && !containerRef.current.contains(target)) {
+        setIsInteractive(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutsideMap)
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutsideMap)
+    }
+  }, [isInteractive, isFullscreen])
+
+  /**
+   * Al salir de pantalla completa, volvemos a desactivar el modo interactivo
+   * para que el mapa vuelva a estar estático en la vista de detalle
+   */
+  useEffect(() => {
+    if (!isFullscreen) {
+      setIsInteractive(false)
+    }
+  }, [isFullscreen])
 
   /**
    * Maneja el cambio de vista del mapa
@@ -443,11 +476,24 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
   }
 
   return (
-    <div className="h-full w-full relative">
+    <div 
+      ref={containerRef}
+      className={`h-full w-full relative transition-all duration-150 ${
+        // Borde negro claro cuando el mapa está en modo interactivo
+        isInteractive ? 'border-2 border-black shadow-lg' : 'cursor-pointer'
+      }`}
+      // Al hacer click dentro del área del mapa lo ponemos en modo interactivo
+      onMouseDownCapture={() => setIsInteractive(true)}
+    >
       <Map
         {...viewState}
         onMove={onMove}
-        style={{ width: '100%', height: '100%' }}
+        // Cuando el usuario empieza a mover el mapa, activamos el modo interactivo
+        onMoveStart={() => setIsInteractive(true)}
+        style={{ width: '100%', height: '100%', pointerEvents: isFullscreen || isInteractive ? 'auto' : 'none' }}
+        // Mantener el mapa siempre interactivo, pero bloquear los eventos del ratón
+        // con pointer-events cuando no está en modo interactivo
+        interactive={true}
         mapStyle={`mapbox://styles/mapbox/${mapStyle}`}
         mapboxAccessToken={mapboxToken}
         attributionControl={false}

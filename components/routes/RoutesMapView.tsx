@@ -3,9 +3,8 @@
 import { useMemo, useState, useCallback, useEffect } from 'react'
 import { Route, FerrataGrade } from '@/types'
 import dynamic from 'next/dynamic'
-import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Mountain, Star } from 'lucide-react'
+import { Mountain, Star, X } from 'lucide-react'
 import { getDifficultyColor, getFerrataGradeColor } from '@/lib/utils'
 
 // Dynamic import para evitar problemas de SSR con Mapbox
@@ -15,13 +14,17 @@ const Map = dynamic(
     ssr: false,
     loading: () => <div className="h-full w-full flex items-center justify-center bg-gray-100 rounded-lg">Cargando mapa...</div>
   }
-)
+) 
 const Marker = dynamic(
   () => import('react-map-gl').then((mod) => mod.Marker),
   { ssr: false }
 )
-const Popup = dynamic(
-  () => import('react-map-gl').then((mod) => mod.Popup),
+const Source = dynamic(
+  () => import('react-map-gl').then((mod) => mod.Source),
+  { ssr: false }
+)
+const Layer = dynamic(
+  () => import('react-map-gl').then((mod) => mod.Layer),
   { ssr: false }
 )
 
@@ -78,13 +81,17 @@ function getFerrataGradeBorderColor(grade: FerrataGrade | undefined): { border: 
 /**
  * Componente que muestra todas las rutas en un mapa de España usando Mapbox
  * Muestra el POI principal de cada ruta y permite navegar al detalle
+ * Al hacer click en un POI:
+ *  - Muestra una tarjeta fija arriba a la izquierda con la info de la ruta
+ *  - Pinta el track de la ruta sobre el mapa (usando datos locales o Firestore)
  */
 export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId = null, onViewStateChange, onMarkerHover }: RoutesMapViewProps) {
-  const router = useRouter()
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null)
   const [mapStyle, setMapStyle] = useState<'satellite-streets-v12' | 'outdoors-v12'>('outdoors-v12')
-  const [popupAnchor, setPopupAnchor] = useState<'bottom' | 'top' | 'left' | 'right'>('bottom')
   const [viewState, setViewState] = useState<{latitude: number; longitude: number; zoom: number} | null>(null)
+  const [selectedRouteTrack, setSelectedRouteTrack] = useState<{ lat: number; lng: number; elevation?: number }[] | null>(null)
+  const [isLoadingTrack, setIsLoadingTrack] = useState(false)
+  const [trackError, setTrackError] = useState<string | null>(null)
 
   /**
    * Importa dinámicamente los estilos de Mapbox cuando el componente se monta
@@ -95,56 +102,13 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
     link.rel = 'stylesheet'
     link.href = 'https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css'
     document.head.appendChild(link)
-    
-    // Añadir estilos personalizados para el popup
-    const style = document.createElement('style')
-    style.textContent = `
-      .mapboxgl-popup-content {
-        padding: 0 !important;
-        max-width: 180px !important;
-        width: 160px !important;
-        overflow: hidden !important;
-        box-sizing: border-box !important;
-        border-radius: 10px !important;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15) !important;
-      }
-      .mapboxgl-popup-content > * {
-        max-width: 100% !important;
-        box-sizing: border-box !important;
-      }
-      .mapboxgl-popup-tip {
-        border-top-color: white !important;
-      }
-      .mapboxgl-popup-close-button {
-        width: 28px !important;
-        height: 28px !important;
-        font-size: 18px !important;
-        color: #333 !important;
-        background: rgba(255, 255, 255, 0.9) !important;
-        border-radius: 50% !important;
-        top: 8px !important;
-        right: 8px !important;
-        z-index: 10 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        transition: all 0.2s !important;
-      }
-      .mapboxgl-popup-close-button:hover {
-        background: white !important;
-        transform: scale(1.1) !important;
-      }
-    `
-    document.head.appendChild(style)
-    
+
     return () => {
       // Limpiar el link cuando el componente se desmonte
       const existingLink = document.head.querySelector(`link[href="${link.href}"]`)
       if (existingLink) {
         document.head.removeChild(existingLink)
       }
-      // Limpiar el estilo
-      document.head.removeChild(style)
     }
   }, [])
 
@@ -181,61 +145,74 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
   }, [initialViewState, onViewStateChange])
 
   /**
-   * Calcula el anchor del popup basado en la posición del marcador en el viewport
-   * Considera la altura del popup para evitar que se corte
+   * Carga el track de la ruta seleccionada (desde la propia ruta o desde Firestore)
    */
   useEffect(() => {
-    if (!selectedRoute || !viewState) {
+    if (!selectedRoute) {
+      setSelectedRouteTrack(null)
+      setTrackError(null)
       return
     }
 
-    const markerLat = selectedRoute.location.coordinates.lat
-    const viewportLat = viewState.latitude
-    const zoom = viewState.zoom
+    // Si la ruta ya tiene el track cargado, úsalo directamente
+    if (selectedRoute.track && selectedRoute.track.length > 1) {
+      setSelectedRouteTrack(selectedRoute.track)
+      setIsLoadingTrack(false)
+      setTrackError(null)
+      return
+    }
 
-    // Calcular la distancia en grados desde el centro del viewport
-    // A mayor zoom, menor es el área visible
-    const latRange = 180 / Math.pow(2, zoom)
-    const distanceFromCenter = markerLat - viewportLat
-    
-    // El popup tiene aproximadamente 200px de altura (imagen 144px + contenido ~60px)
-    // Necesitamos calcular cuántos grados representa esto en el viewport actual
-    // Aproximadamente, a zoom 6, 1 grado ≈ 111km, y el viewport muestra ~10-15 grados
-    // Usar un umbral más conservador (40% en lugar de 25%) para asegurar espacio suficiente
-    const threshold = latRange * 0.08
-    
-    // Prioridad: primero verificar si está cerca del borde superior
-    // Si el marcador está en el 40% superior, SIEMPRE usar 'top' (popup debajo)
-    if (distanceFromCenter > threshold) {
-      // Marcador está en la parte superior -> popup debe aparecer debajo
-      setPopupAnchor('top')
-    } else if (distanceFromCenter < -threshold) {
-      // Marcador está en la parte inferior -> popup debe aparecer arriba
-      setPopupAnchor('bottom')
-    } else {
-      // Si está en el medio, verificar los bordes laterales
-      const markerLng = selectedRoute.location.coordinates.lng
-      const viewportLng = viewState.longitude
-      const lngRange = 360 / Math.pow(2, zoom)
-      const lngDistance = markerLng - viewportLng
-      const lngThreshold = lngRange * 0.35
-      
-      if (Math.abs(lngDistance) > lngThreshold) {
-        // Si el marcador está a la izquierda del centro, el popup debe aparecer a la derecha
-        // Si el marcador está a la derecha del centro, el popup debe aparecer a la izquierda
-        if (lngDistance < 0) {
-          // Marcador a la izquierda -> popup a la derecha del marcador
-          setPopupAnchor('left')
-        } else {
-          // Marcador a la derecha -> popup a la izquierda del marcador
-          setPopupAnchor('right')
+    let cancelled = false
+
+    async function loadTrack() {
+      try {
+        setIsLoadingTrack(true)
+        setTrackError(null)
+
+        const { getTrackByRouteSlug } = await import('@/lib/firebase/tracks')
+        const points = await getTrackByRouteSlug(selectedRoute.slug)
+
+        if (!cancelled) {
+          if (points && points.length > 1) {
+            setSelectedRouteTrack(points as any)
+          } else {
+            setSelectedRouteTrack(null)
+          }
         }
-      } else {
-        // Por defecto, popup abajo (más seguro que arriba)
-        setPopupAnchor('bottom')
+      } catch (error) {
+        console.error('Error cargando track para la ruta seleccionada:', error)
+        if (!cancelled) {
+          setTrackError('No se ha podido cargar el track de esta ruta.')
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingTrack(false)
+        }
       }
     }
-  }, [selectedRoute, viewState])
+
+    loadTrack()
+
+    return () => {
+      cancelled = true
+    }
+  }, [selectedRoute])
+
+  /**
+   * GeoJSON del track de la ruta seleccionada para pintarlo en el mapa
+   */
+  const selectedRouteGeoJSON = useMemo(() => {
+    if (!selectedRouteTrack || selectedRouteTrack.length < 2) return null
+
+    return {
+      type: 'Feature' as const,
+      geometry: {
+        type: 'LineString' as const,
+        coordinates: selectedRouteTrack.map((p) => [p.lng, p.lat]),
+      },
+      properties: {},
+    }
+  }, [selectedRouteTrack])
 
   /**
    * Maneja el click en un marcador para navegar al detalle de la ruta en una nueva pestaña
@@ -268,11 +245,30 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
           setViewState(evt.viewState)
           onViewStateChange?.(evt.viewState)
         }}
+        onClick={() => {
+          // Cerrar tarjeta al pinchar en cualquier parte del mapa que no sea un marcador
+          setSelectedRoute(null)
+        }}
         style={{ width: '100%', height: '100%' }}
         mapStyle={`mapbox://styles/mapbox/${mapStyle}`}
         mapboxAccessToken={mapboxToken}
         attributionControl={false}
       >
+        {/* Track de la ruta seleccionada */}
+        {selectedRouteGeoJSON && (
+          <Source id="selected-route-track" type="geojson" data={selectedRouteGeoJSON}>
+            <Layer
+              id="selected-route-line"
+              type="line"
+              paint={{
+                'line-color': '#3b82f6',
+                'line-width': 4,
+                'line-opacity': 0.85,
+              }}
+            />
+          </Source>
+        )}
+
         {/* Marcadores para cada ruta - primero los no hovered */}
         {routesWithCoordinates
           .filter(route => hoveredRouteId !== route.id)
@@ -393,69 +389,88 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
               </Marker>
             )
           })}
+      </Map>
 
-        {/* Popup con información de la ruta */}
-        {selectedRoute && (
-          <Popup
-            longitude={selectedRoute.location.coordinates.lng}
-            latitude={selectedRoute.location.coordinates.lat}
-            anchor={popupAnchor}
-            offset={popupAnchor === 'top' ? [0, 15] : popupAnchor === 'bottom' ? [0, -15] : popupAnchor === 'left' ? [10, 0] : [-10, 0]}
-            onClose={() => setSelectedRoute(null)}
-            closeButton={true}
-            closeOnClick={true}
-          >
-            <div className="w-full max-w-full overflow-hidden rounded-lg bg-white box-border">
-              {/* Imagen de la ruta - ocupa todo el ancho y parte superior */}
-              <div className="relative h-28 w-full overflow-hidden box-border rounded-t-lg">
-                <Image
-                  src={selectedRoute.heroImage.url}
-                  alt={selectedRoute.heroImage.alt}
-                  fill
-                  className="object-cover"
-                  sizes="160px"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
-                
-                {/* Rating Badge - esquina superior derecha */}
-                {selectedRoute.rating && typeof selectedRoute.rating === 'number' && (
-                  <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 rounded-full bg-white/95 backdrop-blur-sm px-1.5 py-0.5 text-[10px] font-semibold text-gray-900 shadow-lg border border-gray-200 z-10">
-                    <Star className="h-2.5 w-2.5 text-amber-500" fill="currentColor" strokeWidth={1.5} />
-                    <span>{selectedRoute.rating.toFixed(1)}</span>
-                  </div>
-                )}
-                
-                {/* Badges de dificultad - esquina inferior izquierda */}
-                <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 z-10">
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium shadow-sm ${getDifficultyColor(selectedRoute.difficulty)}`}>
-                    {selectedRoute.difficulty}
-                  </span>
-                  {selectedRoute.ferrataGrade && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-md font-medium bg-blue-100 text-blue-800 shadow-sm">
-                      {selectedRoute.ferrataGrade}
-                    </span>
-                  )}
+      {/* Tarjeta fija de la ruta seleccionada (arriba a la izquierda) */}
+      {selectedRoute && (
+        <div className="absolute top-4 left-6 sm:left-8 z-20 w-48 sm:w-56 max-w-[60vw]">
+          <div className="relative overflow-hidden rounded-md bg-white shadow-md border border-gray-200">
+            {/* Botón cerrar */}
+            <button
+              type="button"
+              onClick={() => setSelectedRoute(null)}
+              className="absolute top-2 right-2 z-20 inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/90 text-gray-600 shadow hover:bg-white"
+            >
+              <X className="h-3 w-3" />
+            </button>
+
+            {/* Imagen */}
+            <div className="relative h-24 w-full overflow-hidden">
+              <Image
+                src={selectedRoute.heroImage.url}
+                alt={selectedRoute.heroImage.alt}
+                fill
+                className="object-cover"
+                sizes="288px"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+
+              {/* Rating (más hacia la izquierda) */}
+              {selectedRoute.rating && typeof selectedRoute.rating === 'number' && (
+                <div className="absolute top-2 left-2 flex items-center gap-0.5 rounded-full bg-white/95 backdrop-blur px-1.5 py-0.5 text-[11px] font-semibold text-gray-900 shadow border border-gray-200">
+                  <Star className="h-2.5 w-2.5 text-amber-500" fill="currentColor" strokeWidth={1.5} />
+                  <span>{selectedRoute.rating.toFixed(1)}</span>
                 </div>
-              </div>
-              
-              {/* Contenido del popup */}
-              <div className="p-2 w-full box-border">
-                <h3 className="font-bold text-gray-900 mb-0.5 line-clamp-1 w-full text-xs leading-tight">{selectedRoute.title}</h3>
-                <p className="text-[10px] text-gray-600 mb-1.5 line-clamp-2 w-full leading-snug">{selectedRoute.summary}</p>
-                <p className="text-[10px] text-gray-500 mb-2 w-full">
-                  {selectedRoute.location.region}, {selectedRoute.location.province}
-                </p>
-                <button
-                  onClick={() => handleMarkerClick(selectedRoute)}
-                  className="w-full px-2 py-1.5 bg-primary-600 text-white text-[10px] font-semibold rounded-md hover:bg-primary-700 transition-all duration-200 box-border shadow-sm hover:shadow-md"
-                >
-                  Ver detalles
-                </button>
+              )}
+
+              {/* Badges dificultad / grado */}
+              <div className="absolute bottom-2 left-2 flex items-center gap-1">
+                <span className={`text-[11px] px-1.5 py-0.5 rounded-md font-medium shadow-sm ${getDifficultyColor(selectedRoute.difficulty)}`}>
+                  {selectedRoute.difficulty}
+                </span>
+                {selectedRoute.ferrataGrade && (
+                  <span className="text-[11px] px-1.5 py-0.5 rounded-md font-medium bg-blue-100 text-blue-800 shadow-sm">
+                    {selectedRoute.ferrataGrade}
+                  </span>
+                )}
               </div>
             </div>
-          </Popup>
-        )}
-      </Map>
+
+            {/* Contenido */}
+            <div className="p-2">
+              <h3 className="mb-0.5 text-[11px] font-bold text-gray-900 line-clamp-2 leading-snug">
+                {selectedRoute.title}
+              </h3>
+              <p className="mb-0.5 text-[10px] text-gray-600 line-clamp-2 leading-snug">
+                {selectedRoute.summary}
+              </p>
+              <p className="mb-1 text-[10px] text-gray-500">
+                {selectedRoute.location.region}, {selectedRoute.location.province}
+              </p>
+
+              {/* Estado de carga del track */}
+              {isLoadingTrack && (
+                <p className="mb-0.5 text-[10px] text-primary-600">
+                  Cargando track de la ruta…
+                </p>
+              )}
+              {trackError && (
+                <p className="mb-0.5 text-[10px] text-red-600">
+                  {trackError}
+                </p>
+              )}
+
+              <button
+                type="button"
+                onClick={() => handleMarkerClick(selectedRoute)}
+                className="mt-0.5 w-full rounded-sm bg-primary-600 px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm transition hover:bg-primary-700"
+              >
+                Ver detalles de la ruta
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Controles del mapa */}
       <div className="absolute top-4 right-4 flex flex-col gap-2">
@@ -467,8 +482,8 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
         </button>
       </div>
 
-      {/* Contador de rutas */}
-      <div className="absolute bottom-4 left-4 px-3 py-2 bg-white rounded-lg shadow-md text-sm text-gray-700">
+      {/* Contador de rutas (todavía más pegado al borde izquierdo para no solapar la tarjeta) */}
+      <div className="absolute bottom-4 left-0 sm:left-1 px-2.5 py-1.5 bg-white rounded-lg shadow-md text-xs text-gray-700">
         {type === 'ferrata' ? (
           <>
             {routesWithCoordinates.length} {routesWithCoordinates.length === 1 ? 'vía ferrata' : 'vías ferratas'} en el mapa
