@@ -72,10 +72,8 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
         }}
         onMouseDown={(e) => {
           // Prevenir que el Link (si existe) capture el evento
-          if (onClick) {
-            e.preventDefault()
-            e.stopPropagation()
-          }
+          e.preventDefault()
+          e.stopPropagation()
         }}
       >
         <div className="relative h-48 overflow-hidden rounded-xl mb-2 group/image">

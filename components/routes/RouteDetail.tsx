@@ -644,11 +644,13 @@ export function RouteDetail({ route }: RouteDetailProps) {
                                   onClick={() => setShowWebcamImageModal(true)}
                                   aria-label="Ver imagen de la webcam más grande"
                                 >
-                                  <img
+                                  <Image
                                     src={url}
                                     alt={normalizedWebcams[selectedWebcamIndex].title || `Webcam ${selectedWebcamIndex + 1}`}
+                                    width={800}
+                                    height={600}
                                     className="w-full h-auto block"
-                                    loading="lazy"
+                                    unoptimized
                                   />
                                 </button>
                               </div>
@@ -783,10 +785,13 @@ export function RouteDetail({ route }: RouteDetailProps) {
             >
               <X className="h-5 w-5" />
             </button>
-            <img
+            <Image
               src={normalizedWebcams[selectedWebcamIndex].url}
               alt={normalizedWebcams[selectedWebcamIndex].title || `Webcam ${selectedWebcamIndex + 1}`}
+              width={1920}
+              height={1080}
               className="mx-auto max-h-[80vh] w-auto rounded-lg shadow-2xl"
+              unoptimized
             />
           </div>
         </div>
