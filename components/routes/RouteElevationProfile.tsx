@@ -83,7 +83,8 @@ export function RouteElevationProfile({ route, onHoverTrackIndex }: RouteElevati
   // Dimensiones del gráfico
   const width = 800
   const height = 200
-  const padding = { top: 20, right: 40, bottom: 40, left: 60 }
+  // Reducimos padding lateral e inferior para que el gráfico aproveche mejor el espacio
+  const padding = { top: 10, right: 24, bottom: 1, left: 50 }
   const chartWidth = width - padding.left - padding.right
   const chartHeight = height - padding.top - padding.bottom
 

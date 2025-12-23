@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { Route } from '@/types'
 import dynamic from 'next/dynamic'
 import { Car, RotateCcw, Play, Pause, Square, Download, Eye, EyeOff, Menu, X, Maximize2, Minimize2, UtensilsCrossed } from 'lucide-react'
+import { RouteElevationProfile } from './RouteElevationProfile'
 import { calculateSlope, getSlopeColor } from '@/lib/utils'
 
 // Dynamic import para evitar problemas de SSR con Mapbox
@@ -54,6 +55,7 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
   const [selectedRestaurant, setSelectedRestaurant] = useState<number | null>(null)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [fullscreenHoveredIndex, setFullscreenHoveredIndex] = useState<number | null>(null)
   const animationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   /**
@@ -448,7 +450,7 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
         style={{ width: '100%', height: '100%' }}
         mapStyle={`mapbox://styles/mapbox/${mapStyle}`}
         mapboxAccessToken={mapboxToken}
-        attributionControl={true}
+        attributionControl={false}
         terrain={is3D ? { source: 'mapbox-dem', exaggeration: 1.5 } : undefined}
       >
         {/* Terreno 3D */}
@@ -496,7 +498,7 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
           </Marker>
         )}
 
-        {/* Marcador de posición hover del perfil de elevación */}
+        {/* Marcador de posición hover del perfil de elevación (vista normal, controlado por el perfil externo) */}
         {hoveredTrackIndex !== null && hoveredTrackIndex !== undefined && route.track && route.track[hoveredTrackIndex] && (
           <Marker
             longitude={route.track[hoveredTrackIndex].lng}
@@ -660,6 +662,26 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
         ))}
       </Map>
 
+      {/* Controles inferiores (resetear / pantalla completa) en la esquina inferior derecha */}
+      <div className="pointer-events-none absolute bottom-3 right-3 z-10 flex flex-col gap-2 items-end">
+        <button
+          onClick={resetView}
+          className="pointer-events-auto bg-white/95 hover:bg-white px-2.5 py-1.5 rounded-md shadow-md text-xs font-medium text-gray-700 flex items-center gap-1.5"
+          title="Resetear vista del mapa"
+        >
+          <RotateCcw className="h-3 w-3" />
+          <span>Resetear</span>
+        </button>
+        <button
+          onClick={() => setIsFullscreen(true)}
+          className="pointer-events-auto bg-white/95 hover:bg-white px-2.5 py-1.5 rounded-md shadow-md text-xs font-medium text-gray-700 flex items-center gap-1.5"
+          title="Ver mapa en pantalla completa"
+        >
+          <Maximize2 className="h-3 w-3" />
+          <span>Pantalla completa</span>
+        </button>
+      </div>
+
       {/* Menú desplegable de controles */}
       <div className="absolute top-4 right-4 z-10 menu-container">
         {/* Botón principal del menú */}
@@ -697,7 +719,7 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
               }`}
               title="Alternar vista 3D"
             >
-              {is3D ? '🗻 3D' : '📐 2D'}
+              {is3D ? '🗻 3D / 2D' : '📐 2D / 3D'}
             </button>
             <div className="border-t border-gray-200 my-0.5"></div>
             <button
@@ -764,29 +786,6 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
                 <span>Restaurantes</span>
               </button>
             )}
-            <button
-              onClick={() => {
-                resetView()
-                setIsMenuOpen(false)
-              }}
-              className="px-2 py-1.5 text-left hover:bg-gray-50 transition-colors text-xs font-medium text-gray-700 flex items-center gap-1.5"
-              title="Resetear vista del mapa"
-            >
-              <RotateCcw className="h-3 w-3" />
-              <span>Resetear</span>
-            </button>
-            <div className="border-t border-gray-200 my-0.5"></div>
-            <button
-              onClick={() => {
-                setIsFullscreen(true)
-                setIsMenuOpen(false)
-              }}
-              className="px-2 py-1.5 text-left hover:bg-gray-50 transition-colors text-xs font-medium text-gray-700 flex items-center gap-1.5"
-              title="Ver mapa en pantalla completa"
-            >
-              <Maximize2 className="h-3 w-3" />
-              <span>Pantalla completa</span>
-            </button>
           </div>
         )}
       </div>
@@ -813,7 +812,7 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
                 style={{ width: '100%', height: '100%' }}
                 mapStyle={`mapbox://styles/mapbox/${mapStyle}`}
                 mapboxAccessToken={mapboxToken}
-                attributionControl={true}
+                attributionControl={false}
                 terrain={is3D ? { source: 'mapbox-dem', exaggeration: 1.5 } : undefined}
               >
                 {/* Terreno 3D */}
@@ -861,11 +860,11 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
                   </Marker>
                 )}
 
-                {/* Marcador de posición hover del perfil de elevación */}
-                {hoveredTrackIndex !== null && hoveredTrackIndex !== undefined && route.track && route.track[hoveredTrackIndex] && (
+                {/* Marcador de posición hover del perfil de elevación en pantalla completa (controlado localmente por el perfil de pendiente) */}
+                {fullscreenHoveredIndex !== null && fullscreenHoveredIndex !== undefined && route.track && route.track[fullscreenHoveredIndex] && (
                   <Marker
-                    longitude={route.track[hoveredTrackIndex].lng}
-                    latitude={route.track[hoveredTrackIndex].lat}
+                    longitude={route.track[fullscreenHoveredIndex].lng}
+                    latitude={route.track[fullscreenHoveredIndex].lat}
                     anchor="center"
                   >
                     <div className="relative">
@@ -1019,7 +1018,7 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
             </div>
 
             {/* Controles en pantalla completa */}
-            <div className="absolute top-4 right-20 z-50 menu-container">
+            <div className="absolute top-16 right-4 z-50 menu-container">
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 className="bg-white/90 hover:bg-white px-2.5 py-1.5 rounded-md shadow-lg transition-colors text-xs font-medium text-gray-700 flex items-center gap-1.5"
@@ -1053,7 +1052,7 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
                     }`}
                     title="Alternar vista 3D"
                   >
-                    {is3D ? '🗻 3D' : '📐 2D'}
+                    {is3D ? '🗻 3D / 2D' : '📐 2D / 3D'}
                   </button>
                   <div className="border-t border-gray-200 my-0.5"></div>
                   <button
@@ -1120,20 +1119,33 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
                       <span>Restaurantes</span>
                     </button>
                   )}
-                  <button
-                    onClick={() => {
-                      resetView()
-                      setIsMenuOpen(false)
-                    }}
-                    className="px-2 py-1.5 text-left hover:bg-gray-50 transition-colors text-xs font-medium text-gray-700 flex items-center gap-1.5"
-                    title="Resetear vista del mapa"
-                  >
-                    <RotateCcw className="h-3 w-3" />
-                    <span>Resetear</span>
-                  </button>
                 </div>
               )}
             </div>
+
+            {/* Controles inferiores también en pantalla completa */}
+            <div className="pointer-events-none absolute bottom-6 right-6 z-50 flex flex-col gap-2 items-end">
+              <button
+                onClick={resetView}
+                className="pointer-events-auto bg-white/95 hover:bg-white px-3 py-2 rounded-md shadow-lg text-xs font-medium text-gray-700 flex items-center gap-1.5"
+                title="Resetear vista del mapa"
+              >
+                <RotateCcw className="h-3 w-3" />
+                <span>Resetear</span>
+              </button>
+            </div>
+
+            {/* Perfil de elevación en pantalla completa, abajo a la izquierda */}
+            {route.track && route.track.length > 0 && (
+              <div className="pointer-events-none absolute bottom-4 left-4 z-50 max-w-[420px] w-[90vw] md:w-[400px]">
+                <div className="pointer-events-auto rounded-lg border border-gray-200 bg-white/95 shadow-xl">
+                  <RouteElevationProfile 
+                    route={route} 
+                    onHoverTrackIndex={(index) => setFullscreenHoveredIndex(index)}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
