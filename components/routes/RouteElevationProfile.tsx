@@ -76,21 +76,7 @@ export function RouteElevationProfile({ route, onHoverTrackIndex }: RouteElevati
     }
   }, [route.track])
 
-  if (!elevationData) {
-    return (
-      <div className="rounded-lg border border-gray-200 bg-white p-6">
-        <h3 className="mb-4 text-lg font-semibold flex items-center">
-          <TrendingUp className="mr-2 h-5 w-5 text-primary-600" />
-          Perfil de Elevación
-        </h3>
-        <p className="text-sm text-gray-500">
-          No hay datos de track disponibles para mostrar el perfil de elevación.
-        </p>
-      </div>
-    )
-  }
-
-  const { elevations, distances, slopes, colors, minElevation, maxElevation, totalDistance } = elevationData
+  // Hooks deben estar siempre al inicio, antes de cualquier return condicional
   const svgRef = useRef<SVGSVGElement>(null)
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
 
@@ -101,16 +87,16 @@ export function RouteElevationProfile({ route, onHoverTrackIndex }: RouteElevati
   const chartWidth = width - padding.left - padding.right
   const chartHeight = height - padding.top - padding.bottom
 
-  // Escalas
-  const elevationRange = maxElevation - minElevation || 1
-  const scaleX = chartWidth / totalDistance
-  const scaleY = chartHeight / elevationRange
+  // Escalas (con valores por defecto si no hay elevationData)
+  const elevationRange = elevationData ? elevationData.maxElevation - elevationData.minElevation || 1 : 1
+  const scaleX = elevationData ? chartWidth / elevationData.totalDistance : 0
+  const scaleY = elevationData ? chartHeight / elevationRange : 0
 
   /**
    * Maneja el movimiento del mouse sobre el SVG para detectar qué punto del track está bajo el cursor
    */
   const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    if (!svgRef.current || !onHoverTrackIndex) return
+    if (!svgRef.current || !onHoverTrackIndex || !elevationData) return
 
     const rect = svgRef.current.getBoundingClientRect()
     // Calcular la posición X relativa al SVG, considerando el viewBox
@@ -129,10 +115,10 @@ export function RouteElevationProfile({ route, onHoverTrackIndex }: RouteElevati
     
     // Encontrar el índice del punto más cercano
     let closestIndex = 0
-    let minDiff = Math.abs(distances[0] - distance)
+    let minDiff = Math.abs(elevationData.distances[0] - distance)
     
-    for (let i = 1; i < distances.length; i++) {
-      const diff = Math.abs(distances[i] - distance)
+    for (let i = 1; i < elevationData.distances.length; i++) {
+      const diff = Math.abs(elevationData.distances[i] - distance)
       if (diff < minDiff) {
         minDiff = diff
         closestIndex = i
@@ -141,7 +127,7 @@ export function RouteElevationProfile({ route, onHoverTrackIndex }: RouteElevati
     
     setHoveredIndex(closestIndex)
     onHoverTrackIndex(closestIndex)
-  }, [distances, scaleX, chartWidth, padding.left, width, onHoverTrackIndex])
+  }, [elevationData, scaleX, chartWidth, padding.left, width, onHoverTrackIndex])
 
   /**
    * Maneja cuando el mouse sale del SVG
@@ -157,7 +143,10 @@ export function RouteElevationProfile({ route, onHoverTrackIndex }: RouteElevati
    * Genera los segmentos de línea con colores según pendiente
    */
   const pathSegments = useMemo(() => {
+    if (!elevationData) return []
+    
     const segments: Array<{ path: string; color: string }> = []
+    const { elevations, distances, colors, minElevation } = elevationData
     
     for (let i = 1; i < elevations.length; i++) {
       const x1 = padding.left + distances[i - 1] * scaleX
@@ -172,7 +161,23 @@ export function RouteElevationProfile({ route, onHoverTrackIndex }: RouteElevati
     }
     
     return segments
-  }, [elevations, distances, colors, minElevation, scaleX, scaleY, padding.left, padding.top, chartHeight])
+  }, [elevationData, scaleX, scaleY, padding.left, padding.top, chartHeight])
+
+  if (!elevationData) {
+    return (
+      <div className="rounded-lg border border-gray-200 bg-white p-6">
+        <h3 className="mb-4 text-lg font-semibold flex items-center">
+          <TrendingUp className="mr-2 h-5 w-5 text-primary-600" />
+          Perfil de Elevación
+        </h3>
+        <p className="text-sm text-gray-500">
+          No hay datos de track disponibles para mostrar el perfil de elevación.
+        </p>
+      </div>
+    )
+  }
+
+  const { elevations, distances, slopes, colors, minElevation, maxElevation, totalDistance } = elevationData
 
   /**
    * Genera el área bajo la curva con gradiente de colores

@@ -204,7 +204,7 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
       }))
       return newIs3D
     })
-  }, [initialViewState])
+  }, [])
 
   /**
    * Resetea el mapa a la vista inicial por defecto

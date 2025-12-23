@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
+import Image from 'next/image'
 import { formatDistanceToNow } from 'date-fns'
 import es from 'date-fns/locale/es'
 
@@ -237,12 +238,13 @@ export function TwitterTimeline({ hashtag }: TwitterTimelineProps) {
               >
                 <div className="flex gap-3">
                   {article.imageUrl && (
-                    <div className="flex-shrink-0">
-                      <img
+                    <div className="flex-shrink-0 relative w-16 h-16">
+                      <Image
                         src={article.imageUrl}
                         alt={article.title}
-                        className="w-16 h-16 rounded-md object-cover bg-gray-100"
-                        loading="lazy"
+                        fill
+                        className="rounded-md object-cover bg-gray-100"
+                        sizes="64px"
                       />
                     </div>
                   )}

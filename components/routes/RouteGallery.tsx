@@ -21,10 +21,6 @@ export function RouteGallery({ images, routeTitle }: RouteGalleryProps) {
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(true)
   
-  if (!images || images.length === 0) {
-    return null
-  }
-
   useEffect(() => {
     const container = scrollContainerRef.current
     if (!container) return
@@ -94,6 +90,10 @@ export function RouteGallery({ images, routeTitle }: RouteGalleryProps) {
     if (selectedIndex !== null) {
       setSelectedIndex((selectedIndex + 1) % images.length)
     }
+  }
+
+  if (!images || images.length === 0) {
+    return null
   }
 
   return (

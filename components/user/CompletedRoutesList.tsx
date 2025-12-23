@@ -1,6 +1,7 @@
 'use client'
 
 import { UserProgress } from '@/types'
+import Image from 'next/image'
 import { format } from 'date-fns'
 import { Calendar, MapPin } from 'lucide-react'
 
@@ -38,11 +39,13 @@ export function CompletedRoutesList({ completedRoutes }: CompletedRoutesListProp
               )}
             </div>
             {route.photo && (
-              <div className="ml-4">
-                <img
+              <div className="ml-4 relative h-20 w-20">
+                <Image
                   src={route.photo}
                   alt="Foto de la ruta"
-                  className="h-20 w-20 rounded-lg object-cover"
+                  fill
+                  className="rounded-lg object-cover"
+                  sizes="80px"
                 />
               </div>
             )}

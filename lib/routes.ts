@@ -8,8 +8,8 @@ import { getTrackByRouteSlug } from './firebase/tracks'
 async function getFirestoreRoutes() {
   try {
     // Importación dinámica para evitar errores si Firebase no está configurado
-    const module = await import('./firebase/routes')
-    return module
+    const firestoreRoutesModule = await import('./firebase/routes')
+    return firestoreRoutesModule
   } catch (error) {
     return null
   }

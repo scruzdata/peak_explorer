@@ -219,8 +219,6 @@ export function AdminPanel() {
   }, [routes, filterType, filterRegion, filterDifficulty])
 
   if (!user || user.role !== 'admin') {
-    const { signInAsAdmin } = useAuth()
-    
     return (
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="rounded-lg border border-gray-200 bg-white p-8 text-center shadow-md max-w-md mx-auto">

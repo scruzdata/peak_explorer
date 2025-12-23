@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
@@ -48,7 +48,7 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
   }
 
   // Función para inicializar formData desde route
-  const initializeFormData = (routeData?: Route): Partial<Route> => ({
+  const initializeFormData = useCallback((routeData?: Route): Partial<Route> => ({
     type: routeData?.type || 'trekking',
     title: routeData?.title || '',
     summary: routeData?.summary || '',
@@ -100,7 +100,7 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
     views: routeData?.views || 0,
     downloads: routeData?.downloads || 0,
     rating: routeData?.rating ?? 0,
-  })
+  }), [])
 
   const [formData, setFormData] = useState<Partial<Route>>(initializeFormData(route))
 
@@ -109,7 +109,7 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
     if (route) {
       setFormData(initializeFormData(route))
     }
-  }, [route])
+  }, [route, initializeFormData])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -1201,7 +1201,7 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
                 placeholder="#NombreRuta"
               />
               <p className="mt-1 text-xs text-gray-500">
-                El hashtag se mostrará sin el símbolo # si lo incluyes. Ejemplo: escribe "PicoVeleta" o "#PicoVeleta"
+                El hashtag se mostrará sin el símbolo # si lo incluyes. Ejemplo: escribe &quot;PicoVeleta&quot; o &quot;#PicoVeleta&quot;
               </p>
             </div>
           </div>
