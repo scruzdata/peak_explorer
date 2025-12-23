@@ -343,12 +343,16 @@ export function RouteList({ routes, type }: RouteListProps) {
         {viewMode === 'both' ? (
           <>
             {filteredRoutes.length > 0 ? (
-              <>Mostrando {filteredRoutes.length} {filteredRoutes.length === 1 ? 'ruta' : 'rutas'} visible{filteredRoutes.length === 1 ? '' : 's'} en el mapa</>
+              <>Mostrando {filteredRoutes.length} {type === 'ferrata' 
+                ? (filteredRoutes.length === 1 ? 'vía ferrata' : 'vías ferratas')
+                : (filteredRoutes.length === 1 ? 'ruta' : 'rutas')} visible{filteredRoutes.length === 1 ? '' : 's'} en el mapa</>
             ) : (
-              <>No hay rutas visibles en esta zona del mapa</>
+              <>{type === 'ferrata' ? 'No hay vías ferratas visibles en esta zona del mapa' : 'No hay rutas visibles en esta zona del mapa'}</>
             )}
             {filteredRoutesForMap.length > 0 && filteredRoutes.length !== filteredRoutesForMap.length && (
-              <span className="text-gray-500"> ({filteredRoutesForMap.length} {filteredRoutesForMap.length === 1 ? 'ruta' : 'rutas'} en total)</span>
+              <span className="text-gray-500"> ({filteredRoutesForMap.length} {type === 'ferrata' 
+                ? (filteredRoutesForMap.length === 1 ? 'vía ferrata' : 'vías ferratas')
+                : (filteredRoutesForMap.length === 1 ? 'ruta' : 'rutas')} en total)</span>
             )}
           </>
         ) : (
