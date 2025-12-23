@@ -106,3 +106,23 @@ body.hide-footer footer {
   display: none;
 }
 
+/* Webcams HTML content: ensure large content fits the container */
+.webcam-html {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.webcam-html img,
+.webcam-html picture,
+.webcam-html video {
+  max-width: 100% !important;
+  height: auto !important;
+  display: block;
+}
+
+.webcam-html > * {
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+

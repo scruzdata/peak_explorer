@@ -110,6 +110,7 @@ export function RouteDetail({ route }: RouteDetailProps) {
   const [showOrientationInfo, setShowOrientationInfo] = useState(false)
   const [showFoodInfo, setShowFoodInfo] = useState(false)
   const [selectedWebcamIndex, setSelectedWebcamIndex] = useState(0)
+  const [showWebcamImageModal, setShowWebcamImageModal] = useState(false)
   const bookmarked = isBookmarked(route.id)
   const completed = isCompleted(route.id)
 
@@ -608,7 +609,7 @@ export function RouteDetail({ route }: RouteDetailProps) {
                     </div>
                   )}
                   
-                  {/* Contenido de la webcam seleccionada (HTML o iframe) */}
+                  {/* Contenido de la webcam seleccionada (HTML, imagen directa o iframe) */}
                   <div className="w-full">
                     {normalizedWebcams[selectedWebcamIndex] && (
                       <>
@@ -618,20 +619,54 @@ export function RouteDetail({ route }: RouteDetailProps) {
                         {normalizedWebcams[selectedWebcamIndex].html ? (
                           // Renderizar código HTML directamente
                           <div
-                            className="w-full rounded-lg border border-gray-200 p-4"
+                            className="w-full rounded-lg border border-gray-200 p-4 webcam-html"
                             dangerouslySetInnerHTML={{ __html: normalizedWebcams[selectedWebcamIndex].html! }}
                           />
-                        ) : (
-                          // Renderizar iframe con la URL
-                          <iframe
-                            src={normalizedWebcams[selectedWebcamIndex].url}
-                            className="w-full rounded-lg border border-gray-200"
-                            style={{ height: '400px' }}
-                            allow="camera; microphone"
-                            loading="lazy"
-                            title={normalizedWebcams[selectedWebcamIndex].title || `Webcam ${selectedWebcamIndex + 1}`}
-                          />
-                        )}
+                        ) : (() => {
+                          const url = normalizedWebcams[selectedWebcamIndex].url
+                          const cleanUrl = url ? url.split('?')[0].toLowerCase() : ''
+                          const isImage =
+                            !!cleanUrl &&
+                            (cleanUrl.endsWith('.jpg') ||
+                              cleanUrl.endsWith('.jpeg') ||
+                              cleanUrl.endsWith('.png') ||
+                              cleanUrl.endsWith('.gif') ||
+                              cleanUrl.endsWith('.webp') ||
+                              cleanUrl.endsWith('.avif'))
+
+                          if (isImage) {
+                            // Renderizar imagen directa clicable para ver más grande
+                            return (
+                              <div className="w-full rounded-lg border border-gray-200 overflow-hidden">
+                                <button
+                                  type="button"
+                                  className="w-full cursor-zoom-in"
+                                  onClick={() => setShowWebcamImageModal(true)}
+                                  aria-label="Ver imagen de la webcam más grande"
+                                >
+                                  <img
+                                    src={url}
+                                    alt={normalizedWebcams[selectedWebcamIndex].title || `Webcam ${selectedWebcamIndex + 1}`}
+                                    className="w-full h-auto block"
+                                    loading="lazy"
+                                  />
+                                </button>
+                              </div>
+                            )
+                          }
+
+                          // Renderizar iframe con la URL para otros tipos de contenido
+                          return (
+                            <iframe
+                              src={url}
+                              className="w-full rounded-lg border border-gray-200"
+                              style={{ height: '400px' }}
+                              allow="camera; microphone"
+                              loading="lazy"
+                              title={normalizedWebcams[selectedWebcamIndex].title || `Webcam ${selectedWebcamIndex + 1}`}
+                            />
+                          )
+                        })()}
                       </>
                     )}
                   </div>
@@ -727,6 +762,33 @@ export function RouteDetail({ route }: RouteDetailProps) {
               </button>
             </div>
           </motion.div>
+        </div>
+      )}
+
+      {/* Webcam Image Modal */}
+      {showWebcamImageModal && normalizedWebcams[selectedWebcamIndex] && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setShowWebcamImageModal(false)}
+        >
+          <div
+            className="relative max-h-full max-w-5xl w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="absolute right-2 top-2 rounded-full bg-black/60 p-1 text-white hover:bg-black"
+              aria-label="Cerrar imagen ampliada"
+              onClick={() => setShowWebcamImageModal(false)}
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <img
+              src={normalizedWebcams[selectedWebcamIndex].url}
+              alt={normalizedWebcams[selectedWebcamIndex].title || `Webcam ${selectedWebcamIndex + 1}`}
+              className="mx-auto max-h-[80vh] w-auto rounded-lg shadow-2xl"
+            />
+          </div>
         </div>
       )}
     </>
