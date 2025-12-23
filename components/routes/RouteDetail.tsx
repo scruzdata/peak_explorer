@@ -23,12 +23,80 @@ import {
   CheckCircle2,
   ExternalLink,
   AlertTriangle,
-  Info
+  Info,
+  X
 } from 'lucide-react'
 import confetti from 'canvas-confetti'
 
 interface RouteDetailProps {
   route: Route
+}
+
+interface GoogleNewsMobilePanelProps {
+  hashtag: string
+}
+
+/**
+ * Panel lateral móvil desplegable para Google News
+ */
+function GoogleNewsMobilePanel({ hashtag }: GoogleNewsMobilePanelProps) {
+  const [isOpen, setIsOpen] = useState(false)
+
+  if (!hashtag || !hashtag.trim()) return null
+
+  const cleanHashtag = hashtag.replace(/^#/, '').trim()
+
+  return (
+    <>
+      {/* Pestaña flotante (solo móvil) */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        className="fixed right-0 top-1/3 z-40 flex items-center rounded-l-lg bg-white px-2 py-3 text-[10px] font-semibold text-[#4285F4] shadow-lg border border-r-0 border-gray-200 lg:hidden"
+        aria-label="Abrir noticias relacionadas"
+      >
+        <span className="flex flex-col items-center leading-tight">
+          <span>Google</span>
+          <span>News</span>
+        </span>
+      </button>
+
+      {/* Overlay oscuro cuando el panel está abierto */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/40 lg:hidden"
+          onClick={() => setIsOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Panel lateral deslizante (solo móvil) */}
+      <div
+        className={`fixed inset-y-0 right-0 z-40 w-full max-w-xs transform bg-white shadow-2xl transition-transform duration-300 ease-in-out lg:hidden ${
+          isOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+        aria-hidden={!isOpen}
+      >
+        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+          <div className="flex flex-col">
+            <span className="text-xs font-semibold text-gray-500">Noticias</span>
+            <span className="text-sm font-bold text-gray-900 truncate">#{cleanHashtag}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsOpen(false)}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200"
+            aria-label="Cerrar noticias"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="h-[calc(100%-48px)] overflow-y-auto p-4">
+          <TwitterTimeline hashtag={hashtag} />
+        </div>
+      </div>
+    </>
+  )
 }
 
 export function RouteDetail({ route }: RouteDetailProps) {
@@ -213,7 +281,7 @@ export function RouteDetail({ route }: RouteDetailProps) {
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
             {/* Twitter Timeline - Left Sidebar */}
             {route.twitterHashtag && route.twitterHashtag.trim() && (
-              <aside className="lg:col-span-3 order-1 lg:order-1">
+              <aside className="lg:col-span-3 order-1 lg:order-1 hidden lg:block">
                 <div className="sticky top-24">
                   <TwitterTimeline hashtag={route.twitterHashtag} />
                 </div>
@@ -626,6 +694,11 @@ export function RouteDetail({ route }: RouteDetailProps) {
           </div>
         </div>
       </article>
+
+      {/* Panel móvil de Google News (pestaña lateral) */}
+      {route.twitterHashtag && route.twitterHashtag.trim() && (
+        <GoogleNewsMobilePanel hashtag={route.twitterHashtag} />
+      )}
 
       {/* Completion Modal */}
       {showCompletionModal && (
