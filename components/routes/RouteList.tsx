@@ -27,6 +27,7 @@ export function RouteList({ routes, type }: RouteListProps) {
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false)
   const [mapViewState, setMapViewState] = useState<{latitude: number; longitude: number; zoom: number} | null>(null)
   const [debouncedViewState, setDebouncedViewState] = useState<{latitude: number; longitude: number; zoom: number} | null>(null)
+  const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null)
   const gridEndRef = useRef<HTMLDivElement>(null)
   const gridContainerRef = useRef<HTMLDivElement>(null)
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -454,6 +455,7 @@ export function RouteList({ routes, type }: RouteListProps) {
                     isHovered={hoveredRouteId === route.id}
                     onMouseEnter={() => setHoveredRouteId(route.id)}
                     onMouseLeave={() => setHoveredRouteId(null)}
+                    onClick={() => setSelectedRouteId(route.id)}
                   />
                 ))}
               </div>
@@ -474,6 +476,8 @@ export function RouteList({ routes, type }: RouteListProps) {
               type={type} 
               fullHeight={true}
               hoveredRouteId={hoveredRouteId}
+              selectedRouteId={selectedRouteId}
+              onRouteSelect={setSelectedRouteId}
               onViewStateChange={setMapViewState}
               onMarkerHover={setHoveredRouteId}
             />
@@ -484,6 +488,8 @@ export function RouteList({ routes, type }: RouteListProps) {
               routes={filteredRoutesForMap} 
               type={type}
               hoveredRouteId={hoveredRouteId}
+              selectedRouteId={selectedRouteId}
+              onRouteSelect={setSelectedRouteId}
               onMarkerHover={setHoveredRouteId}
             />
           </div>

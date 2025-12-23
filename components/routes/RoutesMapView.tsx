@@ -1,11 +1,12 @@
 'use client'
 
-import { useMemo, useState, useCallback, useEffect } from 'react'
+import { useMemo, useState, useCallback, useEffect, useRef } from 'react'
 import { Route, FerrataGrade } from '@/types'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
-import { Mountain, Star, X } from 'lucide-react'
+import { Mountain, Star, X, RotateCcw } from 'lucide-react'
 import { getDifficultyColor, getFerrataGradeColor } from '@/lib/utils'
+import type { MapRef } from 'react-map-gl'
 
 // Dynamic import para evitar problemas de SSR con Mapbox
 const Map = dynamic(
@@ -33,6 +34,10 @@ interface RoutesMapViewProps {
   type: 'trekking' | 'ferrata'
   fullHeight?: boolean
   hoveredRouteId?: string | null
+  /** Ruta seleccionada externamente (por ejemplo, desde la cuadrícula en modo "Ambas") */
+  selectedRouteId?: string | null
+  /** Notifica cuando se selecciona una ruta (click en marcador o tarjeta) */
+  onRouteSelect?: (routeId: string | null) => void
   onViewStateChange?: (viewState: {latitude: number; longitude: number; zoom: number} | null) => void
   onMarkerHover?: (routeId: string | null) => void
 }
@@ -85,13 +90,39 @@ function getFerrataGradeBorderColor(grade: FerrataGrade | undefined): { border: 
  *  - Muestra una tarjeta fija arriba a la izquierda con la info de la ruta
  *  - Pinta el track de la ruta sobre el mapa (usando datos locales o Firestore)
  */
-export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId = null, onViewStateChange, onMarkerHover }: RoutesMapViewProps) {
-  const [selectedRoute, setSelectedRoute] = useState<Route | null>(null)
+export function RoutesMapView({ 
+  routes, 
+  type, 
+  fullHeight = false, 
+  hoveredRouteId = null,
+  selectedRouteId,
+  onRouteSelect,
+  onViewStateChange, 
+  onMarkerHover 
+}: RoutesMapViewProps) {
+  const mapRef = useRef<MapRef | null>(null)
+  const mapInstanceRef = useRef<any>(null) // Instancia del mapa de Mapbox
+  const [isMapLoaded, setIsMapLoaded] = useState(false)
+  // Ruta seleccionada desde el POI del mapa (muestra la tarjeta flotante)
+  const [internalSelectedRouteId, setInternalSelectedRouteId] = useState<string | null>(null)
   const [mapStyle, setMapStyle] = useState<'satellite-streets-v12' | 'outdoors-v12'>('outdoors-v12')
   const [viewState, setViewState] = useState<{latitude: number; longitude: number; zoom: number} | null>(null)
   const [selectedRouteTrack, setSelectedRouteTrack] = useState<{ lat: number; lng: number; elevation?: number }[] | null>(null)
   const [isLoadingTrack, setIsLoadingTrack] = useState(false)
   const [trackError, setTrackError] = useState<string | null>(null)
+
+  // Ruta seleccionada para mostrar track (puede venir del grid o del POI)
+  const trackRouteId = selectedRouteId ?? internalSelectedRouteId
+  const trackRoute = useMemo(
+    () => routes.find((r) => r.id === trackRouteId) ?? null,
+    [routes, trackRouteId]
+  )
+
+  // Ruta seleccionada para mostrar tarjeta (solo cuando se hace click en el POI)
+  const cardRoute = useMemo(
+    () => routes.find((r) => r.id === internalSelectedRouteId) ?? null,
+    [routes, internalSelectedRouteId]
+  )
 
   /**
    * Importa dinámicamente los estilos de Mapbox cuando el componente se monta
@@ -148,15 +179,15 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
    * Carga el track de la ruta seleccionada (desde la propia ruta o desde Firestore)
    */
   useEffect(() => {
-    if (!selectedRoute) {
+    if (!trackRoute) {
       setSelectedRouteTrack(null)
       setTrackError(null)
       return
     }
 
     // Si la ruta ya tiene el track cargado, úsalo directamente
-    if (selectedRoute.track && selectedRoute.track.length > 1) {
-      setSelectedRouteTrack(selectedRoute.track)
+    if (trackRoute.track && trackRoute.track.length > 1) {
+      setSelectedRouteTrack(trackRoute.track)
       setIsLoadingTrack(false)
       setTrackError(null)
       return
@@ -170,7 +201,7 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
         setTrackError(null)
 
         const { getTrackByRouteSlug } = await import('@/lib/firebase/tracks')
-        const points = await getTrackByRouteSlug(selectedRoute.slug)
+        const points = await getTrackByRouteSlug(trackRoute.slug)
 
         if (!cancelled) {
           if (points && points.length > 1) {
@@ -196,7 +227,7 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
     return () => {
       cancelled = true
     }
-  }, [selectedRoute])
+  }, [trackRoute])
 
   /**
    * GeoJSON del track de la ruta seleccionada para pintarlo en el mapa
@@ -215,12 +246,117 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
   }, [selectedRouteTrack])
 
   /**
-   * Maneja el click en un marcador para navegar al detalle de la ruta en una nueva pestaña
+   * Maneja el click en un marcador/POI del mapa.
+   * Selecciona la ruta para mostrar el track y la tarjeta flotante.
    */
   const handleMarkerClick = useCallback((route: Route) => {
-    const url = `/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`
-    window.open(url, '_blank', 'noopener,noreferrer')
-  }, [])
+    // Siempre establecer el estado interno para mostrar la tarjeta
+    setInternalSelectedRouteId(route.id)
+    // También notificar al padre (para sincronizar con la cuadrícula si es necesario)
+    onRouteSelect?.(route.id)
+  }, [onRouteSelect])
+
+  /**
+   * Resetea la vista del mapa al zoom inicial (vista de toda España)
+   */
+  const handleResetView = useCallback(() => {
+    if (!mapInstanceRef.current && !mapRef.current) return
+
+    try {
+      const map = mapInstanceRef.current || (mapRef.current?.getMap())
+      if (!map) return
+
+      map.flyTo({
+        center: [initialViewState.longitude, initialViewState.latitude],
+        zoom: initialViewState.zoom,
+        duration: 1500,
+        essential: true,
+      })
+
+      // Limpiar selección de ruta al resetear
+      setInternalSelectedRouteId(null)
+      onRouteSelect?.(null)
+    } catch (error) {
+      console.error('Error al resetear la vista del mapa:', error)
+    }
+  }, [initialViewState, onRouteSelect])
+
+  /**
+   * Cuando cambia la ruta seleccionada desde el grid (selectedRouteId externo),
+   * hacer zoom suave hasta el POI principal y mostrar el track.
+   * NOTA: Solo hace zoom cuando viene desde fuera (grid), no cuando se hace click en el POI.
+   */
+  useEffect(() => {
+    // Solo hacer zoom si la selección viene del grid (selectedRouteId externo)
+    if (!selectedRouteId) return
+    if (!isMapLoaded) {
+      console.log('Mapa no cargado aún, esperando...')
+      return
+    }
+
+    // Buscar la ruta directamente
+    const route = routes.find((r) => r.id === selectedRouteId)
+    if (!route || !route.location?.coordinates) {
+      console.log('Ruta no encontrada o sin coordenadas:', selectedRouteId)
+      return
+    }
+
+    const { lat, lng } = route.location.coordinates
+    console.log('Haciendo zoom a ruta:', route.title, 'en', lat, lng)
+
+    // Intentar hacer zoom con retry hasta que el mapa esté disponible
+    let retryCount = 0
+    const maxRetries = 20 // Intentar durante 2 segundos (20 * 100ms)
+    
+    const tryFlyTo = () => {
+      // Intentar usar mapInstanceRef primero (más confiable)
+      let map = mapInstanceRef.current
+      
+      // Si no está disponible, intentar con mapRef
+      if (!map && mapRef.current) {
+        try {
+          map = mapRef.current.getMap()
+        } catch (e) {
+          console.log('Error obteniendo mapa desde mapRef:', e)
+        }
+      }
+
+      if (!map) {
+        retryCount++
+        if (retryCount < maxRetries) {
+          setTimeout(tryFlyTo, 100)
+          return
+        }
+        console.log('Mapa no disponible después de múltiples intentos')
+        return
+      }
+
+      try {
+        const currentZoom = map.getZoom()
+        // Zoom objetivo: mínimo 12 para ver bien el POI
+        const targetZoom = Math.max(currentZoom, 12)
+
+        console.log('Ejecutando flyTo:', { center: [lng, lat], zoom: targetZoom })
+        
+        // Usar el método flyTo del mapa directamente
+        map.flyTo({
+          center: [lng, lat],
+          zoom: targetZoom,
+          duration: 2000, // Zoom suave (2 segundos)
+          essential: true,
+        })
+      } catch (error) {
+        console.error('Error al hacer zoom a la ruta seleccionada en el mapa:', error)
+      }
+    }
+
+    // Iniciar el intento después de un pequeño delay
+    const timeoutId = setTimeout(tryFlyTo, 100)
+
+    return () => {
+      clearTimeout(timeoutId)
+    }
+  }, [selectedRouteId, isMapLoaded, routes]) // Depende directamente de selectedRouteId
 
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 
@@ -240,14 +376,25 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
   return (
     <div className={`relative w-full overflow-hidden border border-gray-200 ${fullHeight ? 'h-full rounded-lg' : 'h-[600px] rounded-lg'}`}>
       <Map
+        ref={mapRef}
         initialViewState={initialViewState}
+        onLoad={(evt: any) => {
+          console.log('Mapa cargado, mapRef disponible:', !!mapRef.current)
+          // Guardar la instancia del mapa directamente desde el evento
+          if (evt.target) {
+            mapInstanceRef.current = evt.target
+            console.log('Instancia del mapa guardada:', !!mapInstanceRef.current)
+          }
+          setIsMapLoaded(true)
+        }}
         onMove={(evt: any) => {
           setViewState(evt.viewState)
           onViewStateChange?.(evt.viewState)
         }}
         onClick={() => {
           // Cerrar tarjeta al pinchar en cualquier parte del mapa que no sea un marcador
-          setSelectedRoute(null)
+          setInternalSelectedRouteId(null)
+          onRouteSelect?.(null)
         }}
         style={{ width: '100%', height: '100%' }}
         mapStyle={`mapbox://styles/mapbox/${mapStyle}`}
@@ -281,7 +428,7 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
                 anchor="bottom"
                 onClick={(e) => {
                   e.originalEvent.stopPropagation()
-                  setSelectedRoute(route)
+                  handleMarkerClick(route)
                 }}
               >
                 <div 
@@ -341,7 +488,7 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
                 anchor="bottom"
                 onClick={(e) => {
                   e.originalEvent.stopPropagation()
-                  setSelectedRoute(route)
+                  handleMarkerClick(route)
                 }}
               >
                 <div 
@@ -391,14 +538,17 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
           })}
       </Map>
 
-      {/* Tarjeta fija de la ruta seleccionada (arriba a la izquierda) */}
-      {selectedRoute && (
+      {/* Tarjeta fija de la ruta seleccionada (arriba a la izquierda) - Solo se muestra cuando se hace click en el POI */}
+      {cardRoute && (
         <div className="absolute top-4 left-6 sm:left-8 z-20 w-48 sm:w-56 max-w-[60vw]">
           <div className="relative overflow-hidden rounded-md bg-white shadow-md border border-gray-200">
             {/* Botón cerrar */}
             <button
               type="button"
-              onClick={() => setSelectedRoute(null)}
+              onClick={() => {
+                setInternalSelectedRouteId(null)
+                onRouteSelect?.(null)
+              }}
               className="absolute top-2 right-2 z-20 inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/90 text-gray-600 shadow hover:bg-white"
             >
               <X className="h-3 w-3" />
@@ -407,8 +557,8 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
             {/* Imagen */}
             <div className="relative h-24 w-full overflow-hidden">
               <Image
-                src={selectedRoute.heroImage.url}
-                alt={selectedRoute.heroImage.alt}
+                src={cardRoute.heroImage.url}
+                alt={cardRoute.heroImage.alt}
                 fill
                 className="object-cover"
                 sizes="288px"
@@ -416,21 +566,21 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
 
               {/* Rating (más hacia la izquierda) */}
-              {selectedRoute.rating && typeof selectedRoute.rating === 'number' && (
+              {cardRoute.rating && typeof cardRoute.rating === 'number' && (
                 <div className="absolute top-2 left-2 flex items-center gap-0.5 rounded-full bg-white/95 backdrop-blur px-1.5 py-0.5 text-[11px] font-semibold text-gray-900 shadow border border-gray-200">
                   <Star className="h-2.5 w-2.5 text-amber-500" fill="currentColor" strokeWidth={1.5} />
-                  <span>{selectedRoute.rating.toFixed(1)}</span>
+                  <span>{cardRoute.rating.toFixed(1)}</span>
                 </div>
               )}
 
               {/* Badges dificultad / grado */}
               <div className="absolute bottom-2 left-2 flex items-center gap-1">
-                <span className={`text-[11px] px-1.5 py-0.5 rounded-md font-medium shadow-sm ${getDifficultyColor(selectedRoute.difficulty)}`}>
-                  {selectedRoute.difficulty}
+                <span className={`text-[11px] px-1.5 py-0.5 rounded-md font-medium shadow-sm ${getDifficultyColor(cardRoute.difficulty)}`}>
+                  {cardRoute.difficulty}
                 </span>
-                {selectedRoute.ferrataGrade && (
+                {cardRoute.ferrataGrade && (
                   <span className="text-[11px] px-1.5 py-0.5 rounded-md font-medium bg-blue-100 text-blue-800 shadow-sm">
-                    {selectedRoute.ferrataGrade}
+                    {cardRoute.ferrataGrade}
                   </span>
                 )}
               </div>
@@ -439,13 +589,13 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
             {/* Contenido */}
             <div className="p-2">
               <h3 className="mb-0.5 text-[11px] font-bold text-gray-900 line-clamp-2 leading-snug">
-                {selectedRoute.title}
+                {cardRoute.title}
               </h3>
               <p className="mb-0.5 text-[10px] text-gray-600 line-clamp-2 leading-snug">
-                {selectedRoute.summary}
+                {cardRoute.summary}
               </p>
               <p className="mb-1 text-[10px] text-gray-500">
-                {selectedRoute.location.region}, {selectedRoute.location.province}
+                {cardRoute.location.region}, {cardRoute.location.province}
               </p>
 
               {/* Estado de carga del track */}
@@ -462,7 +612,10 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
 
               <button
                 type="button"
-                onClick={() => handleMarkerClick(selectedRoute)}
+                onClick={() => {
+                  const url = `/${cardRoute.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${cardRoute.slug}`
+                  window.open(url, '_blank', 'noopener,noreferrer')
+                }}
                 className="mt-0.5 w-full rounded-sm bg-primary-600 px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm transition hover:bg-primary-700"
               >
                 Ver detalles de la ruta
@@ -477,8 +630,17 @@ export function RoutesMapView({ routes, type, fullHeight = false, hoveredRouteId
         <button
           onClick={() => setMapStyle(mapStyle === 'outdoors-v12' ? 'satellite-streets-v12' : 'outdoors-v12')}
           className="px-3 py-2 bg-white rounded-lg shadow-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          title="Cambiar estilo de mapa"
         >
           {mapStyle === 'outdoors-v12' ? 'Satélite' : 'Mapa'}
+        </button>
+        <button
+          onClick={handleResetView}
+          className="px-3 py-2 bg-white rounded-lg shadow-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
+          title="Resetear vista del mapa"
+        >
+          <RotateCcw className="h-4 w-4" />
+          <span>Resetear</span>
         </button>
       </div>
 
