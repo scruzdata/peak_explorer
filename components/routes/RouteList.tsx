@@ -31,6 +31,7 @@ export function RouteList({ routes, type }: RouteListProps) {
   const gridEndRef = useRef<HTMLDivElement>(null)
   const gridContainerRef = useRef<HTMLDivElement>(null)
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const zoomToRouteRef = useRef<((lat: number, lng: number) => void) | null>(null)
 
   /**
    * Detectar si estamos en móvil (viewport < lg) para:
@@ -457,6 +458,11 @@ export function RouteList({ routes, type }: RouteListProps) {
                     onMouseEnter={() => setHoveredRouteId(route.id)}
                     onMouseLeave={() => setHoveredRouteId(null)}
                     onClick={() => setSelectedRouteId(route.id)}
+                    onDoubleClick={() => {
+                      if (zoomToRouteRef.current && route.location?.coordinates) {
+                        zoomToRouteRef.current(route.location.coordinates.lat, route.location.coordinates.lng)
+                      }
+                    }}
                   />
                 ))}
               </div>
@@ -481,6 +487,7 @@ export function RouteList({ routes, type }: RouteListProps) {
               onRouteSelect={setSelectedRouteId}
               onViewStateChange={setMapViewState}
               onMarkerHover={setHoveredRouteId}
+              zoomToRouteRef={zoomToRouteRef}
             />
           </div>
           {/* Map View - Mobile: mostrar debajo del grid */}
@@ -492,6 +499,7 @@ export function RouteList({ routes, type }: RouteListProps) {
               selectedRouteId={selectedRouteId}
               onRouteSelect={setSelectedRouteId}
               onMarkerHover={setHoveredRouteId}
+              zoomToRouteRef={zoomToRouteRef}
             />
           </div>
         </div>
@@ -500,7 +508,7 @@ export function RouteList({ routes, type }: RouteListProps) {
         <>
           {/* Map View Only */}
           {viewMode === 'map' && (
-            <RoutesMapView routes={filteredRoutes} type={type} />
+            <RoutesMapView routes={filteredRoutes} type={type} zoomToRouteRef={zoomToRouteRef} />
           )}
           {/* Grid View Only */}
           {viewMode === 'grid' && (

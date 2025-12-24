@@ -4,7 +4,7 @@ import { useMemo, useState, useCallback, useEffect, useRef } from 'react'
 import { Route, FerrataGrade } from '@/types'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
-import { Mountain, Star, X, RotateCcw, Eye, EyeOff, MapPin } from 'lucide-react'
+import { Mountain, Star, X, RotateCcw, Eye, EyeOff, MapPin, ZoomIn } from 'lucide-react'
 import { getDifficultyColor, getFerrataGradeColor } from '@/lib/utils'
 import type { MapRef } from 'react-map-gl'
 import { RouteElevationProfile } from './RouteElevationProfile'
@@ -45,6 +45,8 @@ interface RoutesMapViewProps {
   onRouteSelect?: (routeId: string | null) => void
   onViewStateChange?: (viewState: {latitude: number; longitude: number; zoom: number} | null) => void
   onMarkerHover?: (routeId: string | null) => void
+  /** Ref para exponer la función de zoom a una ruta (para uso externo desde tarjetas del grid) */
+  zoomToRouteRef?: { current: ((lat: number, lng: number) => void) | null }
 }
 
 /**
@@ -176,7 +178,8 @@ export function RoutesMapView({
   selectedRouteId,
   onRouteSelect,
   onViewStateChange, 
-  onMarkerHover 
+  onMarkerHover,
+  zoomToRouteRef
 }: RoutesMapViewProps) {
   const mapRef = useRef<MapRef | null>(null)
   const mapInstanceRef = useRef<any>(null) // Instancia del mapa de Mapbox
@@ -490,6 +493,56 @@ export function RoutesMapView({
   }, [onRouteSelect])
 
   /**
+   * Maneja el doble click en un marcador/POI del mapa.
+   * Hace zoom suave al POI.
+   */
+  const handleMarkerDoubleClick = useCallback((lat: number, lng: number) => {
+    if (!isMapLoaded) {
+      console.log('Mapa no cargado aún')
+      return
+    }
+
+    let map = mapInstanceRef.current
+    if (!map && mapRef.current) {
+      try {
+        map = mapRef.current.getMap()
+      } catch (e) {
+        console.log('Error obteniendo mapa desde mapRef:', e)
+        return
+      }
+    }
+
+    if (!map) {
+      console.log('Mapa no disponible')
+      return
+    }
+
+    try {
+      const currentZoom = map.getZoom()
+      // Zoom objetivo: mínimo 15 para ver bien el POI, o aumentar significativamente el zoom actual
+      const targetZoom = Math.max(currentZoom + 4, 13)
+
+      console.log('Doble click - haciendo zoom de', currentZoom, 'a', targetZoom, 'en', lat, lng)
+
+      map.flyTo({
+        center: [lng, lat],
+        zoom: targetZoom,
+        duration: 1000,
+        essential: true,
+      })
+    } catch (error) {
+      console.error('Error al hacer zoom al POI:', error)
+    }
+  }, [isMapLoaded])
+
+  // Exponer la función de zoom mediante el ref proporcionado
+  useEffect(() => {
+    if (zoomToRouteRef) {
+      zoomToRouteRef.current = handleMarkerDoubleClick
+    }
+  }, [handleMarkerDoubleClick, zoomToRouteRef])
+
+  /**
    * Resetea la vista del mapa al zoom inicial (vista de toda España)
    */
   const handleResetView = useCallback(() => {
@@ -514,82 +567,8 @@ export function RoutesMapView({
     }
   }, [initialViewState, onRouteSelect])
 
-  /**
-   * Cuando cambia la ruta seleccionada desde el grid (selectedRouteId externo),
-   * hacer zoom suave hasta el POI principal y mostrar el track.
-   * NOTA: Solo hace zoom cuando viene desde fuera (grid), no cuando se hace click en el POI.
-   */
-  useEffect(() => {
-    // Solo hacer zoom si la selección viene del grid (selectedRouteId externo)
-    if (!selectedRouteId) return
-    if (!isMapLoaded) {
-      console.log('Mapa no cargado aún, esperando...')
-      return
-    }
-
-    // Buscar la ruta directamente
-    const route = routes.find((r) => r.id === selectedRouteId)
-    if (!route || !route.location?.coordinates) {
-      console.log('Ruta no encontrada o sin coordenadas:', selectedRouteId)
-      return
-    }
-
-    const { lat, lng } = route.location.coordinates
-    console.log('Haciendo zoom a ruta:', route.title, 'en', lat, lng)
-
-    // Intentar hacer zoom con retry hasta que el mapa esté disponible
-    let retryCount = 0
-    const maxRetries = 20 // Intentar durante 2 segundos (20 * 100ms)
-    
-    const tryFlyTo = () => {
-      // Intentar usar mapInstanceRef primero (más confiable)
-      let map = mapInstanceRef.current
-      
-      // Si no está disponible, intentar con mapRef
-      if (!map && mapRef.current) {
-        try {
-          map = mapRef.current.getMap()
-        } catch (e) {
-          console.log('Error obteniendo mapa desde mapRef:', e)
-        }
-      }
-
-      if (!map) {
-        retryCount++
-        if (retryCount < maxRetries) {
-          setTimeout(tryFlyTo, 100)
-          return
-        }
-        console.log('Mapa no disponible después de múltiples intentos')
-        return
-      }
-
-      try {
-        const currentZoom = map.getZoom()
-        // Zoom objetivo: mínimo 12 para ver bien el POI
-        const targetZoom = Math.max(currentZoom, 12)
-
-        console.log('Ejecutando flyTo:', { center: [lng, lat], zoom: targetZoom })
-        
-        // Usar el método flyTo del mapa directamente
-        map.flyTo({
-          center: [lng, lat],
-          zoom: targetZoom,
-          duration: 2000, // Zoom suave (2 segundos)
-          essential: true,
-        })
-      } catch (error) {
-        console.error('Error al hacer zoom a la ruta seleccionada en el mapa:', error)
-      }
-    }
-
-    // Iniciar el intento después de un pequeño delay
-    const timeoutId = setTimeout(tryFlyTo, 100)
-
-    return () => {
-      clearTimeout(timeoutId)
-    }
-  }, [selectedRouteId, isMapLoaded, routes]) // Depende directamente de selectedRouteId
+  // NOTA: El zoom automático al seleccionar una ruta se ha eliminado.
+  // Ahora el zoom solo se hace explícitamente con doble click (handleMarkerDoubleClick).
 
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 
@@ -681,6 +660,10 @@ export function RoutesMapView({
               <div 
                 className="relative cursor-pointer group"
                 style={{ zIndex: 1001 }}
+                onDoubleClick={(e) => {
+                  e.stopPropagation()
+                  handleMarkerDoubleClick(cluster.lat, cluster.lng)
+                }}
               >
                 <div className="rounded-full bg-primary-600 border-2 border-white shadow-lg transition-all duration-300 group-hover:scale-110 flex items-center justify-center min-w-[40px] h-10 px-3">
                   <span className="text-white text-sm font-bold">{cluster.routes.length}</span>
@@ -717,6 +700,10 @@ export function RoutesMapView({
                 <div 
                   className="relative cursor-pointer group"
                   style={{ zIndex: 1000 }}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation()
+                    handleMarkerDoubleClick(route.location.coordinates.lat, route.location.coordinates.lng)
+                  }}
                   onMouseEnter={() => {
                     if (onMarkerHover) {
                       onMarkerHover(route.id)
@@ -797,6 +784,10 @@ export function RoutesMapView({
                     <div 
                       className="relative cursor-pointer group"
                       style={{ zIndex: 99998 }}
+                      onDoubleClick={(e) => {
+                        e.stopPropagation()
+                        handleMarkerDoubleClick(route.location.coordinates.lat, route.location.coordinates.lng)
+                      }}
                       onMouseEnter={() => {
                         if (onMarkerHover) {
                           onMarkerHover(route.id)
@@ -867,6 +858,10 @@ export function RoutesMapView({
                 <div 
                   className="relative cursor-pointer group"
                   style={{ zIndex: 99998 }}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation()
+                    handleMarkerDoubleClick(hoveredRouteInCluster.route.location.coordinates.lat, hoveredRouteInCluster.route.location.coordinates.lng)
+                  }}
                   onMouseEnter={() => {
                     if (onMarkerHover) {
                       onMarkerHover(hoveredRouteInCluster.route.id)
@@ -1132,6 +1127,24 @@ export function RoutesMapView({
                 <p className="mb-0.5 text-[10px] text-red-600">
                   {trackError}
                 </p>
+              )}
+
+              {/* Botón de zoom al POI */}
+              {cardRoute.location?.coordinates && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const coords = cardRoute.location?.coordinates
+                    if (coords) {
+                      handleMarkerDoubleClick(coords.lat, coords.lng)
+                    }
+                  }}
+                  className="mb-1.5 w-full rounded-sm bg-blue-600 px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm transition hover:bg-blue-700 flex items-center justify-center gap-1"
+                  title="Hacer zoom al POI en el mapa"
+                >
+                  <ZoomIn className="h-3 w-3" />
+                  Zoom
+                </button>
               )}
 
               <button

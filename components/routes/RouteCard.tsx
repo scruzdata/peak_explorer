@@ -18,9 +18,11 @@ interface RouteCardProps {
   type?: 'trekking' | 'ferrata'
   /** Click personalizado (por ejemplo, para centrar en el mapa en modo "Ambas") */
   onClick?: () => void
+  /** Doble click personalizado (por ejemplo, para hacer zoom en el mapa) */
+  onDoubleClick?: () => void
 }
 
-export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, isHovered = false, isSelected = false, type = 'trekking', onClick }: RouteCardProps) {
+export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, isHovered = false, isSelected = false, type = 'trekking', onClick, onDoubleClick }: RouteCardProps) {
   const hasRating = typeof route.rating === 'number'
   const ratingValue = hasRating ? Number(route.rating?.toFixed(1)) : null
   
@@ -214,8 +216,22 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
         }`}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
+        onDoubleClick={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          onDoubleClick?.()
+        }}
       >
-        <Link href={`/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`} target="_blank" rel="noopener noreferrer">
+        <Link 
+          href={`/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          onDoubleClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            onDoubleClick?.()
+          }}
+        >
           <div className="relative h-48 overflow-hidden rounded-xl mb-2 group/image">
             <AnimatePresence mode="wait">
               <motion.div
@@ -336,8 +352,22 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
       }`}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
+      onDoubleClick={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        onDoubleClick?.()
+      }}
     >
-      <Link href={`/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`} target="_blank" rel="noopener noreferrer">
+      <Link 
+        href={`/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`} 
+        target="_blank" 
+        rel="noopener noreferrer"
+        onDoubleClick={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          onDoubleClick?.()
+        }}
+      >
         <div className="relative h-48 overflow-hidden group/image">
           <AnimatePresence mode="wait">
             <motion.div
