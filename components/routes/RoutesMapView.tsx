@@ -4,7 +4,7 @@ import { useMemo, useState, useCallback, useEffect, useRef } from 'react'
 import { Route, FerrataGrade } from '@/types'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
-import { Mountain, Star, X, RotateCcw, Eye, EyeOff } from 'lucide-react'
+import { Mountain, Star, X, RotateCcw, Eye, EyeOff, MapPin } from 'lucide-react'
 import { getDifficultyColor, getFerrataGradeColor } from '@/lib/utils'
 import type { MapRef } from 'react-map-gl'
 import { RouteElevationProfile } from './RouteElevationProfile'
@@ -27,6 +27,10 @@ const Source = dynamic(
 )
 const Layer = dynamic(
   () => import('react-map-gl').then((mod) => mod.Layer),
+  { ssr: false }
+)
+const Popup = dynamic(
+  () => import('react-map-gl').then((mod) => mod.Popup),
   { ssr: false }
 )
 
@@ -85,6 +89,79 @@ function getFerrataGradeBorderColor(grade: FerrataGrade | undefined): { border: 
 }
 
 /**
+ * Tipo para representar un cluster de rutas
+ */
+interface Cluster {
+  lat: number
+  lng: number
+  routes: Route[]
+}
+
+/**
+ * Agrupa rutas cercanas en clusters basándose en la distancia en píxeles del mapa
+ * @param routes Rutas a agrupar
+ * @param map Instancia del mapa de Mapbox
+ * @param pixelRadius Radio en píxeles para considerar que dos puntos están juntos (por defecto 50px)
+ * @returns Array de clusters y rutas individuales (sin agrupar)
+ */
+function clusterRoutes(
+  routes: Route[],
+  map: any,
+  pixelRadius: number = 50
+): { clusters: Cluster[]; individualRoutes: Route[] } {
+  if (!map || routes.length === 0) {
+    return { clusters: [], individualRoutes: routes }
+  }
+
+  const clusters: Cluster[] = []
+  const processed = new Set<string>()
+  
+  for (let i = 0; i < routes.length; i++) {
+    if (processed.has(routes[i].id)) continue
+
+    const route1 = routes[i]
+    const clusterRoutes: Route[] = [route1]
+
+    // Convertir coordenadas del primer punto a píxeles
+    const point1 = map.project([route1.location.coordinates.lng, route1.location.coordinates.lat])
+
+    // Buscar otros puntos cercanos
+    for (let j = i + 1; j < routes.length; j++) {
+      if (processed.has(routes[j].id)) continue
+
+      const route2 = routes[j]
+      const point2 = map.project([route2.location.coordinates.lng, route2.location.coordinates.lat])
+
+      // Calcular distancia en píxeles
+      const dx = point2.x - point1.x
+      const dy = point2.y - point1.y
+      const distance = Math.sqrt(dx * dx + dy * dy)
+
+      if (distance <= pixelRadius) {
+        clusterRoutes.push(route2)
+      }
+    }
+
+    // Si hay más de una ruta, crear un cluster
+    if (clusterRoutes.length > 1) {
+      // Marcar todas las rutas del cluster como procesadas
+      clusterRoutes.forEach(r => processed.add(r.id))
+      
+      // Calcular el centro del cluster (promedio de coordenadas)
+      const avgLat = clusterRoutes.reduce((sum: number, r: Route) => sum + r.location.coordinates.lat, 0) / clusterRoutes.length
+      const avgLng = clusterRoutes.reduce((sum: number, r: Route) => sum + r.location.coordinates.lng, 0) / clusterRoutes.length
+      clusters.push({ lat: avgLat, lng: avgLng, routes: clusterRoutes })
+    }
+    // Si solo hay una ruta, no la marcamos como procesada, así aparecerá como individual
+  }
+
+  // Obtener rutas individuales (no procesadas = no agrupadas)
+  const individualRoutes = routes.filter(r => !processed.has(r.id))
+
+  return { clusters, individualRoutes }
+}
+
+/**
  * Componente que muestra todas las rutas en un mapa de España usando Mapbox
  * Muestra el POI principal de cada ruta y permite navegar al detalle
  * Al hacer click en un POI:
@@ -115,21 +192,33 @@ export function RoutesMapView({
   const [selectedRouteTrack, setSelectedRouteTrack] = useState<{ lat: number; lng: number; elevation?: number }[] | null>(null)
   const [isLoadingTrack, setIsLoadingTrack] = useState(false)
   const [trackError, setTrackError] = useState<string | null>(null)
+  // Estado para el popup de cluster
+  const [clusterPopup, setClusterPopup] = useState<{ lat: number; lng: number; routes: Route[] } | null>(null)
 
   // Combinar hoveredRouteId externo con interno (el interno tiene prioridad si no hay externo)
   const effectiveHoveredRouteId = hoveredRouteId ?? internalHoveredRouteId
 
   // Ruta seleccionada para mostrar track (puede venir del grid o del POI)
   const trackRouteId = selectedRouteId ?? internalSelectedRouteId
+  
+  // Efecto para cerrar el popup y mostrar el panel cuando se selecciona una ruta desde el grid
+  useEffect(() => {
+    if (selectedRouteId) {
+      setClusterPopup(null)
+      setShowDetailPanel(true)
+    }
+  }, [selectedRouteId])
   const trackRoute = useMemo(
     () => routes.find((r) => r.id === trackRouteId) ?? null,
     [routes, trackRouteId]
   )
 
-  // Ruta seleccionada para mostrar tarjeta (solo cuando se hace click en el POI)
+  // Ruta seleccionada para mostrar tarjeta (puede venir del grid o del POI)
+  // Si viene del grid (selectedRouteId), usarla; si no, usar la interna (click en POI)
+  const cardRouteId = selectedRouteId ?? internalSelectedRouteId
   const cardRouteBase = useMemo(
-    () => routes.find((r) => r.id === internalSelectedRouteId) ?? null,
-    [routes, internalSelectedRouteId]
+    () => routes.find((r) => r.id === cardRouteId) ?? null,
+    [routes, cardRouteId]
   )
 
   // Ruta con track cargado para mostrar en la tarjeta y perfil
@@ -137,7 +226,7 @@ export function RoutesMapView({
     if (!cardRouteBase) return null
     
     // Si hay un track cargado y coincide con la ruta seleccionada, usarlo
-    if (selectedRouteTrack && trackRouteId === internalSelectedRouteId) {
+    if (selectedRouteTrack && trackRouteId === cardRouteId) {
       return {
         ...cardRouteBase,
         track: selectedRouteTrack
@@ -150,7 +239,7 @@ export function RoutesMapView({
     }
     
     return cardRouteBase
-  }, [cardRouteBase, selectedRouteTrack, trackRouteId, internalSelectedRouteId])
+  }, [cardRouteBase, selectedRouteTrack, trackRouteId, cardRouteId])
 
   /**
    * Importa dinámicamente los estilos de Mapbox cuando el componente se monta
@@ -162,11 +251,95 @@ export function RoutesMapView({
     link.href = 'https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css'
     document.head.appendChild(link)
 
+    // Agregar estilos personalizados para el popup del cluster
+    const style = document.createElement('style')
+    style.id = 'cluster-popup-styles'
+    style.textContent = `
+      .mapboxgl-popup.cluster-popup {
+        max-width: 280px !important;
+        padding: 0 !important;
+      }
+      .mapboxgl-popup.cluster-popup.mapboxgl-popup-anchor-top .mapboxgl-popup-tip {
+        border-bottom-color: white !important;
+        border-top-color: transparent !important;
+      }
+      .mapboxgl-popup.cluster-popup.mapboxgl-popup-anchor-left .mapboxgl-popup-tip {
+        border-right-color: white !important;
+        border-top-color: transparent !important;
+        border-bottom-color: transparent !important;
+      }
+      .mapboxgl-popup.cluster-popup.mapboxgl-popup-anchor-right .mapboxgl-popup-tip {
+        border-left-color: white !important;
+        border-top-color: transparent !important;
+        border-bottom-color: transparent !important;
+      }
+      .mapboxgl-popup.cluster-popup.mapboxgl-popup-anchor-top-left .mapboxgl-popup-tip,
+      .mapboxgl-popup.cluster-popup.mapboxgl-popup-anchor-top-right .mapboxgl-popup-tip {
+        border-bottom-color: white !important;
+        border-top-color: transparent !important;
+        border-left-color: transparent !important;
+        border-right-color: transparent !important;
+      }
+      .mapboxgl-popup.cluster-popup.mapboxgl-popup-anchor-bottom-left .mapboxgl-popup-tip,
+      .mapboxgl-popup.cluster-popup.mapboxgl-popup-anchor-bottom-right .mapboxgl-popup-tip {
+        border-top-color: white !important;
+        border-bottom-color: transparent !important;
+        border-left-color: transparent !important;
+        border-right-color: transparent !important;
+      }
+      .mapboxgl-popup.cluster-popup .mapboxgl-popup-content {
+        padding: 0 !important;
+        border-radius: 0.75rem !important;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+        background: transparent !important;
+        width: 240px !important;
+        max-width: 240px !important;
+      }
+      .mapboxgl-popup.cluster-popup .mapboxgl-popup-tip {
+        border-top-color: white !important;
+      }
+      .mapboxgl-popup.cluster-popup .mapboxgl-popup-close-button {
+        position: absolute !important;
+        right: 6px !important;
+        top: 6px !important;
+        z-index: 1000 !important;
+        width: 22px !important;
+        height: 22px !important;
+        font-size: 16px !important;
+        line-height: 1 !important;
+        color: white !important;
+        background: rgba(0, 0, 0, 0.4) !important;
+        border-radius: 50% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: all 0.2s !important;
+        border: none !important;
+        cursor: pointer !important;
+      }
+      .mapboxgl-popup.cluster-popup .mapboxgl-popup-close-button:hover {
+        background: rgba(0, 0, 0, 0.6) !important;
+        transform: scale(1.1) !important;
+      }
+      .mapboxgl-popup.cluster-popup {
+        pointer-events: auto !important;
+      }
+      .mapboxgl-popup.cluster-popup .mapboxgl-popup-content {
+        pointer-events: auto !important;
+      }
+    `
+    document.head.appendChild(style)
+
     return () => {
       // Limpiar el link cuando el componente se desmonte
       const existingLink = document.head.querySelector(`link[href="${link.href}"]`)
-      if (existingLink) {
-        document.head.removeChild(existingLink)
+      if (existingLink && existingLink.parentNode) {
+        existingLink.parentNode.removeChild(existingLink)
+      }
+      // Limpiar los estilos personalizados
+      const existingStyle = document.head.querySelector('#cluster-popup-styles')
+      if (existingStyle && existingStyle.parentNode) {
+        existingStyle.parentNode.removeChild(existingStyle)
       }
     }
   }, [])
@@ -180,6 +353,33 @@ export function RoutesMapView({
       route.location.coordinates.lng !== 0
     )
   }, [routes])
+
+  // Calcular clusters basándose en el estado actual del mapa
+  const { clusters, individualRoutes } = useMemo(() => {
+    if (!isMapLoaded || !mapInstanceRef.current || routesWithCoordinates.length === 0) {
+      return { clusters: [], individualRoutes: routesWithCoordinates }
+    }
+    try {
+      return clusterRoutes(routesWithCoordinates, mapInstanceRef.current, 50)
+    } catch (error) {
+      console.error('Error calculando clusters:', error)
+      return { clusters: [], individualRoutes: routesWithCoordinates }
+    }
+  }, [routesWithCoordinates, isMapLoaded, viewState])
+
+  // Encontrar si la ruta hovered está en un cluster
+  const hoveredRouteInCluster = useMemo(() => {
+    if (!effectiveHoveredRouteId) return null
+    const hoveredRoute = routesWithCoordinates.find((r: Route) => r.id === effectiveHoveredRouteId)
+    if (!hoveredRoute) return null
+    
+    for (const cluster of clusters) {
+      if (cluster.routes.some((r: Route) => r.id === effectiveHoveredRouteId)) {
+        return { cluster, route: hoveredRoute }
+      }
+    }
+    return null
+  }, [effectiveHoveredRouteId, clusters, routesWithCoordinates])
 
   /**
    * Calcula el viewState inicial para mostrar toda España
@@ -425,9 +625,10 @@ export function RoutesMapView({
           onViewStateChange?.(evt.viewState)
         }}
         onClick={() => {
-          // Cerrar tarjeta al pinchar en cualquier parte del mapa que no sea un marcador
+          // Cerrar tarjeta y popup al pinchar en cualquier parte del mapa que no sea un marcador
           setInternalSelectedRouteId(null)
           onRouteSelect?.(null)
+          setClusterPopup(null)
         }}
         style={{ width: '100%', height: '100%' }}
         mapStyle={`mapbox://styles/mapbox/${mapStyle}`}
@@ -449,8 +650,57 @@ export function RoutesMapView({
           </Source>
         )}
 
-        {/* Marcadores para cada ruta - primero los no hovered */}
-        {routesWithCoordinates
+        {/* Marcadores de clusters - ocultar si la ruta hovered está en este cluster */}
+        {clusters
+          .filter((cluster: Cluster) => {
+            // Ocultar este cluster si contiene la ruta que está siendo hovered
+            if (hoveredRouteInCluster && effectiveHoveredRouteId) {
+              return !cluster.routes.some(r => r.id === effectiveHoveredRouteId)
+            }
+            return true
+          })
+          .map((cluster: Cluster, clusterIndex: number) => (
+            <Marker
+              key={`cluster-${clusterIndex}`}
+              longitude={cluster.lng}
+              latitude={cluster.lat}
+              anchor="center"
+              onClick={(e: any) => {
+                e.originalEvent.stopPropagation()
+                // Si ya hay un popup abierto del mismo cluster, cerrarlo; si no, abrirlo
+                if (clusterPopup && clusterPopup.lat === cluster.lat && clusterPopup.lng === cluster.lng) {
+                  setClusterPopup(null)
+                } else {
+                  setClusterPopup(cluster)
+                  // Cerrar cualquier tarjeta de ruta abierta
+                  setInternalSelectedRouteId(null)
+                  onRouteSelect?.(null)
+                }
+              }}
+            >
+              <div 
+                className="relative cursor-pointer group"
+                style={{ zIndex: 1001 }}
+              >
+                <div className="rounded-full bg-primary-600 border-2 border-white shadow-lg transition-all duration-300 group-hover:scale-110 flex items-center justify-center min-w-[40px] h-10 px-3">
+                  <span className="text-white text-sm font-bold">{cluster.routes.length}</span>
+                </div>
+                {/* Tooltip al hover */}
+                <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg whitespace-nowrap transition-opacity pointer-events-none opacity-0 group-hover:opacity-100`}
+                  style={{ zIndex: 99999 }}
+                >
+                  {cluster.routes.length} {type === 'ferrata' 
+                    ? (cluster.routes.length === 1 ? 'vía ferrata' : 'vías ferratas')
+                    : (cluster.routes.length === 1 ? 'ruta' : 'rutas')
+                  }
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                </div>
+              </div>
+            </Marker>
+          ))}
+
+        {/* Marcadores para rutas individuales (no agrupadas) - primero los no hovered */}
+        {individualRoutes
           .filter(route => effectiveHoveredRouteId !== route.id)
           .map((route) => {
             return (
@@ -459,7 +709,7 @@ export function RoutesMapView({
                 longitude={route.location.coordinates.lng}
                 latitude={route.location.coordinates.lat}
                 anchor="bottom"
-                onClick={(e) => {
+                onClick={(e: any) => {
                   e.originalEvent.stopPropagation()
                   handleMarkerClick(route)
                 }}
@@ -526,19 +776,92 @@ export function RoutesMapView({
             )
           })}
         
-        {/* Marcador hovered renderizado al final para que aparezca encima */}
-        {effectiveHoveredRouteId && routesWithCoordinates
-          .filter(route => effectiveHoveredRouteId === route.id)
-          .map((route) => {
-            return (
+        {/* Marcador hovered renderizado al final para que aparezca encima - incluye rutas en clusters */}
+        {effectiveHoveredRouteId && (
+          <>
+            {/* Rutas individuales hovered */}
+            {individualRoutes
+              .filter(route => effectiveHoveredRouteId === route.id)
+              .map((route) => {
+                return (
+                  <Marker
+                    key={route.id}
+                    longitude={route.location.coordinates.lng}
+                    latitude={route.location.coordinates.lat}
+                    anchor="bottom"
+                    onClick={(e: any) => {
+                      e.originalEvent.stopPropagation()
+                      handleMarkerClick(route)
+                    }}
+                  >
+                    <div 
+                      className="relative cursor-pointer group"
+                      style={{ zIndex: 99998 }}
+                      onMouseEnter={() => {
+                        if (onMarkerHover) {
+                          onMarkerHover(route.id)
+                        } else {
+                          setInternalHoveredRouteId(route.id)
+                        }
+                      }}
+                      onMouseLeave={() => {
+                        if (onMarkerHover) {
+                          onMarkerHover(null)
+                        } else {
+                          setInternalHoveredRouteId(null)
+                        }
+                      }}
+                    >
+                      <div className={`${type === 'ferrata' ? 'p-0.5' : 'p-2'} rounded-full bg-white shadow-lg border-2 transition-all duration-300 scale-150 shadow-xl relative ${
+                        type === 'ferrata' && route.ferrataGrade
+                          ? getFerrataGradeBorderColor(route.ferrataGrade).border
+                          : route.difficulty === 'Fácil' ? 'border-green-600' :
+                            route.difficulty === 'Moderada' ? 'border-orange-600' :
+                            route.difficulty === 'Difícil' ? 'border-red-600' :
+                            route.difficulty === 'Muy Difícil' ? 'border-purple-600' :
+                            'border-gray-600'
+                      }`}
+                      style={{ zIndex: 99998 }}
+                      >
+                        {type === 'ferrata' ? (
+                          <FerrataClimberIcon className={`h-10 w-10 transition-all duration-300 ${
+                            route.ferrataGrade
+                              ? getFerrataGradeBorderColor(route.ferrataGrade).text
+                              : 'text-primary-600'
+                          }`} />
+                        ) : (
+                          <Mountain className="h-5 w-5 transition-all duration-300 text-primary-600" />
+                        )}
+                        {type === 'ferrata' && route.ferrataGrade && (
+                          <span className={`absolute -bottom-0.5 -right-0.5 text-[7px] px-0.5 py-0.5 rounded font-bold ${getFerrataGradeColor(route.ferrataGrade)} shadow-sm`}>
+                            {route.ferrataGrade}
+                          </span>
+                        )}
+                      </div>
+                      {/* Tooltip siempre visible cuando está hovered */}
+                      <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg whitespace-nowrap pointer-events-none`}
+                        style={{ zIndex: 99999 }}
+                      >
+                        {route.title}
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                      </div>
+                      {/* Anillo de resaltado cuando está hovered */}
+                      <div className="absolute inset-0 rounded-full border-4 border-primary-400 animate-ping opacity-75" style={{ zIndex: 9999 }}></div>
+                    </div>
+                  </Marker>
+                )
+              })}
+            
+            {/* Ruta hovered que está en un cluster - mostrar marcador individual temporalmente */}
+            {hoveredRouteInCluster && hoveredRouteInCluster.route && (
               <Marker
-                key={route.id}
-                longitude={route.location.coordinates.lng}
-                latitude={route.location.coordinates.lat}
+                key={`hovered-cluster-route-${hoveredRouteInCluster.route.id}`}
+                longitude={hoveredRouteInCluster.route.location.coordinates.lng}
+                latitude={hoveredRouteInCluster.route.location.coordinates.lat}
                 anchor="bottom"
-                onClick={(e) => {
+                onClick={(e: any) => {
                   e.originalEvent.stopPropagation()
-                  handleMarkerClick(route)
+                  handleMarkerClick(hoveredRouteInCluster.route)
                 }}
               >
                 <div 
@@ -546,9 +869,9 @@ export function RoutesMapView({
                   style={{ zIndex: 99998 }}
                   onMouseEnter={() => {
                     if (onMarkerHover) {
-                      onMarkerHover(route.id)
+                      onMarkerHover(hoveredRouteInCluster.route.id)
                     } else {
-                      setInternalHoveredRouteId(route.id)
+                      setInternalHoveredRouteId(hoveredRouteInCluster.route.id)
                     }
                   }}
                   onMouseLeave={() => {
@@ -560,28 +883,28 @@ export function RoutesMapView({
                   }}
                 >
                   <div className={`${type === 'ferrata' ? 'p-0.5' : 'p-2'} rounded-full bg-white shadow-lg border-2 transition-all duration-300 scale-150 shadow-xl relative ${
-                    type === 'ferrata' && route.ferrataGrade
-                      ? getFerrataGradeBorderColor(route.ferrataGrade).border
-                      : route.difficulty === 'Fácil' ? 'border-green-600' :
-                        route.difficulty === 'Moderada' ? 'border-orange-600' :
-                        route.difficulty === 'Difícil' ? 'border-red-600' :
-                        route.difficulty === 'Muy Difícil' ? 'border-purple-600' :
+                    type === 'ferrata' && hoveredRouteInCluster.route.ferrataGrade
+                      ? getFerrataGradeBorderColor(hoveredRouteInCluster.route.ferrataGrade).border
+                      : hoveredRouteInCluster.route.difficulty === 'Fácil' ? 'border-green-600' :
+                        hoveredRouteInCluster.route.difficulty === 'Moderada' ? 'border-orange-600' :
+                        hoveredRouteInCluster.route.difficulty === 'Difícil' ? 'border-red-600' :
+                        hoveredRouteInCluster.route.difficulty === 'Muy Difícil' ? 'border-purple-600' :
                         'border-gray-600'
                   }`}
                   style={{ zIndex: 99998 }}
                   >
                     {type === 'ferrata' ? (
                       <FerrataClimberIcon className={`h-10 w-10 transition-all duration-300 ${
-                        route.ferrataGrade
-                          ? getFerrataGradeBorderColor(route.ferrataGrade).text
+                        hoveredRouteInCluster.route.ferrataGrade
+                          ? getFerrataGradeBorderColor(hoveredRouteInCluster.route.ferrataGrade).text
                           : 'text-primary-600'
                       }`} />
                     ) : (
                       <Mountain className="h-5 w-5 transition-all duration-300 text-primary-600" />
                     )}
-                    {type === 'ferrata' && route.ferrataGrade && (
-                      <span className={`absolute -bottom-0.5 -right-0.5 text-[7px] px-0.5 py-0.5 rounded font-bold ${getFerrataGradeColor(route.ferrataGrade)} shadow-sm`}>
-                        {route.ferrataGrade}
+                    {type === 'ferrata' && hoveredRouteInCluster.route.ferrataGrade && (
+                      <span className={`absolute -bottom-0.5 -right-0.5 text-[7px] px-0.5 py-0.5 rounded font-bold ${getFerrataGradeColor(hoveredRouteInCluster.route.ferrataGrade)} shadow-sm`}>
+                        {hoveredRouteInCluster.route.ferrataGrade}
                       </span>
                     )}
                   </div>
@@ -589,15 +912,134 @@ export function RoutesMapView({
                   <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg whitespace-nowrap pointer-events-none`}
                     style={{ zIndex: 99999 }}
                   >
-                    {route.title}
+                    {hoveredRouteInCluster.route.title}
                     <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
                   </div>
                   {/* Anillo de resaltado cuando está hovered */}
                   <div className="absolute inset-0 rounded-full border-4 border-primary-400 animate-ping opacity-75" style={{ zIndex: 9999 }}></div>
                 </div>
               </Marker>
-            )
-          })}
+            )}
+          </>
+        )}
+
+        {/* Popup para mostrar las rutas de un cluster */}
+        {clusterPopup && (
+          <Popup
+            longitude={clusterPopup.lng}
+            latitude={clusterPopup.lat}
+            anchor="auto"
+            onClose={() => setClusterPopup(null)}
+            closeButton={true}
+            closeOnClick={false}
+            className="cluster-popup"
+            offset={15}
+            maxWidth={280}
+            tipSize={8}
+          >
+            <div className="bg-white rounded-xl shadow-xl border border-gray-100 w-[240px] overflow-hidden relative">
+              {/* Header con badge moderno */}
+              <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-3 py-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="bg-white/20 backdrop-blur-sm rounded-full px-2 py-0.5">
+                    <span className="text-white text-xs font-bold">
+                      {clusterPopup.routes.length}
+                    </span>
+                  </div>
+                  <h3 className="text-white font-semibold text-xs">
+                    {type === 'ferrata' 
+                      ? (clusterPopup.routes.length === 1 ? 'Vía ferrata' : 'Vías ferratas')
+                      : (clusterPopup.routes.length === 1 ? 'Ruta' : 'Rutas')
+                    }
+                  </h3>
+                </div>
+              </div>
+              
+              {/* Lista de rutas con scroll personalizado */}
+              <div className="max-h-64 overflow-y-auto custom-scrollbar p-2 bg-gray-50/50">
+                <div className="space-y-1.5">
+                  {clusterPopup.routes.map((route) => (
+                    <button
+                      key={route.id}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        // Cerrar el popup primero
+                        setClusterPopup(null)
+                        // Luego actualizar la ruta seleccionada
+                        handleMarkerClick(route)
+                      }}
+                      onMouseEnter={() => {
+                        if (onMarkerHover) {
+                          onMarkerHover(route.id)
+                        } else {
+                          setInternalHoveredRouteId(route.id)
+                        }
+                      }}
+                      onMouseLeave={() => {
+                        if (onMarkerHover) {
+                          onMarkerHover(null)
+                        } else {
+                          setInternalHoveredRouteId(null)
+                        }
+                      }}
+                      className="w-full text-left p-2 rounded-lg bg-white border border-gray-200 hover:border-primary-300 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 group"
+                    >
+                      <div className="flex items-start gap-2">
+                        {/* Icono con fondo circular */}
+                        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                          type === 'ferrata' 
+                            ? (route.ferrataGrade 
+                                ? (route.ferrataGrade === 'K1' ? 'bg-green-50' :
+                                   route.ferrataGrade === 'K2' ? 'bg-blue-50' :
+                                   route.ferrataGrade === 'K3' ? 'bg-yellow-50' :
+                                   route.ferrataGrade === 'K4' ? 'bg-orange-50' :
+                                   route.ferrataGrade === 'K5' ? 'bg-red-50' :
+                                   route.ferrataGrade === 'K6' ? 'bg-purple-50' :
+                                   'bg-gray-100')
+                                : 'bg-gray-100')
+                            : (route.difficulty === 'Fácil' ? 'bg-green-50' :
+                               route.difficulty === 'Moderada' ? 'bg-orange-50' :
+                               route.difficulty === 'Difícil' ? 'bg-red-50' :
+                               route.difficulty === 'Muy Difícil' ? 'bg-purple-50' :
+                               'bg-gray-100')
+                        } group-hover:scale-110 transition-transform duration-200`}>
+                          {type === 'ferrata' ? (
+                            <FerrataClimberIcon className={`h-4 w-4 ${
+                              route.ferrataGrade
+                                ? getFerrataGradeBorderColor(route.ferrataGrade).text
+                                : 'text-gray-600'
+                            }`} />
+                          ) : (
+                            <Mountain className={`h-4 w-4 ${
+                              route.difficulty === 'Fácil' ? 'text-green-600' :
+                              route.difficulty === 'Moderada' ? 'text-orange-600' :
+                              route.difficulty === 'Difícil' ? 'text-red-600' :
+                              route.difficulty === 'Muy Difícil' ? 'text-purple-600' :
+                              'text-gray-600'
+                            }`} />
+                          )}
+                        </div>
+                        
+                        {/* Contenido */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-2 leading-snug">
+                            {route.title}
+                          </p>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <MapPin className="h-2.5 w-2.5 text-gray-400 flex-shrink-0" />
+                            <p className="text-[10px] text-gray-500 truncate">
+                              {route.location.region}, {route.location.province}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </Popup>
+        )}
       </Map>
 
       {/* Botón lateral para mostrar/ocultar panel de detalle */}
@@ -615,7 +1057,7 @@ export function RoutesMapView({
         </button>
       )}
 
-      {/* Tarjeta fija de la ruta seleccionada (arriba a la izquierda) - Solo se muestra cuando se hace click en el POI */}
+      {/* Tarjeta fija de la ruta seleccionada (arriba a la izquierda) - Se muestra cuando se selecciona desde el POI o desde el grid */}
       {cardRoute && showDetailPanel && (
         <div className="absolute top-4 left-6 sm:left-8 z-20 w-48 sm:w-56 max-w-[60vw]">
           <div className="relative overflow-hidden rounded-md bg-white shadow-md border border-gray-200">
@@ -624,7 +1066,12 @@ export function RoutesMapView({
               type="button"
               onClick={() => {
                 setInternalSelectedRouteId(null)
-                onRouteSelect?.(null)
+                // Si selectedRouteId viene del grid, también limpiarlo
+                if (selectedRouteId) {
+                  onRouteSelect?.(null)
+                }
+                // Cerrar el popup del cluster si está abierto
+                setClusterPopup(null)
               }}
               className="absolute top-2 right-2 z-20 inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/90 text-gray-600 shadow hover:bg-white"
             >
