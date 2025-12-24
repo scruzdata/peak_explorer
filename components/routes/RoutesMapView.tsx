@@ -1164,7 +1164,7 @@ export function RoutesMapView({
           {/* Perfil de elevación debajo de la tarjeta */}
           {cardRoute.track && cardRoute.track.length > 0 && (
             <div className="mt-2 rounded-md bg-white shadow-md border border-gray-200 overflow-hidden">
-              <RouteElevationProfile route={cardRoute} compact={true} />
+              <RouteElevationProfile route={cardRoute as Route} compact={true} />
             </div>
           )}
         </div>
