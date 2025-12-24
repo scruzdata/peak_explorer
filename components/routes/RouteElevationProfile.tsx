@@ -8,13 +8,15 @@ import { calculateSlope, getSlopeColor } from '@/lib/utils'
 interface RouteElevationProfileProps {
   route: Route
   onHoverTrackIndex?: (index: number | null) => void
+  highlightedTrackIndex?: number | null // Índice del track resaltado externamente (p.ej. desde el mapa)
+  compact?: boolean // Modo compacto para usar en el mapa
 }
 
 /**
  * Componente que muestra el perfil de elevación de la ruta
  * Genera un gráfico de línea mostrando la elevación a lo largo del track
  */
-export function RouteElevationProfile({ route, onHoverTrackIndex }: RouteElevationProfileProps) {
+export function RouteElevationProfile({ route, onHoverTrackIndex, highlightedTrackIndex, compact = false }: RouteElevationProfileProps) {
   /**
    * Calcula los datos del perfil de elevación a partir del track
    */
@@ -79,12 +81,17 @@ export function RouteElevationProfile({ route, onHoverTrackIndex }: RouteElevati
   // Hooks deben estar siempre al inicio, antes de cualquier return condicional
   const svgRef = useRef<SVGSVGElement>(null)
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+  
+  // El índice a mostrar es el hovered (del perfil) o el highlighted (del mapa), dando prioridad al hovered
+  const displayIndex = hoveredIndex !== null ? hoveredIndex : highlightedTrackIndex ?? null
 
-  // Dimensiones del gráfico
-  const width = 800
-  const height = 200
+  // Dimensiones del gráfico - ajustadas para modo compacto
+  const width = compact ? 400 : 800
+  const height = compact ? 120 : 200
   // Reducimos padding lateral e inferior para que el gráfico aproveche mejor el espacio
-  const padding = { top: 10, right: 24, bottom: 1, left: 50 }
+  const padding = compact 
+    ? { top: 5, right: 12, bottom: 1, left: 30 }
+    : { top: 10, right: 24, bottom: 1, left: 50 }
   const chartWidth = width - padding.left - padding.right
   const chartHeight = height - padding.top - padding.bottom
 
@@ -166,12 +173,12 @@ export function RouteElevationProfile({ route, onHoverTrackIndex }: RouteElevati
 
   if (!elevationData) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-white p-6">
-        <h3 className="mb-4 text-lg font-semibold flex items-center">
-          <TrendingUp className="mr-2 h-5 w-5 text-primary-600" />
+      <div className={`rounded-lg border border-gray-200 bg-white ${compact ? 'p-2' : 'p-6'}`}>
+        <h3 className={`${compact ? 'mb-2 text-xs' : 'mb-4 text-lg'} font-semibold flex items-center`}>
+          <TrendingUp className={`${compact ? 'mr-1 h-3 w-3' : 'mr-2 h-5 w-5'} text-primary-600`} />
           Perfil de Elevación
         </h3>
-        <p className="text-sm text-gray-500">
+        <p className={`${compact ? 'text-[10px]' : 'text-sm'} text-gray-500`}>
           No hay datos de track disponibles para mostrar el perfil de elevación.
         </p>
       </div>
@@ -217,42 +224,44 @@ export function RouteElevationProfile({ route, onHoverTrackIndex }: RouteElevati
   }
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6 relative">
-      <h3 className="mb-4 text-lg font-semibold flex items-center">
-        <TrendingUp className="mr-2 h-5 w-5 text-primary-600" />
+    <div className={`rounded-lg border border-gray-200 bg-white ${compact ? 'p-2' : 'p-6'} relative`}>
+      <h3 className={`${compact ? 'mb-2 text-xs' : 'mb-4 text-lg'} font-semibold flex items-center`}>
+        <TrendingUp className={`${compact ? 'mr-1 h-3 w-3' : 'mr-2 h-5 w-5'} text-primary-600`} />
         Perfil de Elevación
       </h3>
 
       {/* Leyenda de colores - esquina superior derecha */}
-      <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm border border-gray-200 rounded px-1.5 py-1 shadow-sm z-10">
-        <div className="text-[9px] font-semibold text-gray-700 mb-0.5">Pendiente:</div>
-        <div className="space-y-0.5">
-          <div className="flex items-center gap-1">
-            <div className="h-1.5 w-3 rounded" style={{ backgroundColor: '#22c55e' }}></div>
-            <span className="text-[8px] text-gray-600">Suave (0-5%)</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="h-1.5 w-3 rounded" style={{ backgroundColor: '#eab308' }}></div>
-            <span className="text-[8px] text-gray-600">Moderada (5-10%)</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="h-1.5 w-3 rounded" style={{ backgroundColor: '#f97316' }}></div>
-            <span className="text-[8px] text-gray-600">Fuerte (10-20%)</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="h-1.5 w-3 rounded" style={{ backgroundColor: '#ef4444' }}></div>
-            <span className="text-[8px] text-gray-600">Muy fuerte (&gt;20%)</span>
+      {!compact && (
+        <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm border border-gray-200 rounded px-1.5 py-1 shadow-sm z-10">
+          <div className="text-[9px] font-semibold text-gray-700 mb-0.5">Pendiente:</div>
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-1">
+              <div className="h-1.5 w-3 rounded" style={{ backgroundColor: '#22c55e' }}></div>
+              <span className="text-[8px] text-gray-600">Suave (0-5%)</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="h-1.5 w-3 rounded" style={{ backgroundColor: '#eab308' }}></div>
+              <span className="text-[8px] text-gray-600">Moderada (5-10%)</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="h-1.5 w-3 rounded" style={{ backgroundColor: '#f97316' }}></div>
+              <span className="text-[8px] text-gray-600">Fuerte (10-20%)</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="h-1.5 w-3 rounded" style={{ backgroundColor: '#ef4444' }}></div>
+              <span className="text-[8px] text-gray-600">Muy fuerte (&gt;20%)</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
       
-      <div className="overflow-x-auto">
+      <div className={`overflow-x-auto ${compact ? 'max-h-[140px]' : ''}`}>
         <svg
           ref={svgRef}
           width={width}
           height={height}
           viewBox={`0 0 ${width} ${height}`}
-          className="w-full cursor-crosshair"
+          className={`w-full cursor-crosshair ${compact ? 'h-auto' : ''}`}
           preserveAspectRatio="xMidYMid meet"
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
@@ -278,32 +287,32 @@ export function RouteElevationProfile({ route, onHoverTrackIndex }: RouteElevati
               d={segment.path}
               fill="none"
               stroke={segment.color}
-              strokeWidth="3"
+              strokeWidth={compact ? "2" : "3"}
               strokeLinecap="round"
               strokeLinejoin="round"
             />
           ))}
           
-          {/* Indicador vertical en la posición del hover */}
-          {hoveredIndex !== null && hoveredIndex < distances.length && (
+          {/* Indicador vertical en la posición del hover o highlight */}
+          {displayIndex !== null && displayIndex < distances.length && (
             <g>
               <line
-                x1={padding.left + distances[hoveredIndex] * scaleX}
+                x1={padding.left + distances[displayIndex] * scaleX}
                 y1={padding.top}
-                x2={padding.left + distances[hoveredIndex] * scaleX}
+                x2={padding.left + distances[displayIndex] * scaleX}
                 y2={padding.top + chartHeight}
                 stroke="#ef4444"
-                strokeWidth="2"
+                strokeWidth={compact ? "1.5" : "2"}
                 strokeDasharray="4 4"
                 opacity="0.7"
               />
               <circle
-                cx={padding.left + distances[hoveredIndex] * scaleX}
-                cy={padding.top + chartHeight - (elevations[hoveredIndex] - minElevation) * scaleY}
-                r="5"
+                cx={padding.left + distances[displayIndex] * scaleX}
+                cy={padding.top + chartHeight - (elevations[displayIndex] - minElevation) * scaleY}
+                r={compact ? "3" : "5"}
                 fill="#ef4444"
                 stroke="white"
-                strokeWidth="2"
+                strokeWidth={compact ? "1" : "2"}
               />
             </g>
           )}
@@ -343,7 +352,7 @@ export function RouteElevationProfile({ route, onHoverTrackIndex }: RouteElevati
                 x={tick.x}
                 y={padding.top + chartHeight + 20}
                 textAnchor="middle"
-                className="text-xs fill-gray-600"
+                className={`${compact ? 'text-[8px]' : 'text-xs'} fill-gray-600`}
               >
                 {tick.distance} km
               </text>
@@ -365,7 +374,7 @@ export function RouteElevationProfile({ route, onHoverTrackIndex }: RouteElevati
                 x={padding.left - 10}
                 y={tick.y + 4}
                 textAnchor="end"
-                className="text-xs fill-gray-600"
+                className={`${compact ? 'text-[8px]' : 'text-xs'} fill-gray-600`}
               >
                 {tick.elevation}m
               </text>
@@ -376,18 +385,18 @@ export function RouteElevationProfile({ route, onHoverTrackIndex }: RouteElevati
       </div>
       
       {/* Estadísticas */}
-      <div className="mt-4 grid grid-cols-3 gap-4 border-t border-gray-100 pt-4">
+      <div className={`${compact ? 'mt-2 grid grid-cols-3 gap-2 border-t border-gray-100 pt-2' : 'mt-4 grid grid-cols-3 gap-4 border-t border-gray-100 pt-4'}`}>
         <div>
-          <div className="text-xs text-gray-500">Elevación mínima</div>
-          <div className="text-lg font-semibold text-gray-900">{Math.round(minElevation)}m</div>
+          <div className={`${compact ? 'text-[9px]' : 'text-xs'} text-gray-500`}>Elevación mínima</div>
+          <div className={`${compact ? 'text-xs' : 'text-lg'} font-semibold text-gray-900`}>{Math.round(minElevation)}m</div>
         </div>
         <div>
-          <div className="text-xs text-gray-500">Elevación máxima</div>
-          <div className="text-lg font-semibold text-gray-900">{Math.round(maxElevation)}m</div>
+          <div className={`${compact ? 'text-[9px]' : 'text-xs'} text-gray-500`}>Elevación máxima</div>
+          <div className={`${compact ? 'text-xs' : 'text-lg'} font-semibold text-gray-900`}>{Math.round(maxElevation)}m</div>
         </div>
         <div>
-          <div className="text-xs text-gray-500">Desnivel total</div>
-          <div className="text-lg font-semibold text-gray-900">{Math.round(maxElevation - minElevation)}m</div>
+          <div className={`${compact ? 'text-[9px]' : 'text-xs'} text-gray-500`}>Desnivel total</div>
+          <div className={`${compact ? 'text-xs' : 'text-lg'} font-semibold text-gray-900`}>{Math.round(maxElevation - minElevation)}m</div>
         </div>
       </div>
     </div>

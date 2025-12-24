@@ -453,6 +453,7 @@ export function RouteList({ routes, type }: RouteListProps) {
                     compact={true}
                     type={type}
                     isHovered={hoveredRouteId === route.id}
+                    isSelected={selectedRouteId === route.id}
                     onMouseEnter={() => setHoveredRouteId(route.id)}
                     onMouseLeave={() => setHoveredRouteId(null)}
                     onClick={() => setSelectedRouteId(route.id)}

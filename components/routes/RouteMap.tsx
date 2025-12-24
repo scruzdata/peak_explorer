@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic'
 import { Car, RotateCcw, Play, Pause, Square, Download, Eye, EyeOff, Menu, X, Maximize2, Minimize2, UtensilsCrossed } from 'lucide-react'
 import { RouteElevationProfile } from './RouteElevationProfile'
 import { calculateSlope, getSlopeColor } from '@/lib/utils'
+import type { MapRef } from 'react-map-gl'
 
 // Dynamic import para evitar problemas de SSR con Mapbox
 const Map = dynamic(
@@ -36,13 +37,14 @@ const Layer = dynamic(
 interface RouteMapProps {
   route: Route
   hoveredTrackIndex?: number | null
+  onMapHoverTrackIndex?: (index: number | null) => void
 }
 
 /**
  * Componente que muestra el mapa de la ruta usando Mapbox
  * Muestra solo los POIs del parking con iconos de coche
  */
-export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
+export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex }: RouteMapProps) {
   const [selectedParking, setSelectedParking] = useState<number | null>(null)
   const [mapStyle, setMapStyle] = useState<'satellite-streets-v12' | 'outdoors-v12'>('outdoors-v12')
   const [is3D, setIs3D] = useState(false)
@@ -59,6 +61,8 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
   const [fullscreenHoveredIndex, setFullscreenHoveredIndex] = useState<number | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const animationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const mapRef = useRef<MapRef | null>(null)
+  const mapInstanceRef = useRef<any>(null)
 
   /**
    * Calcula el bounding box y el viewState inicial para mostrar toda la ruta
@@ -217,6 +221,102 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
       bearing: evt.viewState.bearing ?? 0,
     })
   }, [])
+
+  /**
+   * Encuentra el índice del punto más cercano en el track a unas coordenadas dadas
+   */
+  const findClosestTrackPoint = useCallback((lng: number, lat: number, zoom?: number): number | null => {
+    if (!route.track || route.track.length === 0 || !onMapHoverTrackIndex) return null
+
+    let closestIndex = 0
+    let minDistance = Infinity
+
+    // Calcular la distancia de Haversine entre el punto del cursor y cada punto del track
+    const R = 6371000 // Radio de la Tierra en metros
+    const toRad = (deg: number) => deg * (Math.PI / 180)
+
+    for (let i = 0; i < route.track.length; i++) {
+      const point = route.track[i]
+      const dLat = toRad(lat - point.lat)
+      const dLng = toRad(lng - point.lng)
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(point.lat)) * Math.cos(toRad(lat)) *
+        Math.sin(dLng / 2) * Math.sin(dLng / 2)
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+      const distance = R * c
+
+      if (distance < minDistance) {
+        minDistance = distance
+        closestIndex = i
+      }
+    }
+
+    // Ajustar el umbral según el zoom: a mayor zoom, umbral más pequeño (más preciso)
+    // Zoom 8-10: ~200m, Zoom 11-13: ~100m, Zoom 14+: ~50m
+    let threshold = 200 // metros por defecto
+    if (zoom) {
+      if (zoom >= 14) {
+        threshold = 50
+      } else if (zoom >= 11) {
+        threshold = 100
+      } else {
+        threshold = 200
+      }
+    }
+    
+    if (minDistance <= threshold) {
+      return closestIndex
+    }
+
+    return null
+  }, [route.track, onMapHoverTrackIndex])
+
+  /**
+   * Maneja el movimiento del mouse sobre el mapa para detectar hover sobre el track
+   */
+  const handleMapMouseMove = useCallback((e: any) => {
+    if (!onMapHoverTrackIndex || !showTrack || !route.track || route.track.length === 0) return
+    if (!isInteractive && !isFullscreen) return // Solo activar cuando el mapa está en modo interactivo
+
+    const map = mapInstanceRef.current || mapRef.current?.getMap()
+    if (!map) return
+
+    try {
+      // Construir los layer IDs dinámicamente basándose en el número de segmentos
+      // Usamos solo el layer de detección de hover para simplificar
+      const baseLayerId = isFullscreen ? 'route-line-hover-detection-fullscreen' : 'route-line-hover-detection'
+      
+      const features = map.queryRenderedFeatures(e.point, {
+        layers: [baseLayerId]
+      })
+
+      if (features.length === 0) {
+        onMapHoverTrackIndex(null)
+        return
+      }
+
+      // Obtener las coordenadas geográficas del cursor y el zoom actual
+      const { lng, lat } = e.lngLat
+      const currentZoom = map.getZoom()
+      
+      // Encontrar el punto más cercano del track
+      const closestIndex = findClosestTrackPoint(lng, lat, currentZoom)
+      onMapHoverTrackIndex(closestIndex)
+    } catch (error) {
+      // Silenciar errores de detección
+      onMapHoverTrackIndex(null)
+    }
+  }, [onMapHoverTrackIndex, showTrack, route.track, isInteractive, isFullscreen, findClosestTrackPoint])
+
+  /**
+   * Maneja cuando el mouse sale del mapa
+   */
+  const handleMapMouseLeave = useCallback(() => {
+    if (onMapHoverTrackIndex) {
+      onMapHoverTrackIndex(null)
+    }
+  }, [onMapHoverTrackIndex])
 
   /**
    * Alterna entre estilos de mapa satélite y outdoors
@@ -417,6 +517,22 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
   }
 
   /**
+   * Crea un GeoJSON completo del track (para detección de hover)
+   */
+  const routeGeoJSONComplete = useMemo(() => {
+    if (!route.track || route.track.length < 2) return null
+
+    return {
+      type: 'Feature' as const,
+      geometry: {
+        type: 'LineString' as const,
+        coordinates: route.track.map(p => [p.lng, p.lat]),
+      },
+      properties: {},
+    }
+  }, [route.track])
+
+  /**
    * Crea el GeoJSON para el track de la ruta con segmentos coloreados según pendiente o color uniforme
    */
   const routeGeoJSONSegments = useMemo(() => {
@@ -486,8 +602,16 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
       onMouseDownCapture={() => setIsInteractive(true)}
     >
       <Map
+        ref={mapRef}
         {...viewState}
         onMove={onMove}
+        onLoad={(evt: any) => {
+          if (evt.target) {
+            mapInstanceRef.current = evt.target
+          }
+        }}
+        onMouseMove={handleMapMouseMove}
+        onMouseLeave={handleMapMouseLeave}
         // Cuando el usuario empieza a mover el mapa, activamos el modo interactivo
         onMoveStart={() => setIsInteractive(true)}
         style={{ width: '100%', height: '100%', pointerEvents: isFullscreen || isInteractive ? 'auto' : 'none' }}
@@ -508,6 +632,21 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
             tileSize={512}
             maxzoom={14}
           />
+        )}
+
+        {/* Layer invisible más grueso para facilitar la detección de hover */}
+        {routeGeoJSONComplete && showTrack && onMapHoverTrackIndex && (
+          <Source id="route-track-hover-detection" type="geojson" data={routeGeoJSONComplete}>
+            <Layer
+              id="route-line-hover-detection"
+              type="line"
+              paint={{
+                'line-color': 'transparent',
+                'line-width': 20, // Más grueso para facilitar la detección
+                'line-opacity': 0,
+              }}
+            />
+          </Source>
         )}
 
         {/* Track de la ruta con colores según pendiente */}
@@ -855,6 +994,8 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
               <Map
                 {...viewState}
                 onMove={onMove}
+                onMouseMove={handleMapMouseMove}
+                onMouseLeave={handleMapMouseLeave}
                 style={{ width: '100%', height: '100%' }}
                 mapStyle={`mapbox://styles/mapbox/${mapStyle}`}
                 mapboxAccessToken={mapboxToken}
@@ -870,6 +1011,21 @@ export function RouteMap({ route, hoveredTrackIndex }: RouteMapProps) {
                     tileSize={512}
                     maxzoom={14}
                   />
+                )}
+
+                {/* Layer invisible más grueso para facilitar la detección de hover (pantalla completa) */}
+                {routeGeoJSONComplete && showTrack && onMapHoverTrackIndex && (
+                  <Source id="route-track-hover-detection-fullscreen" type="geojson" data={routeGeoJSONComplete}>
+                    <Layer
+                      id="route-line-hover-detection-fullscreen"
+                      type="line"
+                      paint={{
+                        'line-color': 'transparent',
+                        'line-width': 20, // Más grueso para facilitar la detección
+                        'line-opacity': 0,
+                      }}
+                    />
+                  </Source>
                 )}
 
                 {/* Track de la ruta con colores según pendiente */}

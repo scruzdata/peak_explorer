@@ -14,12 +14,13 @@ interface RouteCardProps {
   onMouseEnter?: () => void
   onMouseLeave?: () => void
   isHovered?: boolean
+  isSelected?: boolean
   type?: 'trekking' | 'ferrata'
   /** Click personalizado (por ejemplo, para centrar en el mapa en modo "Ambas") */
   onClick?: () => void
 }
 
-export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, isHovered = false, type = 'trekking', onClick }: RouteCardProps) {
+export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, isHovered = false, isSelected = false, type = 'trekking', onClick }: RouteCardProps) {
   const hasRating = typeof route.rating === 'number'
   const ratingValue = hasRating ? Number(route.rating?.toFixed(1)) : null
   
@@ -60,7 +61,9 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
         viewport={{ once: true }}
         transition={{ duration: 0.5 }}
         className={`group cursor-pointer transition-all duration-300 ${
-          isHovered ? 'ring-2 ring-primary-500 ring-offset-2 rounded-xl scale-105 shadow-lg' : ''
+          isSelected ? 'ring-2 ring-primary-600 ring-offset-2 rounded-xl shadow-lg' : ''
+        } ${
+          isHovered && !isSelected ? 'ring-2 ring-primary-500 ring-offset-2 rounded-xl scale-105 shadow-lg' : ''
         }`}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
@@ -205,7 +208,9 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
         viewport={{ once: true }}
         transition={{ duration: 0.5 }}
         className={`group cursor-pointer transition-all duration-300 ${
-          isHovered ? 'ring-2 ring-primary-500 ring-offset-2 rounded-xl scale-105 shadow-lg' : ''
+          isSelected ? 'ring-2 ring-primary-600 ring-offset-2 rounded-xl shadow-lg' : ''
+        } ${
+          isHovered && !isSelected ? 'ring-2 ring-primary-500 ring-offset-2 rounded-xl scale-105 shadow-lg' : ''
         }`}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
@@ -325,7 +330,9 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
       viewport={{ once: true }}
       transition={{ duration: 0.5 }}
       className={`card card-hover group transition-all duration-300 ${
-        isHovered ? 'ring-2 ring-primary-500 ring-offset-2 scale-105 shadow-xl' : ''
+        isSelected ? 'ring-2 ring-primary-600 ring-offset-2 shadow-xl' : ''
+      } ${
+        isHovered && !isSelected ? 'ring-2 ring-primary-500 ring-offset-2 scale-105 shadow-xl' : ''
       }`}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}

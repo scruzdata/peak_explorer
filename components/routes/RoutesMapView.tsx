@@ -4,9 +4,10 @@ import { useMemo, useState, useCallback, useEffect, useRef } from 'react'
 import { Route, FerrataGrade } from '@/types'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
-import { Mountain, Star, X, RotateCcw } from 'lucide-react'
+import { Mountain, Star, X, RotateCcw, Eye, EyeOff } from 'lucide-react'
 import { getDifficultyColor, getFerrataGradeColor } from '@/lib/utils'
 import type { MapRef } from 'react-map-gl'
+import { RouteElevationProfile } from './RouteElevationProfile'
 
 // Dynamic import para evitar problemas de SSR con Mapbox
 const Map = dynamic(
@@ -105,11 +106,18 @@ export function RoutesMapView({
   const [isMapLoaded, setIsMapLoaded] = useState(false)
   // Ruta seleccionada desde el POI del mapa (muestra la tarjeta flotante)
   const [internalSelectedRouteId, setInternalSelectedRouteId] = useState<string | null>(null)
+  // Estado interno para manejar el hover cuando no se pasa onMarkerHover desde el padre
+  const [internalHoveredRouteId, setInternalHoveredRouteId] = useState<string | null>(null)
+  // Estado para controlar la visibilidad de la tarjeta y el perfil
+  const [showDetailPanel, setShowDetailPanel] = useState(true)
   const [mapStyle, setMapStyle] = useState<'satellite-streets-v12' | 'outdoors-v12'>('outdoors-v12')
   const [viewState, setViewState] = useState<{latitude: number; longitude: number; zoom: number} | null>(null)
   const [selectedRouteTrack, setSelectedRouteTrack] = useState<{ lat: number; lng: number; elevation?: number }[] | null>(null)
   const [isLoadingTrack, setIsLoadingTrack] = useState(false)
   const [trackError, setTrackError] = useState<string | null>(null)
+
+  // Combinar hoveredRouteId externo con interno (el interno tiene prioridad si no hay externo)
+  const effectiveHoveredRouteId = hoveredRouteId ?? internalHoveredRouteId
 
   // Ruta seleccionada para mostrar track (puede venir del grid o del POI)
   const trackRouteId = selectedRouteId ?? internalSelectedRouteId
@@ -119,10 +127,30 @@ export function RoutesMapView({
   )
 
   // Ruta seleccionada para mostrar tarjeta (solo cuando se hace click en el POI)
-  const cardRoute = useMemo(
+  const cardRouteBase = useMemo(
     () => routes.find((r) => r.id === internalSelectedRouteId) ?? null,
     [routes, internalSelectedRouteId]
   )
+
+  // Ruta con track cargado para mostrar en la tarjeta y perfil
+  const cardRoute = useMemo(() => {
+    if (!cardRouteBase) return null
+    
+    // Si hay un track cargado y coincide con la ruta seleccionada, usarlo
+    if (selectedRouteTrack && trackRouteId === internalSelectedRouteId) {
+      return {
+        ...cardRouteBase,
+        track: selectedRouteTrack
+      }
+    }
+    
+    // Si la ruta ya tiene track, usarlo
+    if (cardRouteBase.track && cardRouteBase.track.length > 0) {
+      return cardRouteBase
+    }
+    
+    return cardRouteBase
+  }, [cardRouteBase, selectedRouteTrack, trackRouteId, internalSelectedRouteId])
 
   /**
    * Importa dinámicamente los estilos de Mapbox cuando el componente se monta
@@ -255,6 +283,8 @@ export function RoutesMapView({
   const handleMarkerClick = useCallback((route: Route) => {
     // Siempre establecer el estado interno para mostrar la tarjeta
     setInternalSelectedRouteId(route.id)
+    // Mostrar el panel de detalle cuando se selecciona una ruta
+    setShowDetailPanel(true)
     // También notificar al padre (para sincronizar con la cuadrícula si es necesario)
     onRouteSelect?.(route.id)
   }, [onRouteSelect])
@@ -421,7 +451,7 @@ export function RoutesMapView({
 
         {/* Marcadores para cada ruta - primero los no hovered */}
         {routesWithCoordinates
-          .filter(route => hoveredRouteId !== route.id)
+          .filter(route => effectiveHoveredRouteId !== route.id)
           .map((route) => {
             return (
               <Marker
@@ -436,8 +466,21 @@ export function RoutesMapView({
               >
                 <div 
                   className="relative cursor-pointer group"
-                  onMouseEnter={() => onMarkerHover?.(route.id)}
-                  onMouseLeave={() => onMarkerHover?.(null)}
+                  style={{ zIndex: 1000 }}
+                  onMouseEnter={() => {
+                    if (onMarkerHover) {
+                      onMarkerHover(route.id)
+                    } else {
+                      setInternalHoveredRouteId(route.id)
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    if (onMarkerHover) {
+                      onMarkerHover(null)
+                    } else {
+                      setInternalHoveredRouteId(null)
+                    }
+                  }}
                 >
                   <div className={`${type === 'ferrata' ? 'p-0.5' : 'p-2'} rounded-full bg-white shadow-lg border-2 transition-all duration-300 group-hover:scale-110 relative ${
                     type === 'ferrata' && route.ferrataGrade
@@ -447,7 +490,9 @@ export function RoutesMapView({
                         route.difficulty === 'Difícil' ? 'border-red-600' :
                         route.difficulty === 'Muy Difícil' ? 'border-purple-600' :
                         'border-gray-600'
-                  }`}>
+                  }`}
+                  style={{ zIndex: 1000 }}
+                  >
                     {type === 'ferrata' ? (
                       <FerrataClimberIcon className={`h-10 w-10 transition-all duration-300 ${
                         route.ferrataGrade
@@ -470,7 +515,9 @@ export function RoutesMapView({
                     )}
                   </div>
                   {/* Tooltip al hover */}
-                  <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg whitespace-nowrap transition-opacity pointer-events-none opacity-0 group-hover:opacity-100 z-10`}>
+                  <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg whitespace-nowrap transition-opacity pointer-events-none opacity-0 group-hover:opacity-100`}
+                    style={{ zIndex: 99999 }}
+                  >
                     {route.title}
                     <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
                   </div>
@@ -480,8 +527,8 @@ export function RoutesMapView({
           })}
         
         {/* Marcador hovered renderizado al final para que aparezca encima */}
-        {hoveredRouteId && routesWithCoordinates
-          .filter(route => hoveredRouteId === route.id)
+        {effectiveHoveredRouteId && routesWithCoordinates
+          .filter(route => effectiveHoveredRouteId === route.id)
           .map((route) => {
             return (
               <Marker
@@ -496,9 +543,21 @@ export function RoutesMapView({
               >
                 <div 
                   className="relative cursor-pointer group"
-                  style={{ zIndex: 9999 }}
-                  onMouseEnter={() => onMarkerHover?.(route.id)}
-                  onMouseLeave={() => onMarkerHover?.(null)}
+                  style={{ zIndex: 99998 }}
+                  onMouseEnter={() => {
+                    if (onMarkerHover) {
+                      onMarkerHover(route.id)
+                    } else {
+                      setInternalHoveredRouteId(route.id)
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    if (onMarkerHover) {
+                      onMarkerHover(null)
+                    } else {
+                      setInternalHoveredRouteId(null)
+                    }
+                  }}
                 >
                   <div className={`${type === 'ferrata' ? 'p-0.5' : 'p-2'} rounded-full bg-white shadow-lg border-2 transition-all duration-300 scale-150 shadow-xl relative ${
                     type === 'ferrata' && route.ferrataGrade
@@ -509,7 +568,7 @@ export function RoutesMapView({
                         route.difficulty === 'Muy Difícil' ? 'border-purple-600' :
                         'border-gray-600'
                   }`}
-                  style={{ zIndex: 9999 }}
+                  style={{ zIndex: 99998 }}
                   >
                     {type === 'ferrata' ? (
                       <FerrataClimberIcon className={`h-10 w-10 transition-all duration-300 ${
@@ -527,22 +586,37 @@ export function RoutesMapView({
                     )}
                   </div>
                   {/* Tooltip siempre visible cuando está hovered */}
-                  <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg whitespace-nowrap pointer-events-none z-[10000]`}
-                    style={{ zIndex: 10000 }}
+                  <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg whitespace-nowrap pointer-events-none`}
+                    style={{ zIndex: 99999 }}
                   >
                     {route.title}
                     <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
                   </div>
                   {/* Anillo de resaltado cuando está hovered */}
-                  <div className="absolute inset-0 rounded-full border-4 border-primary-400 animate-ping opacity-75" style={{ zIndex: 9998 }}></div>
+                  <div className="absolute inset-0 rounded-full border-4 border-primary-400 animate-ping opacity-75" style={{ zIndex: 9999 }}></div>
                 </div>
               </Marker>
             )
           })}
       </Map>
 
-      {/* Tarjeta fija de la ruta seleccionada (arriba a la izquierda) - Solo se muestra cuando se hace click en el POI */}
+      {/* Botón lateral para mostrar/ocultar panel de detalle */}
       {cardRoute && (
+        <button
+          onClick={() => setShowDetailPanel(!showDetailPanel)}
+          className="absolute left-1 top-1/3 -translate-y-1/2 z-30 bg-white rounded-lg shadow-lg p-2 hover:bg-gray-50 transition-colors"
+          title={showDetailPanel ? 'Ocultar detalle' : 'Mostrar detalle'}
+        >
+          {showDetailPanel ? (
+            <EyeOff className="h-5 w-5 text-gray-700" />
+          ) : (
+            <Eye className="h-5 w-5 text-gray-700" />
+          )}
+        </button>
+      )}
+
+      {/* Tarjeta fija de la ruta seleccionada (arriba a la izquierda) - Solo se muestra cuando se hace click en el POI */}
+      {cardRoute && showDetailPanel && (
         <div className="absolute top-4 left-6 sm:left-8 z-20 w-48 sm:w-56 max-w-[60vw]">
           <div className="relative overflow-hidden rounded-md bg-white shadow-md border border-gray-200">
             {/* Botón cerrar */}
@@ -625,6 +699,13 @@ export function RoutesMapView({
               </button>
             </div>
           </div>
+
+          {/* Perfil de elevación debajo de la tarjeta */}
+          {cardRoute.track && cardRoute.track.length > 0 && (
+            <div className="mt-2 rounded-md bg-white shadow-md border border-gray-200 overflow-hidden">
+              <RouteElevationProfile route={cardRoute} compact={true} />
+            </div>
+          )}
         </div>
       )}
 

@@ -102,7 +102,8 @@ function GoogleNewsMobilePanel({ hashtag }: GoogleNewsMobilePanelProps) {
 export function RouteDetail({ route }: RouteDetailProps) {
   const { isBookmarked, addBookmark, removeBookmark, completeRoute, isCompleted, unlockBadge, progress } = useUserProgress()
   const [showCompletionModal, setShowCompletionModal] = useState(false)
-  const [hoveredTrackIndex, setHoveredTrackIndex] = useState<number | null>(null)
+  const [hoveredTrackIndex, setHoveredTrackIndex] = useState<number | null>(null) // Desde el perfil de elevación
+  const [mapHoveredTrackIndex, setMapHoveredTrackIndex] = useState<number | null>(null) // Desde el mapa
   const [showDogsInfo, setShowDogsInfo] = useState(false)
   const [showApproachInfo, setShowApproachInfo] = useState(false)
   const [showReturnInfo, setShowReturnInfo] = useState(false)
@@ -391,7 +392,11 @@ export function RouteDetail({ route }: RouteDetailProps) {
               <section>
                 <h2 className="mb-4 text-2xl font-bold">Mapa y Track GPX</h2>
                 <div className="h-96 rounded-lg overflow-hidden border border-gray-200">
-                  <RouteMap route={route} hoveredTrackIndex={hoveredTrackIndex} />
+                  <RouteMap 
+                    route={route} 
+                    hoveredTrackIndex={hoveredTrackIndex}
+                    onMapHoverTrackIndex={setMapHoveredTrackIndex}
+                  />
                 </div>
               </section>
 
@@ -400,6 +405,7 @@ export function RouteDetail({ route }: RouteDetailProps) {
                 <RouteElevationProfile 
                   route={route} 
                   onHoverTrackIndex={setHoveredTrackIndex}
+                  highlightedTrackIndex={mapHoveredTrackIndex}
                 />
               </section>
 
