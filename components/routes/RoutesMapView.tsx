@@ -4,8 +4,8 @@ import { useMemo, useState, useCallback, useEffect, useRef } from 'react'
 import { Route, FerrataGrade } from '@/types'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
-import { Mountain, Star, X, RotateCcw, Eye, EyeOff, MapPin, ZoomIn } from 'lucide-react'
-import { getDifficultyColor, getFerrataGradeColor } from '@/lib/utils'
+import { Mountain, Star, X, RotateCcw, Eye, EyeOff, MapPin, ZoomIn, Clock, TrendingUp } from 'lucide-react'
+import { getDifficultyColor, getFerrataGradeColor, formatDistance, formatElevation } from '@/lib/utils'
 import type { MapRef } from 'react-map-gl'
 import { RouteElevationProfile } from './RouteElevationProfile'
 
@@ -204,11 +204,12 @@ export function RoutesMapView({
   // Ruta seleccionada para mostrar track (puede venir del grid o del POI)
   const trackRouteId = selectedRouteId ?? internalSelectedRouteId
   
-  // Efecto para cerrar el popup y mostrar el panel cuando se selecciona una ruta desde el grid
+  // Efecto para cerrar el popup cuando se selecciona una ruta desde el grid
+  // No cambiamos showDetailPanel para mantener el estado estable
   useEffect(() => {
     if (selectedRouteId) {
       setClusterPopup(null)
-      setShowDetailPanel(true)
+      // No forzamos showDetailPanel a true, mantenemos el estado actual
     }
   }, [selectedRouteId])
   const trackRoute = useMemo(
@@ -487,8 +488,7 @@ export function RoutesMapView({
   const handleMarkerClick = useCallback((route: Route) => {
     // Siempre establecer el estado interno para mostrar la tarjeta
     setInternalSelectedRouteId(route.id)
-    // Mostrar el panel de detalle cuando se selecciona una ruta
-    setShowDetailPanel(true)
+    // No forzamos showDetailPanel a true, mantenemos el estado actual del usuario
     // También notificar al padre (para sincronizar con la cuadrícula si es necesario)
     onRouteSelect?.(route.id)
   }, [onRouteSelect])
@@ -721,6 +721,8 @@ export function RoutesMapView({
                   }}
                 >
                   <div className={`${type === 'ferrata' ? 'p-0.5' : 'p-2'} rounded-full bg-white shadow-lg border-2 transition-all duration-300 group-hover:scale-110 relative ${
+                    cardRouteId === route.id ? 'scale-50' : ''
+                  } ${
                     type === 'ferrata' && route.ferrataGrade
                       ? getFerrataGradeBorderColor(route.ferrataGrade).border
                       : route.difficulty === 'Fácil' ? 'border-green-600' :
@@ -804,7 +806,9 @@ export function RoutesMapView({
                         }
                       }}
                     >
-                      <div className={`${type === 'ferrata' ? 'p-0.5' : 'p-2'} rounded-full bg-white shadow-lg border-2 transition-all duration-300 scale-150 shadow-xl relative ${
+                      <div className={`${type === 'ferrata' ? 'p-0.5' : 'p-2'} rounded-full bg-white shadow-lg border-2 transition-all duration-300 ${
+                        cardRouteId === route.id ? 'scale-50' : 'scale-150'
+                      } shadow-xl relative ${
                         type === 'ferrata' && route.ferrataGrade
                           ? getFerrataGradeBorderColor(route.ferrataGrade).border
                           : route.difficulty === 'Fácil' ? 'border-green-600' :
@@ -878,7 +882,9 @@ export function RoutesMapView({
                     }
                   }}
                 >
-                  <div className={`${type === 'ferrata' ? 'p-0.5' : 'p-2'} rounded-full bg-white shadow-lg border-2 transition-all duration-300 scale-150 shadow-xl relative ${
+                  <div className={`${type === 'ferrata' ? 'p-0.5' : 'p-2'} rounded-full bg-white shadow-lg border-2 transition-all duration-300 ${
+                    cardRouteId === hoveredRouteInCluster.route.id ? 'scale-50' : 'scale-150'
+                  } shadow-xl relative ${
                     type === 'ferrata' && hoveredRouteInCluster.route.ferrataGrade
                       ? getFerrataGradeBorderColor(hoveredRouteInCluster.route.ferrataGrade).border
                       : hoveredRouteInCluster.route.difficulty === 'Fácil' ? 'border-green-600' :
@@ -1026,6 +1032,21 @@ export function RoutesMapView({
                                 {route.location.region}, {route.location.province}
                               </p>
                             </div>
+                            {/* Información de la ruta: distancia, elevación y duración */}
+                            <div className="flex flex-wrap items-center gap-1.5 mt-1 text-[9px] text-gray-600">
+                              <div className="flex items-center gap-0.5">
+                                <MapPin className="h-2 w-2" />
+                                <span>{formatDistance(route.distance)}</span>
+                              </div>
+                              <div className="flex items-center gap-0.5">
+                                <TrendingUp className="h-2 w-2" />
+                                <span>{formatElevation(route.elevation)}</span>
+                              </div>
+                              <div className="flex items-center gap-0.5">
+                                <Clock className="h-2 w-2" />
+                                <span>{route.duration}</span>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </button>
@@ -1038,19 +1059,21 @@ export function RoutesMapView({
         )}
       </Map>
 
-      {/* Botón lateral para mostrar/ocultar panel de detalle */}
+      {/* Botón desplegable desde el borde superior izquierdo para mostrar/ocultar panel de detalle */}
       {cardRoute && (
-        <button
-          onClick={() => setShowDetailPanel(!showDetailPanel)}
-          className="absolute left-1 top-1/3 -translate-y-1/2 z-30 bg-white rounded-lg shadow-lg p-2 hover:bg-gray-50 transition-colors"
-          title={showDetailPanel ? 'Ocultar detalle' : 'Mostrar detalle'}
-        >
-          {showDetailPanel ? (
-            <EyeOff className="h-5 w-5 text-gray-700" />
-          ) : (
-            <Eye className="h-5 w-5 text-gray-700" />
-          )}
-        </button>
+        <div className="absolute top-0 left-0 z-30">
+          <button
+            onClick={() => setShowDetailPanel(!showDetailPanel)}
+            className="bg-white rounded-br-lg rounded-tl-none rounded-tr-lg rounded-bl-none shadow-lg p-2.5 hover:bg-gray-50 transition-colors border-r border-b border-gray-200"
+            title={showDetailPanel ? 'Ocultar detalle' : 'Mostrar detalle'}
+          >
+            {showDetailPanel ? (
+              <EyeOff className="h-5 w-5 text-gray-700" />
+            ) : (
+              <Eye className="h-5 w-5 text-gray-700" />
+            )}
+          </button>
+        </div>
       )}
 
       {/* Tarjeta fija de la ruta seleccionada (arriba a la izquierda) - Se muestra cuando se selecciona desde el POI o desde el grid */}
@@ -1117,6 +1140,22 @@ export function RoutesMapView({
               <p className="mb-1 text-[10px] text-gray-500">
                 {cardRoute.location.region}, {cardRoute.location.province}
               </p>
+
+              {/* Información de la ruta: distancia, elevación y duración */}
+              <div className="mb-1 flex flex-wrap gap-2 text-[9px] text-gray-600">
+                <div className="flex items-center gap-0.5">
+                  <MapPin className="h-2.5 w-2.5" />
+                  <span>{formatDistance(cardRoute.distance)}</span>
+                </div>
+                <div className="flex items-center gap-0.5">
+                  <TrendingUp className="h-2.5 w-2.5" />
+                  <span>{formatElevation(cardRoute.elevation)}</span>
+                </div>
+                <div className="flex items-center gap-0.5">
+                  <Clock className="h-2.5 w-2.5" />
+                  <span>{cardRoute.duration}</span>
+                </div>
+              </div>
 
               {/* Estado de carga del track */}
               {isLoadingTrack && (

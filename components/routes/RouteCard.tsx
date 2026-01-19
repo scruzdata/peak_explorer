@@ -196,6 +196,10 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
               <TrendingUp className="h-3 w-3" />
               <span>{formatElevation(route.elevation)}</span>
             </div>
+            <div className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              <span>{route.duration}</span>
+            </div>
           </div>
         </div>
       </motion.div>
@@ -331,6 +335,10 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
               <div className="flex items-center gap-1">
                 <TrendingUp className="h-3 w-3" />
                 <span>{formatElevation(route.elevation)}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                <span>{route.duration}</span>
               </div>
             </div>
           </div>
