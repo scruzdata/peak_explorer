@@ -186,33 +186,42 @@ export function RouteGallery({ images, routeTitle }: RouteGalleryProps) {
               </button>
             )}
 
-            {/* Imagen */}
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="relative max-h-[90vh] max-w-[90vw]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Image
-                src={images[selectedIndex].url}
-                alt={images[selectedIndex].alt || `${routeTitle} - Foto ${selectedIndex + 1}`}
-                width={images[selectedIndex].width}
-                height={images[selectedIndex].height}
-                className="max-h-[90vh] w-auto rounded-lg object-contain"
-                sizes="90vw"
-              />
-              {images[selectedIndex].source && (
-                <div className="absolute bottom-4 right-4 px-3 py-2 bg-black/60 backdrop-blur-sm rounded text-white text-xs font-medium">
-                  {images[selectedIndex].source}
-                </div>
-              )}
+            {/* Contenedor de imagen y contador */}
+            <div className="flex flex-col items-center gap-4" onClick={(e) => e.stopPropagation()}>
+              {/* Imagen */}
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="relative max-h-[90vh] max-w-[90vw]"
+              >
+                <Image
+                  src={images[selectedIndex].url}
+                  alt={images[selectedIndex].alt || `${routeTitle} - Foto ${selectedIndex + 1}`}
+                  width={images[selectedIndex].width}
+                  height={images[selectedIndex].height}
+                  className="max-h-[90vh] w-auto rounded-lg object-contain"
+                  sizes="90vw"
+                />
+                {images[selectedIndex].source && (
+                  <div className="absolute bottom-4 right-4 px-3 py-2 bg-black/60 backdrop-blur-sm rounded text-white text-xs font-medium">
+                    {images[selectedIndex].source}
+                  </div>
+                )}
+                {/* Contador en desktop (dentro de la imagen) */}
+                {images.length > 1 && (
+                  <div className="hidden md:block absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-4 py-2 text-sm text-white backdrop-blur">
+                    {selectedIndex + 1} / {images.length}
+                  </div>
+                )}
+              </motion.div>
+              {/* Contador en móvil (fuera de la imagen) */}
               {images.length > 1 && (
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-4 py-2 text-sm text-white backdrop-blur">
+                <div className="md:hidden rounded-full bg-black/50 px-4 py-2 text-sm text-white backdrop-blur">
                   {selectedIndex + 1} / {images.length}
                 </div>
               )}
-            </motion.div>
+            </div>
 
             {/* Botón siguiente */}
             {images.length > 1 && (

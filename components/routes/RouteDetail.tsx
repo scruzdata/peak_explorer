@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Route, WebcamData } from '@/types'
@@ -112,6 +112,39 @@ export function RouteDetail({ route }: RouteDetailProps) {
   const [showFoodInfo, setShowFoodInfo] = useState(false)
   const [selectedWebcamIndex, setSelectedWebcamIndex] = useState(0)
   const [showWebcamImageModal, setShowWebcamImageModal] = useState(false)
+  
+  // Refs para los botones de información
+  const dogsInfoButtonRef = useRef<HTMLButtonElement>(null)
+  const approachInfoButtonRef = useRef<HTMLButtonElement>(null)
+  const returnInfoButtonRef = useRef<HTMLButtonElement>(null)
+  const bestSeasonInfoButtonRef = useRef<HTMLButtonElement>(null)
+  const orientationInfoButtonRef = useRef<HTMLButtonElement>(null)
+  const foodInfoButtonRef = useRef<HTMLButtonElement>(null)
+  
+  // Estados para las posiciones de los tooltips
+  const [tooltipPositions, setTooltipPositions] = useState<Record<string, { top: number; left: number; arrowLeft: number }>>({})
+  
+  // Función para calcular la posición del tooltip
+  const calculateTooltipPosition = (buttonRef: React.RefObject<HTMLButtonElement>, key: string) => {
+    if (!buttonRef.current || typeof window === 'undefined') return
+    const rect = buttonRef.current.getBoundingClientRect()
+    const tooltipWidth = 256 // w-64 = 256px
+    const iconCenterX = rect.left + rect.width / 2
+    const minLeft = tooltipWidth / 2 + 16 // Mitad del tooltip + margen
+    const maxLeft = window.innerWidth - tooltipWidth / 2 - 16 // Mitad del tooltip desde la derecha + margen
+    // El left será el centro del tooltip (porque usamos translateX(-50%))
+    const tooltipCenterX = Math.max(minLeft, Math.min(iconCenterX, maxLeft))
+    // Calcular la posición de la flecha relativa al tooltip (desde el centro)
+    const arrowOffset = iconCenterX - tooltipCenterX
+    setTooltipPositions(prev => ({
+      ...prev,
+      [key]: {
+        top: rect.bottom + 8, // 8px debajo del botón
+        left: tooltipCenterX,
+        arrowLeft: arrowOffset // Offset desde el centro del tooltip
+      }
+    }))
+  }
   const bookmarked = isBookmarked(route.id)
   const completed = isCompleted(route.id)
 
@@ -343,18 +376,38 @@ export function RouteDetail({ route }: RouteDetailProps) {
                               onMouseLeave={() => setShowDogsInfo(false)}
                             >
                               <button
-                                onClick={() => setShowDogsInfo(!showDogsInfo)}
+                                ref={dogsInfoButtonRef}
+                                onClick={() => {
+                                  calculateTooltipPosition(dogsInfoButtonRef, 'dogs')
+                                  setShowDogsInfo(!showDogsInfo)
+                                }}
                                 className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none flex items-center"
                                 aria-label="Información sobre perros atados"
                               >
                                 <Info className="h-3 w-3" />
                               </button>
                               {showDogsInfo && (
-                                <div className="absolute left-0 top-5 z-50 w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl">
-                                  <p className="mb-1 font-semibold">Información importante:</p>
-                                  <p>Hay animales sueltos en la ruta. Por favor, mantén a tu perro atado para evitar molestias o conflictos con el ganado.</p>
-                                  <div className="absolute -top-1 left-4 w-2 h-2 rotate-45 bg-gray-900"></div>
-                                </div>
+                                <>
+                                  <div className="fixed inset-0 z-40 bg-black/20 sm:hidden" onClick={() => setShowDogsInfo(false)} />
+                                  <div 
+                                    className="fixed z-50 mx-auto max-w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl sm:absolute sm:left-0 sm:right-auto sm:top-5 sm:mx-0 sm:w-64 sm:translate-y-0"
+                                    style={typeof window !== 'undefined' && window.innerWidth < 640 && tooltipPositions.dogs ? {
+                                      top: `${tooltipPositions.dogs.top}px`,
+                                      left: `${tooltipPositions.dogs.left}px`,
+                                      transform: 'translateX(-50%)'
+                                    } : undefined}
+                                  >
+                                    <p className="mb-1 font-semibold">Información importante:</p>
+                                    <p>Hay animales sueltos en la ruta. Por favor, mantén a tu perro atado para evitar molestias o conflictos con el ganado.</p>
+                                    <div 
+                                      className="absolute -top-1 w-2 h-2 rotate-45 bg-gray-900 sm:left-4 sm:translate-x-0"
+                                      style={typeof window !== 'undefined' && window.innerWidth < 640 && tooltipPositions.dogs?.arrowLeft !== undefined ? {
+                                        left: `calc(50% + ${tooltipPositions.dogs.arrowLeft}px)`,
+                                        transform: 'translateX(-50%) rotate(45deg)'
+                                      } : undefined}
+                                    ></div>
+                                  </div>
+                                </>
                               )}
                             </div>
                           )}
@@ -454,17 +507,37 @@ export function RouteDetail({ route }: RouteDetailProps) {
                           onMouseLeave={() => setShowApproachInfo(false)}
                         >
                           <button
-                            onClick={() => setShowApproachInfo(!showApproachInfo)}
+                            ref={approachInfoButtonRef}
+                            onClick={() => {
+                              calculateTooltipPosition(approachInfoButtonRef, 'approach')
+                              setShowApproachInfo(!showApproachInfo)
+                            }}
                             className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none flex items-center"
                             aria-label="Información adicional sobre aproximación"
                           >
                             <Info className="h-4 w-4" />
                           </button>
                           {showApproachInfo && (
-                            <div className="absolute left-0 top-5 z-50 w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl">
-                              <p>{route.approachInfo}</p>
-                              <div className="absolute -top-1 left-4 w-2 h-2 rotate-45 bg-gray-900"></div>
-                            </div>
+                            <>
+                              <div className="fixed inset-0 z-40 bg-black/20 sm:hidden" onClick={() => setShowApproachInfo(false)} />
+                              <div 
+                                className="fixed z-50 mx-auto max-w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl sm:absolute sm:left-0 sm:right-auto sm:top-5 sm:mx-0 sm:w-64 sm:translate-y-0"
+                                style={typeof window !== 'undefined' && window.innerWidth < 640 && tooltipPositions.approach ? {
+                                  top: `${tooltipPositions.approach.top}px`,
+                                  left: `${tooltipPositions.approach.left}px`,
+                                  transform: 'translateX(-50%)'
+                                } : undefined}
+                              >
+                                <p>{route.approachInfo}</p>
+                                <div 
+                                  className="absolute -top-1 w-2 h-2 rotate-45 bg-gray-900 sm:left-4 sm:translate-x-0"
+                                  style={typeof window !== 'undefined' && window.innerWidth < 640 && tooltipPositions.approach?.arrowLeft !== undefined ? {
+                                    left: `calc(50% + ${tooltipPositions.approach.arrowLeft}px)`,
+                                    transform: 'translateX(-50%) rotate(45deg)'
+                                  } : undefined}
+                                ></div>
+                              </div>
+                            </>
                           )}
                         </div>
                       )}
@@ -481,17 +554,37 @@ export function RouteDetail({ route }: RouteDetailProps) {
                           onMouseLeave={() => setShowReturnInfo(false)}
                         >
                           <button
-                            onClick={() => setShowReturnInfo(!showReturnInfo)}
+                            ref={returnInfoButtonRef}
+                            onClick={() => {
+                              calculateTooltipPosition(returnInfoButtonRef, 'return')
+                              setShowReturnInfo(!showReturnInfo)
+                            }}
                             className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none flex items-center"
                             aria-label="Información adicional sobre retorno"
                           >
                             <Info className="h-4 w-4" />
                           </button>
                           {showReturnInfo && (
-                            <div className="absolute left-0 top-5 z-50 w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl">
-                              <p>{route.returnInfo}</p>
-                              <div className="absolute -top-1 left-4 w-2 h-2 rotate-45 bg-gray-900"></div>
-                            </div>
+                            <>
+                              <div className="fixed inset-0 z-40 bg-black/20 sm:hidden" onClick={() => setShowReturnInfo(false)} />
+                              <div 
+                                className="fixed z-50 mx-auto max-w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl sm:absolute sm:left-0 sm:right-auto sm:top-5 sm:mx-0 sm:w-64 sm:translate-y-0"
+                                style={typeof window !== 'undefined' && window.innerWidth < 640 && tooltipPositions.return ? {
+                                  top: `${tooltipPositions.return.top}px`,
+                                  left: `${tooltipPositions.return.left}px`,
+                                  transform: 'translateX(-50%)'
+                                } : undefined}
+                              >
+                                <p>{route.returnInfo}</p>
+                                <div 
+                                  className="absolute -top-1 w-2 h-2 rotate-45 bg-gray-900 sm:left-4 sm:translate-x-0"
+                                  style={typeof window !== 'undefined' && window.innerWidth < 640 && tooltipPositions.return?.arrowLeft !== undefined ? {
+                                    left: `calc(50% + ${tooltipPositions.return.arrowLeft}px)`,
+                                    transform: 'translateX(-50%) rotate(45deg)'
+                                  } : undefined}
+                                ></div>
+                              </div>
+                            </>
                           )}
                         </div>
                       )}
@@ -508,17 +601,37 @@ export function RouteDetail({ route }: RouteDetailProps) {
                           onMouseLeave={() => setShowBestSeasonInfo(false)}
                         >
                           <button
-                            onClick={() => setShowBestSeasonInfo(!showBestSeasonInfo)}
+                            ref={bestSeasonInfoButtonRef}
+                            onClick={() => {
+                              calculateTooltipPosition(bestSeasonInfoButtonRef, 'bestSeason')
+                              setShowBestSeasonInfo(!showBestSeasonInfo)
+                            }}
                             className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none flex items-center"
                             aria-label="Información adicional sobre mejor época"
                           >
                             <Info className="h-4 w-4" />
                           </button>
                           {showBestSeasonInfo && (
-                            <div className="absolute left-0 top-5 z-50 w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl">
-                              <p>{route.bestSeasonInfo}</p>
-                              <div className="absolute -top-1 left-4 w-2 h-2 rotate-45 bg-gray-900"></div>
-                            </div>
+                            <>
+                              <div className="fixed inset-0 z-40 bg-black/20 sm:hidden" onClick={() => setShowBestSeasonInfo(false)} />
+                              <div 
+                                className="fixed z-50 mx-auto max-w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl sm:absolute sm:left-0 sm:right-auto sm:top-5 sm:mx-0 sm:w-64 sm:translate-y-0"
+                                style={typeof window !== 'undefined' && window.innerWidth < 640 && tooltipPositions.bestSeason ? {
+                                  top: `${tooltipPositions.bestSeason.top}px`,
+                                  left: `${tooltipPositions.bestSeason.left}px`,
+                                  transform: 'translateX(-50%)'
+                                } : undefined}
+                              >
+                                <p>{route.bestSeasonInfo}</p>
+                                <div 
+                                  className="absolute -top-1 w-2 h-2 rotate-45 bg-gray-900 sm:left-4 sm:translate-x-0"
+                                  style={typeof window !== 'undefined' && window.innerWidth < 640 && tooltipPositions.bestSeason?.arrowLeft !== undefined ? {
+                                    left: `calc(50% + ${tooltipPositions.bestSeason.arrowLeft}px)`,
+                                    transform: 'translateX(-50%) rotate(45deg)'
+                                  } : undefined}
+                                ></div>
+                              </div>
+                            </>
                           )}
                         </div>
                       )}
@@ -535,17 +648,37 @@ export function RouteDetail({ route }: RouteDetailProps) {
                           onMouseLeave={() => setShowOrientationInfo(false)}
                         >
                           <button
-                            onClick={() => setShowOrientationInfo(!showOrientationInfo)}
+                            ref={orientationInfoButtonRef}
+                            onClick={() => {
+                              calculateTooltipPosition(orientationInfoButtonRef, 'orientation')
+                              setShowOrientationInfo(!showOrientationInfo)
+                            }}
                             className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none flex items-center"
                             aria-label="Información adicional sobre orientación"
                           >
                             <Info className="h-4 w-4" />
                           </button>
                           {showOrientationInfo && (
-                            <div className="absolute left-0 top-5 z-50 w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl">
-                              <p>{route.orientationInfo}</p>
-                              <div className="absolute -top-1 left-4 w-2 h-2 rotate-45 bg-gray-900"></div>
-                            </div>
+                            <>
+                              <div className="fixed inset-0 z-40 bg-black/20 sm:hidden" onClick={() => setShowOrientationInfo(false)} />
+                              <div 
+                                className="fixed z-50 mx-auto max-w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl sm:absolute sm:left-0 sm:right-auto sm:top-5 sm:mx-0 sm:w-64 sm:translate-y-0"
+                                style={typeof window !== 'undefined' && window.innerWidth < 640 && tooltipPositions.orientation ? {
+                                  top: `${tooltipPositions.orientation.top}px`,
+                                  left: `${tooltipPositions.orientation.left}px`,
+                                  transform: 'translateX(-50%)'
+                                } : undefined}
+                              >
+                                <p>{route.orientationInfo}</p>
+                                <div 
+                                  className="absolute -top-1 w-2 h-2 rotate-45 bg-gray-900 sm:left-4 sm:translate-x-0"
+                                  style={typeof window !== 'undefined' && window.innerWidth < 640 && tooltipPositions.orientation?.arrowLeft !== undefined ? {
+                                    left: `calc(50% + ${tooltipPositions.orientation.arrowLeft}px)`,
+                                    transform: 'translateX(-50%) rotate(45deg)'
+                                  } : undefined}
+                                ></div>
+                              </div>
+                            </>
                           )}
                         </div>
                       )}
@@ -563,17 +696,37 @@ export function RouteDetail({ route }: RouteDetailProps) {
                             onMouseLeave={() => setShowFoodInfo(false)}
                           >
                             <button
-                              onClick={() => setShowFoodInfo(!showFoodInfo)}
+                              ref={foodInfoButtonRef}
+                              onClick={() => {
+                                calculateTooltipPosition(foodInfoButtonRef, 'food')
+                                setShowFoodInfo(!showFoodInfo)
+                              }}
                               className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none flex items-center"
                               aria-label="Información adicional sobre comida"
                             >
                               <Info className="h-4 w-4" />
                             </button>
                             {showFoodInfo && (
-                              <div className="absolute left-0 top-5 z-50 w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl">
-                                <p>{route.foodInfo}</p>
-                                <div className="absolute -top-1 left-4 w-2 h-2 rotate-45 bg-gray-900"></div>
-                              </div>
+                              <>
+                                <div className="fixed inset-0 z-40 bg-black/20 sm:hidden" onClick={() => setShowFoodInfo(false)} />
+                                <div 
+                                  className="fixed z-50 mx-auto max-w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl sm:absolute sm:left-0 sm:right-auto sm:top-5 sm:mx-0 sm:w-64 sm:translate-y-0"
+                                  style={typeof window !== 'undefined' && window.innerWidth < 640 && tooltipPositions.food ? {
+                                    top: `${tooltipPositions.food.top}px`,
+                                    left: `${tooltipPositions.food.left}px`,
+                                    transform: 'translateX(-50%)'
+                                  } : undefined}
+                                >
+                                  <p>{route.foodInfo}</p>
+                                  <div 
+                                    className="absolute -top-1 w-2 h-2 rotate-45 bg-gray-900 sm:left-4 sm:translate-x-0"
+                                    style={typeof window !== 'undefined' && window.innerWidth < 640 && tooltipPositions.food?.arrowLeft !== undefined ? {
+                                      left: `calc(50% + ${tooltipPositions.food.arrowLeft}px)`,
+                                      transform: 'translateX(-50%) rotate(45deg)'
+                                    } : undefined}
+                                  ></div>
+                                </div>
+                              </>
                             )}
                           </div>
                         )}
