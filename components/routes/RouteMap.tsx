@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { Route } from '@/types'
 import dynamic from 'next/dynamic'
-import { Car, RotateCcw, Play, Pause, Square, Download, Eye, EyeOff, Menu, X, Maximize2, Minimize2, UtensilsCrossed } from 'lucide-react'
+import { Car, RotateCcw, Play, Pause, Square, Download, Eye, EyeOff, Menu, X, Maximize2, Minimize2, UtensilsCrossed, Search, ExternalLink } from 'lucide-react'
 import { RouteElevationProfile } from './RouteElevationProfile'
 import { calculateSlope, getSlopeColor } from '@/lib/utils'
 import type { MapRef } from 'react-map-gl'
@@ -58,11 +58,21 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex }: Rou
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isInteractive, setIsInteractive] = useState(false)
+  const [showZoomIndicator, setShowZoomIndicator] = useState(false)
   const [fullscreenHoveredIndex, setFullscreenHoveredIndex] = useState<number | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const animationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const mapRef = useRef<MapRef | null>(null)
   const mapInstanceRef = useRef<any>(null)
+
+  // Mostrar indicador de zoom cuando se activa el modo interactivo
+  useEffect(() => {
+    if (isInteractive && !isFullscreen) {
+      setShowZoomIndicator(true)
+    } else {
+      setShowZoomIndicator(false)
+    }
+  }, [isInteractive, isFullscreen])
 
   /**
    * Calcula el bounding box y el viewState inicial para mostrar toda la ruta
@@ -767,12 +777,29 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex }: Rou
                 onClose={() => setSelectedParking(null)}
                 closeButton={true}
                 closeOnClick={false}
+                className="parking-popup"
               >
-                <div className="p-2">
-                  <h3 className="font-semibold text-sm">Parking {index + 1}</h3>
-                  <p className="text-xs text-gray-600">
-                    {parking.lat.toFixed(6)}, {parking.lng.toFixed(6)}
-                  </p>
+                <div className="p-1.5 min-w-[120px] rounded-xl bg-white border border-gray-200 shadow-xl">
+                  <div className="flex items-start gap-1.5">
+                    <div className="flex-shrink-0 w-5 h-5 rounded-md bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md">
+                      <Car className="h-2.5 w-2.5 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-[11px] text-gray-900 mb-0.5 leading-tight">Parking {index + 1}</h3>
+                      <p className="text-[9px] font-mono text-gray-500 mb-1 leading-tight">
+                        {parking.lat.toFixed(6)}, {parking.lng.toFixed(6)}
+                      </p>
+                      <a
+                        href={`https://www.google.com/maps?q=${parking.lat},${parking.lng}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-0.5 text-[9px] text-blue-600 hover:text-blue-700 font-semibold transition-colors"
+                      >
+                        <ExternalLink className="h-2.5 w-2.5" />
+                        <span>Google Maps</span>
+                      </a>
+                    </div>
+                  </div>
                 </div>
               </Popup>
             )}
@@ -834,18 +861,45 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex }: Rou
                 onClose={() => setSelectedRestaurant(null)}
                 closeButton={true}
                 closeOnClick={false}
+                className="restaurant-popup"
               >
-                <div className="p-2">
-                  <h3 className="font-semibold text-sm">{restaurant.name || `Restaurante ${index + 1}`}</h3>
-                  <p className="text-xs text-gray-600">
-                    {restaurant.lat.toFixed(6)}, {restaurant.lng.toFixed(6)}
-                  </p>
+                <div className="p-1.5 min-w-[120px] rounded-xl bg-white border border-gray-200 shadow-xl">
+                  <div className="flex items-start gap-1.5">
+                    <div className="flex-shrink-0 w-5 h-5 rounded-md bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-md">
+                      <UtensilsCrossed className="h-2.5 w-2.5 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-[11px] text-gray-900 mb-0.5 leading-tight">{restaurant.name || `Restaurante ${index + 1}`}</h3>
+                      <p className="text-[9px] font-mono text-gray-500 mb-1 leading-tight">
+                        {restaurant.lat.toFixed(6)}, {restaurant.lng.toFixed(6)}
+                      </p>
+                      <a
+                        href={`https://www.google.com/maps?q=${restaurant.lat},${restaurant.lng}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-0.5 text-[9px] text-orange-600 hover:text-orange-700 font-semibold transition-colors"
+                      >
+                        <ExternalLink className="h-2.5 w-2.5" />
+                        <span>Google Maps</span>
+                      </a>
+                    </div>
+                  </div>
                 </div>
               </Popup>
             )}
           </Marker>
         ))}
       </Map>
+
+      {/* Indicador de zoom (lupa) arriba a la izquierda */}
+      {showZoomIndicator && (
+        <div className="absolute top-3 left-3 z-10 pointer-events-none">
+          <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-lg px-3 py-2 flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300 animate-pulse">
+            <Search className="h-4 w-4 text-gray-700" />
+            <span className="text-xs font-medium text-gray-700">Modo navegación</span>
+          </div>
+        </div>
+      )}
 
       {/* Controles inferiores (resetear / pantalla completa) en la esquina inferior derecha */}
       <div className="pointer-events-none absolute bottom-3 right-3 z-10 flex flex-col gap-2 items-end">
@@ -1141,12 +1195,29 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex }: Rou
                         onClose={() => setSelectedParking(null)}
                         closeButton={true}
                         closeOnClick={false}
+                        className="parking-popup"
                       >
-                        <div className="p-2">
-                          <h3 className="font-semibold text-sm">Parking {index + 1}</h3>
-                          <p className="text-xs text-gray-600">
-                            {parking.lat.toFixed(6)}, {parking.lng.toFixed(6)}
-                          </p>
+                        <div className="p-1.5 min-w-[120px] rounded-xl bg-white border border-gray-200 shadow-xl">
+                          <div className="flex items-start gap-1.5">
+                            <div className="flex-shrink-0 w-5 h-5 rounded-md bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md">
+                              <Car className="h-2.5 w-2.5 text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-bold text-[11px] text-gray-900 mb-0.5 leading-tight">Parking {index + 1}</h3>
+                              <p className="text-[9px] font-mono text-gray-500 mb-1 leading-tight">
+                                {parking.lat.toFixed(6)}, {parking.lng.toFixed(6)}
+                              </p>
+                              <a
+                                href={`https://www.google.com/maps?q=${parking.lat},${parking.lng}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-0.5 text-[9px] text-blue-600 hover:text-blue-700 font-semibold transition-colors"
+                              >
+                                <ExternalLink className="h-2.5 w-2.5" />
+                                <span>Google Maps</span>
+                              </a>
+                            </div>
+                          </div>
                         </div>
                       </Popup>
                     )}
@@ -1205,12 +1276,29 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex }: Rou
                         onClose={() => setSelectedRestaurant(null)}
                         closeButton={true}
                         closeOnClick={false}
+                        className="restaurant-popup"
                       >
-                        <div className="p-2">
-                          <h3 className="font-semibold text-sm">{restaurant.name || `Restaurante ${index + 1}`}</h3>
-                          <p className="text-xs text-gray-600">
-                            {restaurant.lat.toFixed(6)}, {restaurant.lng.toFixed(6)}
-                          </p>
+                        <div className="p-1.5 min-w-[120px] rounded-xl bg-white border border-gray-200 shadow-xl">
+                          <div className="flex items-start gap-1.5">
+                            <div className="flex-shrink-0 w-5 h-5 rounded-md bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-md">
+                              <UtensilsCrossed className="h-2.5 w-2.5 text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-bold text-[11px] text-gray-900 mb-0.5 leading-tight">{restaurant.name || `Restaurante ${index + 1}`}</h3>
+                              <p className="text-[9px] font-mono text-gray-500 mb-1 leading-tight">
+                                {restaurant.lat.toFixed(6)}, {restaurant.lng.toFixed(6)}
+                              </p>
+                              <a
+                                href={`https://www.google.com/maps?q=${restaurant.lat},${restaurant.lng}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-0.5 text-[9px] text-orange-600 hover:text-orange-700 font-semibold transition-colors"
+                              >
+                                <ExternalLink className="h-2.5 w-2.5" />
+                                <span>Google Maps</span>
+                              </a>
+                            </div>
+                          </div>
                         </div>
                       </Popup>
                     )}
