@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import type { ReactNode } from 'react'
+import type { LucideIcon } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
@@ -9,8 +11,27 @@ import { Route, RouteType, Difficulty, FerrataGrade, Season, RouteStatus, RouteT
 import { createRouteInFirestore, updateRouteInFirestore } from '@/lib/routes'
 import { saveTrackInFirestore } from '@/lib/firebase/tracks'
 import { generateSlug } from '@/lib/utils'
-import { X, Save, Loader2, Star } from 'lucide-react'
+import { 
+  X, 
+  Save, 
+  Loader2, 
+  Star, 
+  FileText, 
+  MapPin, 
+  Car, 
+  Utensils, 
+  Award, 
+  Search, 
+  Image, 
+  Images, 
+  Route as RouteIcon, 
+  Shield, 
+  Video, 
+  Hash, 
+  Book 
+} from 'lucide-react'
 import { commonFeatures } from '@/lib/data'
+import { AccordionItem } from './Accordion'
 
 interface RouteFormProps {
   route?: Route
@@ -538,6 +559,29 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
     ),
   }
 
+  // Helper para renderizar secciones con o sin acordeón
+  const renderSection = (title: string, content: ReactNode, icon?: LucideIcon, defaultOpen: boolean = false) => {
+    if (isEditing) {
+      return (
+        <AccordionItem title={title} icon={icon} defaultOpen={defaultOpen}>
+          <div className="space-y-4">
+            {content}
+          </div>
+        </AccordionItem>
+      )
+    }
+    const IconComponent = icon
+    return (
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold border-b pb-2 flex items-center gap-2">
+          {IconComponent && <IconComponent className="h-5 w-5 text-gray-600" />}
+          {title}
+        </h3>
+        {content}
+      </div>
+    )
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
       <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-white rounded-lg shadow-xl">
@@ -556,12 +600,11 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className={`p-6 ${isEditing ? 'space-y-2' : 'space-y-6'}`}>
           {/* Información Básica */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-2">Información Básica</h3>
-            
-            <div className="grid grid-cols-2 gap-4">
+          {renderSection('Información Básica', (
+            <>
+              <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Tipo</label>
                 <select
@@ -724,12 +767,11 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
                 />
               </div>
             </div>
-          </div>
+            </>
+          ), FileText, true)}
 
           {/* Ubicación */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-2">Ubicación</h3>
-            
+          {renderSection('Ubicación', (
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Región *</label>
@@ -783,13 +825,12 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
                 />
               </div>
             </div>
-          </div>
+          ), MapPin)}
 
         {/* Puntos de Parking */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold border-b pb-2">Parking</h3>
-
-          {(formData.parking || []).map((point, index) => (
+        {renderSection('Parking', (
+          <>
+            {(formData.parking || []).map((point, index) => (
             <div key={index} className="border border-gray-200 rounded-md p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-600">Parking #{index + 1}</span>
@@ -827,20 +868,20 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
             </div>
           ))}
 
-          <button
-            type="button"
-            onClick={addParkingSpot}
-            className="text-primary-600 hover:text-primary-800 text-sm"
-          >
-            + Añadir parking
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={addParkingSpot}
+              className="text-primary-600 hover:text-primary-800 text-sm"
+            >
+              + Añadir parking
+            </button>
+          </>
+        ), Car)}
 
         {/* Restaurantes cercanos */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold border-b pb-2">Restaurantes</h3>
-
-          {(formData.restaurants || []).map((restaurant, index) => (
+        {renderSection('Restaurantes', (
+          <>
+            {(formData.restaurants || []).map((restaurant, index) => (
             <div key={index} className="border border-gray-200 rounded-md p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-600">Restaurante #{index + 1}</span>
@@ -889,20 +930,20 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
             </div>
           ))}
 
-          <button
-            type="button"
-            onClick={addRestaurant}
-            className="text-primary-600 hover:text-primary-800 text-sm"
-          >
-            + Añadir restaurante
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={addRestaurant}
+              className="text-primary-600 hover:text-primary-800 text-sm"
+            >
+              + Añadir restaurante
+            </button>
+          </>
+        ), Utensils)}
 
           {/* Características */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-2">Características</h3>
-            
-            <div>
+          {renderSection('Características', (
+            <>
+              <div>
               <label className="block text-sm font-medium mb-2">Características de la ruta</label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {commonFeatures.map((feature) => (
@@ -935,13 +976,13 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
                 ))}
               </div>
             </div>
-          </div>
+            </>
+          ), Award)}
 
           {/* SEO */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-2">SEO</h3>
-            
-            <div>
+          {renderSection('SEO', (
+            <>
+              <div>
               <label className="block text-sm font-medium mb-1">Meta Título</label>
               <input
                 type="text"
@@ -960,13 +1001,13 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
                 rows={2}
               />
             </div>
-          </div>
+            </>
+          ), Search)}
 
           {/* Imagen Hero */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-2">Imagen Principal</h3>
-            
-            <div>
+          {renderSection('Imagen Principal', (
+            <>
+              <div>
               <label className="block text-sm font-medium mb-1">URL de la imagen</label>
               <input
                 type="url"
@@ -985,13 +1026,13 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
               />
             </div>
-          </div>
+            </>
+          ), Image)}
 
         {/* Galería */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold border-b pb-2">Galería</h3>
-
-          {(formData.gallery || []).map((image, index) => (
+        {renderSection('Galería', (
+          <>
+            {(formData.gallery || []).map((image, index) => (
             <div key={index} className="border border-gray-200 rounded-md p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-600">Imagen #{index + 1}</span>
@@ -1060,19 +1101,18 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
             </div>
           ))}
 
-          <button
-            type="button"
-            onClick={addGalleryImage}
-            className="text-primary-600 hover:text-primary-800 text-sm"
-          >
-            + Añadir imagen
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={addGalleryImage}
+              className="text-primary-600 hover:text-primary-800 text-sm"
+            >
+              + Añadir imagen
+            </button>
+          </>
+        ), Images)}
 
           {/* GPX */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-2">Archivo GPX (Opcional)</h3>
-            
+          {renderSection('Archivo GPX (Opcional)', (
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">URL del GPX</label>
@@ -1097,13 +1137,12 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
                 />
               </div>
             </div>
-          </div>
+          ), RouteIcon)}
 
           {/* Consejos de Seguridad */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-2">Consejos de Seguridad</h3>
-            
-            {formData.safetyTips?.map((tip, index) => (
+          {renderSection('Consejos de Seguridad', (
+            <>
+              {formData.safetyTips?.map((tip, index) => (
               <div key={index} className="flex gap-2">
                 <input
                   type="text"
@@ -1122,19 +1161,20 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
               </div>
             ))}
             
-            <button
-              type="button"
-              onClick={addSafetyTip}
-              className="text-primary-600 hover:text-primary-800 text-sm"
-            >
-              + Añadir consejo
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={addSafetyTip}
+                className="text-primary-600 hover:text-primary-800 text-sm"
+              >
+                + Añadir consejo
+              </button>
+            </>
+          ), Shield)}
 
           {/* Webcams */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-2">Webcams</h3>
-            <p className="text-sm text-gray-600">
+          {renderSection('Webcams', (
+            <>
+              <p className="text-sm text-gray-600">
               Añade webcams con título y URL (iframe) o código HTML directamente. Si añades código HTML, se renderizará en lugar del iframe.
             </p>
             
@@ -1176,19 +1216,20 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
               </div>
             ))}
             
-            <button
-              type="button"
-              onClick={addWebcam}
-              className="text-primary-600 hover:text-primary-800 text-sm"
-            >
-              + Añadir webcam
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={addWebcam}
+                className="text-primary-600 hover:text-primary-800 text-sm"
+              >
+                + Añadir webcam
+              </button>
+            </>
+          ), Video)}
 
           {/* Twitter Hashtag */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-2">Twitter Hashtag</h3>
-            <p className="text-sm text-gray-600">
+          {renderSection('Twitter Hashtag', (
+            <>
+              <p className="text-sm text-gray-600">
               Añade un hashtag de Twitter para mostrar un timeline con las noticias más recientes relacionadas con la ruta. Ejemplo: #PicoVeleta o #Mulhacen
             </p>
             <div>
@@ -1204,15 +1245,16 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
                 El hashtag se mostrará sin el símbolo # si lo incluyes. Ejemplo: escribe &quot;PicoVeleta&quot; o &quot;#PicoVeleta&quot;
               </p>
             </div>
-          </div>
+            </>
+          ), Hash)}
 
           {/* Storytelling */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between border-b pb-2">
-              <h3 className="text-lg font-semibold">Historia/Narrativa (Markdown)</h3>
-              <span className="text-xs text-gray-500">El panel inferior muestra una vista previa en tiempo real</span>
-            </div>
-            <div className="space-y-2">
+          {renderSection('Historia/Narrativa (Markdown)', (
+            <>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-gray-500">El panel inferior muestra una vista previa en tiempo real</span>
+              </div>
+              <div className="space-y-2">
               <div className="flex flex-wrap gap-2">
                 <button type="button" onClick={() => applyMarkdown('bold')} className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
                   Negrita
@@ -1267,7 +1309,8 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
                 </div>
               </div>
             </div>
-          </div>
+            </>
+          ), Book)}
 
           {/* Botones */}
           <div className="flex justify-end space-x-4 pt-4 border-t">
