@@ -1061,16 +1061,16 @@ export function RoutesMapView({
 
       {/* Botón desplegable desde el borde superior izquierdo para mostrar/ocultar panel de detalle */}
       {cardRoute && (
-        <div className="absolute top-0 left-0 z-30">
+        <div className="absolute top-2 left-2 z-30">
           <button
             onClick={() => setShowDetailPanel(!showDetailPanel)}
-            className="bg-white rounded-br-lg rounded-tl-none rounded-tr-lg rounded-bl-none shadow-lg p-2.5 hover:bg-gray-50 transition-colors border-r border-b border-gray-200"
+            className="bg-white rounded-full shadow-md p-1.5 hover:bg-gray-50 transition-colors border border-gray-200"
             title={showDetailPanel ? 'Ocultar detalle' : 'Mostrar detalle'}
           >
             {showDetailPanel ? (
-              <EyeOff className="h-5 w-5 text-gray-700" />
+              <EyeOff className="h-4 w-4 text-gray-700" />
             ) : (
-              <Eye className="h-5 w-5 text-gray-700" />
+              <Eye className="h-4 w-4 text-gray-700" />
             )}
           </button>
         </div>
@@ -1078,7 +1078,7 @@ export function RoutesMapView({
 
       {/* Tarjeta fija de la ruta seleccionada (arriba a la izquierda) - Se muestra cuando se selecciona desde el POI o desde el grid */}
       {cardRoute && showDetailPanel && (
-        <div className="absolute top-4 left-6 sm:left-8 z-20 w-48 sm:w-56 max-w-[60vw]">
+        <div className="absolute top-12 left-4 sm:left-6 z-20 w-48 sm:w-56 max-w-[60vw]">
           <div className="relative overflow-hidden rounded-md bg-white shadow-md border border-gray-200">
             {/* Botón cerrar */}
             <button
