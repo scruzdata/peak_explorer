@@ -928,7 +928,8 @@ export function RoutesMapView({
         {/* Popup para mostrar las rutas de un cluster - posicionado en esquina superior izquierda */}
         {clusterPopup && !cardRoute && (
           <div className="absolute top-4 left-6 sm:left-8 z-20 w-48 sm:w-56 max-w-[60vw]">
-            <div className="relative overflow-hidden rounded-md bg-white shadow-md border border-gray-200">
+            {/* Contenedor principal de la tarjeta de cluster (el encabezado y la lista se ajustan directamente a este div) */}
+            <div className="relative overflow-hidden rounded-xl bg-white shadow-xl border border-gray-200">
               {/* Botón cerrar */}
               <button
                 type="button"
@@ -938,120 +939,118 @@ export function RoutesMapView({
                 <X className="h-3 w-3" />
               </button>
 
-              <div className="bg-white rounded-xl shadow-xl border border-gray-100 w-full overflow-hidden relative">
-                {/* Header con badge moderno */}
-                <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-3 py-2 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="bg-white/20 backdrop-blur-sm rounded-full px-2 py-0.5">
-                      <span className="text-white text-xs font-bold">
-                        {clusterPopup.routes.length}
-                      </span>
-                    </div>
-                    <h3 className="text-white font-semibold text-xs">
-                      {type === 'ferrata' 
-                        ? (clusterPopup.routes.length === 1 ? 'Vía ferrata' : 'Vías ferratas')
-                        : (clusterPopup.routes.length === 1 ? 'Ruta' : 'Rutas')
-                      }
-                    </h3>
+              {/* Header con badge moderno */}
+              <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-3 py-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="bg-white/20 backdrop-blur-sm rounded-full px-2 py-0.5">
+                    <span className="text-white text-xs font-bold">
+                      {clusterPopup.routes.length}
+                    </span>
                   </div>
+                  <h3 className="text-white font-semibold text-xs">
+                    {type === 'ferrata' 
+                      ? (clusterPopup.routes.length === 1 ? 'Vía ferrata' : 'Vías ferratas')
+                      : (clusterPopup.routes.length === 1 ? 'Ruta' : 'Rutas')
+                    }
+                  </h3>
                 </div>
-                
-                {/* Lista de rutas con scroll personalizado */}
-                <div className="max-h-64 overflow-y-auto custom-scrollbar p-2 bg-gray-50/50">
-                  <div className="space-y-1.5">
-                    {clusterPopup.routes.map((route) => (
-                      <button
-                        key={route.id}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          // Cerrar el popup primero
-                          setClusterPopup(null)
-                          // Luego actualizar la ruta seleccionada
-                          handleMarkerClick(route)
-                        }}
-                        onMouseEnter={() => {
-                          if (onMarkerHover) {
-                            onMarkerHover(route.id)
-                          } else {
-                            setInternalHoveredRouteId(route.id)
-                          }
-                        }}
-                        onMouseLeave={() => {
-                          if (onMarkerHover) {
-                            onMarkerHover(null)
-                          } else {
-                            setInternalHoveredRouteId(null)
-                          }
-                        }}
-                        className="w-full text-left p-2 rounded-lg bg-white border border-gray-200 hover:border-primary-300 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 group"
-                      >
-                        <div className="flex items-start gap-2">
-                          {/* Icono con fondo circular */}
-                          <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                            type === 'ferrata' 
-                              ? (route.ferrataGrade 
-                                  ? (route.ferrataGrade === 'K1' ? 'bg-green-50' :
-                                     route.ferrataGrade === 'K2' ? 'bg-blue-50' :
-                                     route.ferrataGrade === 'K3' ? 'bg-yellow-50' :
-                                     route.ferrataGrade === 'K4' ? 'bg-orange-50' :
-                                     route.ferrataGrade === 'K5' ? 'bg-red-50' :
-                                     route.ferrataGrade === 'K6' ? 'bg-purple-50' :
-                                     'bg-gray-100')
-                                  : 'bg-gray-100')
-                              : (route.difficulty === 'Fácil' ? 'bg-green-50' :
-                                 route.difficulty === 'Moderada' ? 'bg-orange-50' :
-                                 route.difficulty === 'Difícil' ? 'bg-red-50' :
-                                 route.difficulty === 'Muy Difícil' ? 'bg-purple-50' :
-                                 'bg-gray-100')
-                          } group-hover:scale-110 transition-transform duration-200`}>
-                            {type === 'ferrata' ? (
-                              <FerrataClimberIcon className={`h-4 w-4 ${
-                                route.ferrataGrade
-                                  ? getFerrataGradeBorderColor(route.ferrataGrade).text
-                                  : 'text-gray-600'
-                              }`} />
-                            ) : (
-                              <Mountain className={`h-4 w-4 ${
-                                route.difficulty === 'Fácil' ? 'text-green-600' :
-                                route.difficulty === 'Moderada' ? 'text-orange-600' :
-                                route.difficulty === 'Difícil' ? 'text-red-600' :
-                                route.difficulty === 'Muy Difícil' ? 'text-purple-600' :
-                                'text-gray-600'
-                              }`} />
-                            )}
-                          </div>
-                          
-                          {/* Contenido */}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-2 leading-snug">
-                              {route.title}
+              </div>
+              
+              {/* Lista de rutas con scroll personalizado */}
+              <div className="max-h-64 overflow-y-auto custom-scrollbar p-2 bg-gray-50/50">
+                <div className="space-y-1.5">
+                  {clusterPopup.routes.map((route) => (
+                    <button
+                      key={route.id}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        // Cerrar el popup primero
+                        setClusterPopup(null)
+                        // Luego actualizar la ruta seleccionada
+                        handleMarkerClick(route)
+                      }}
+                      onMouseEnter={() => {
+                        if (onMarkerHover) {
+                          onMarkerHover(route.id)
+                        } else {
+                          setInternalHoveredRouteId(route.id)
+                        }
+                      }}
+                      onMouseLeave={() => {
+                        if (onMarkerHover) {
+                          onMarkerHover(null)
+                        } else {
+                          setInternalHoveredRouteId(null)
+                        }
+                      }}
+                      className="w-full text-left p-2 rounded-lg bg-white border border-gray-200 hover:border-primary-300 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 group"
+                    >
+                      <div className="flex items-start gap-2">
+                        {/* Icono con fondo circular */}
+                        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                          type === 'ferrata' 
+                            ? (route.ferrataGrade 
+                                ? (route.ferrataGrade === 'K1' ? 'bg-green-50' :
+                                   route.ferrataGrade === 'K2' ? 'bg-blue-50' :
+                                   route.ferrataGrade === 'K3' ? 'bg-yellow-50' :
+                                   route.ferrataGrade === 'K4' ? 'bg-orange-50' :
+                                   route.ferrataGrade === 'K5' ? 'bg-red-50' :
+                                   route.ferrataGrade === 'K6' ? 'bg-purple-50' :
+                                   'bg-gray-100')
+                                : 'bg-gray-100')
+                            : (route.difficulty === 'Fácil' ? 'bg-green-50' :
+                               route.difficulty === 'Moderada' ? 'bg-orange-50' :
+                               route.difficulty === 'Difícil' ? 'bg-red-50' :
+                               route.difficulty === 'Muy Difícil' ? 'bg-purple-50' :
+                               'bg-gray-100')
+                        } group-hover:scale-110 transition-transform duration-200`}>
+                          {type === 'ferrata' ? (
+                            <FerrataClimberIcon className={`h-4 w-4 ${
+                              route.ferrataGrade
+                                ? getFerrataGradeBorderColor(route.ferrataGrade).text
+                                : 'text-gray-600'
+                            }`} />
+                          ) : (
+                            <Mountain className={`h-4 w-4 ${
+                              route.difficulty === 'Fácil' ? 'text-green-600' :
+                              route.difficulty === 'Moderada' ? 'text-orange-600' :
+                              route.difficulty === 'Difícil' ? 'text-red-600' :
+                              route.difficulty === 'Muy Difícil' ? 'text-purple-600' :
+                              'text-gray-600'
+                            }`} />
+                          )}
+                        </div>
+                        
+                        {/* Contenido */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-2 leading-snug">
+                            {route.title}
+                          </p>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <MapPin className="h-2.5 w-2.5 text-gray-400 flex-shrink-0" />
+                            <p className="text-[10px] text-gray-500 truncate">
+                              {route.location.region}, {route.location.province}
                             </p>
-                            <div className="flex items-center gap-1 mt-0.5">
-                              <MapPin className="h-2.5 w-2.5 text-gray-400 flex-shrink-0" />
-                              <p className="text-[10px] text-gray-500 truncate">
-                                {route.location.region}, {route.location.province}
-                              </p>
+                          </div>
+                          {/* Información de la ruta: distancia, elevación y duración */}
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1 text-[9px] text-gray-600">
+                            <div className="flex items-center gap-0.5">
+                              <MapPin className="h-2 w-2" />
+                              <span>{formatDistance(route.distance)}</span>
                             </div>
-                            {/* Información de la ruta: distancia, elevación y duración */}
-                            <div className="flex flex-wrap items-center gap-1.5 mt-1 text-[9px] text-gray-600">
-                              <div className="flex items-center gap-0.5">
-                                <MapPin className="h-2 w-2" />
-                                <span>{formatDistance(route.distance)}</span>
-                              </div>
-                              <div className="flex items-center gap-0.5">
-                                <TrendingUp className="h-2 w-2" />
-                                <span>{formatElevation(route.elevation)}</span>
-                              </div>
-                              <div className="flex items-center gap-0.5">
-                                <Clock className="h-2 w-2" />
-                                <span>{route.duration}</span>
-                              </div>
+                            <div className="flex items-center gap-0.5">
+                              <TrendingUp className="h-2 w-2" />
+                              <span>{formatElevation(route.elevation)}</span>
+                            </div>
+                            <div className="flex items-center gap-0.5">
+                              <Clock className="h-2 w-2" />
+                              <span>{route.duration}</span>
                             </div>
                           </div>
                         </div>
-                      </button>
-                    ))}
-                  </div>
+                      </div>
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
