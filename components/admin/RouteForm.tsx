@@ -23,7 +23,6 @@ import {
   Award, 
   Search, 
   Image, 
-  Images, 
   Route as RouteIcon, 
   Shield, 
   Video, 
@@ -1109,7 +1108,7 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
               + Añadir imagen
             </button>
           </>
-        ), Images)}
+        ), Image)}
 
           {/* GPX */}
           {renderSection('Archivo GPX (Opcional)', (
