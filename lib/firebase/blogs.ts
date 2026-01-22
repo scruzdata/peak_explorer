@@ -141,13 +141,13 @@ function removeUndefinedFields(obj: any, depth = 0): any {
  */
 function blogPostToFirestore(blog: Omit<BlogPost, 'id' | 'slug' | 'createdAt' | 'updatedAt'>): any {
   const now = Timestamp.now()
-  const blogData = {
+  const blogData: any = {
     ...blog,
     createdAt: now,
     updatedAt: now,
   }
   
-  // Si se publica, establecer publishedAt
+  // Si se publica, establecer publishedAt (como Timestamp para Firestore)
   if (blog.status === 'published' && !blog.publishedAt) {
     blogData.publishedAt = now
   }
