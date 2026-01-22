@@ -49,7 +49,20 @@ const nextConfig = {
         "'self'",
         'data:', // Para imágenes en base64
         'blob:', // Para imágenes generadas dinámicamente
-        'https:', // Para imágenes remotas (Mapbox tiles, Firebase storage, etc.)
+        'https://*.mapbox.com', // Tiles de Mapbox
+        'https://*.firebaseapp.com', // Firebase Storage
+        'https://*.firebasestorage.googleapis.com', // Firebase Storage
+        'https://openweathermap.org', // Iconos de OpenWeatherMap
+        'http://openweathermap.org', // Iconos de OpenWeatherMap (algunos pueden usar http)
+        'https://meteosierra.com', // Meteosierra.com (imágenes/iconos)
+        'http://meteosierra.com', // Meteosierra.com (algunos recursos pueden usar http)
+        'https://*.googleapis.com', // Google APIs (imágenes)
+        'https://*.gstatic.com', // Google static content
+        'https://infocar.dgt.es',
+        'https://www.alberguesyrefugios.com',
+        'https://camareando.com',
+        'https://cantur.com',
+        'https://rtsp.me'
       ],
       'font-src': [
         "'self'",
@@ -67,6 +80,15 @@ const nextConfig = {
         'https://api.twitter.com',
         'https://news.google.com',
         'https://generativelanguage.googleapis.com', // Gemini API
+        'https://api.open-meteo.com', // Open-Meteo API (meteorología)
+        'https://api.openweathermap.org', // OpenWeatherMap API (meteorología)
+        'https://meteosierra.com', // Meteosierra.com (API meteorológica)
+        'http://meteosierra.com', // Meteosierra.com (algunos recursos pueden usar http)
+        'https://infocar.dgt.es',
+        'https://www.alberguesyrefugios.com',
+        'https://camareando.com',
+        'https://cantur.com',
+        'https://rtsp.me',
         'wss://*.firebaseio.com', // WebSocket para Firebase
         'wss://*.firebase.com',
       ],
@@ -75,6 +97,13 @@ const nextConfig = {
         'https://*.mapbox.com',
         'https://*.google.com',
         'https://*.firebaseapp.com',
+        'https://meteosierra.com', // Meteosierra.com (widgets/iframes)
+        'http://meteosierra.com', // Meteosierra.com (algunos recursos pueden usar http)
+        'https://infocar.dgt.es',
+        'https://www.alberguesyrefugios.com',
+        'https://camareando.com',
+        'https://cantur.com',
+        'https://rtsp.me'
       ],
       'worker-src': [
         "'self'",
