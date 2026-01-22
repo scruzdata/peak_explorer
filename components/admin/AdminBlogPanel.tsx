@@ -15,7 +15,7 @@ export function AdminBlogPanel() {
   const [showForm, setShowForm] = useState(false)
   const [editingBlog, setEditingBlog] = useState<BlogPost | undefined>()
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [filterStatus, setFilterStatus] = useState<BlogStatus | 'all'>('all')
+  const [filterStatus, setFilterStatus] = useState<'all' | BlogStatus>('all')
 
   // Cargar blogs desde Firestore (incluyendo borradores)
   const loadBlogs = async () => {
@@ -82,17 +82,35 @@ export function AdminBlogPanel() {
     await loadBlogs()
   }
 
-  // Filtrar blogs según el estado
+  // Filtrar y ordenar blogs según el estado
   const filteredBlogs = useMemo(() => {
     const filtered = blogs.filter((blog) => {
       if (filterStatus === 'all') return true
       return blog.status === filterStatus
     })
-    console.log(`🔍 Filtro activo: "${filterStatus}", Blogs filtrados: ${filtered.length} de ${blogs.length} totales`)
-    if (blogs.length > 0 && filtered.length === 0) {
+    
+    // Ordenar: publicados primero (por publishedAt descendente), luego borradores (por createdAt descendente)
+    const sorted = [...filtered].sort((a, b) => {
+      // Si ambos están publicados, ordenar por publishedAt
+      if (a.status === 'published' && b.status === 'published') {
+        const aDate = a.publishedAt ? new Date(a.publishedAt).getTime() : 0
+        const bDate = b.publishedAt ? new Date(b.publishedAt).getTime() : 0
+        return bDate - aDate
+      }
+      // Si solo uno está publicado, el publicado va primero
+      if (a.status === 'published' && b.status !== 'published') return -1
+      if (a.status !== 'published' && b.status === 'published') return 1
+      // Si ambos son borradores, ordenar por createdAt
+      const aDate = new Date(a.createdAt).getTime()
+      const bDate = new Date(b.createdAt).getTime()
+      return bDate - aDate
+    })
+    
+    console.log(`🔍 Filtro activo: "${filterStatus}", Blogs filtrados: ${sorted.length} de ${blogs.length} totales`)
+    if (blogs.length > 0 && sorted.length === 0) {
       console.log('⚠️ No hay blogs que coincidan con el filtro. Estados disponibles:', [...new Set(blogs.map(b => b.status))])
     }
-    return filtered
+    return sorted
   }, [blogs, filterStatus])
 
   if (loading) {
@@ -160,7 +178,10 @@ export function AdminBlogPanel() {
             <select
               id="filter-status"
               value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value as BlogStatus | 'all')}
+              onChange={(e) => {
+                const value = e.target.value
+                setFilterStatus(value === 'all' ? 'all' : (value as BlogStatus))
+              }}
               className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
             >
               <option value="all">Todos</option>
