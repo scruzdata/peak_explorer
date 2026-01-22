@@ -13,6 +13,7 @@ import { ReadingProgress } from './ReadingProgress'
 import { RouteGallery } from './RouteGallery'
 import { RouteWeather } from './RouteWeather'
 import { TwitterTimeline } from './TwitterTimeline'
+import { RecentRoutesCarousel } from './RecentRoutesCarousel'
 import { 
   Clock, 
   MapPin, 
@@ -30,6 +31,7 @@ import confetti from 'canvas-confetti'
 
 interface RouteDetailProps {
   route: Route
+  recentRoutes?: Route[]
 }
 
 interface GoogleNewsMobilePanelProps {
@@ -99,7 +101,7 @@ function GoogleNewsMobilePanel({ hashtag }: GoogleNewsMobilePanelProps) {
   )
 }
 
-export function RouteDetail({ route }: RouteDetailProps) {
+export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
   const { isBookmarked, addBookmark, removeBookmark, completeRoute, isCompleted, unlockBadge, progress } = useUserProgress()
   const [showCompletionModal, setShowCompletionModal] = useState(false)
   const [hoveredTrackIndex, setHoveredTrackIndex] = useState<number | null>(null) // Desde el perfil de elevación
@@ -890,6 +892,11 @@ export function RouteDetail({ route }: RouteDetailProps) {
           </div>
         </div>
       </article>
+
+      {/* Rutas Recientes */}
+      {recentRoutes.length > 0 && (
+        <RecentRoutesCarousel routes={recentRoutes} type={route.type} />
+      )}
 
       {/* Panel móvil de Google News (pestaña lateral) */}
       {route.twitterHashtag && route.twitterHashtag.trim() && (

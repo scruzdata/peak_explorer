@@ -203,6 +203,65 @@ export async function getRouteByIdFromFirestore(id: string): Promise<Route | nul
 }
 
 /**
+ * Obtiene rutas recientes por tipo excluyendo la ruta actual
+ */
+export async function getRecentRoutesFromFirestore(
+  excludeRouteId: string,
+  type: RouteType,
+  limit: number = 6
+): Promise<Route[]> {
+  try {
+    const routesRef = collection(db, ROUTES_COLLECTION)
+    
+    let querySnapshot
+    try {
+      // Intentar obtener rutas del tipo especificado ordenadas por createdAt
+      const q = query(
+        routesRef,
+        where('type', '==', type),
+        orderBy('createdAt', 'desc')
+      )
+      querySnapshot = await getDocs(q)
+    } catch (orderError: any) {
+      // Si falla por falta de índice, obtener sin ordenar
+      console.warn(`⚠️ No se pudo ordenar por createdAt para tipo ${type}, obteniendo sin orden:`, orderError.message)
+      const q = query(
+        routesRef,
+        where('type', '==', type)
+      )
+      querySnapshot = await getDocs(q)
+    }
+    
+    // Convertir a Route y filtrar la ruta actual
+    const routes = querySnapshot.docs
+      .map((doc) => {
+        try {
+          return firestoreToRoute(doc, doc.id)
+        } catch (error) {
+          console.error(`❌ Error convirtiendo ruta ${doc.id}:`, error)
+          return null
+        }
+      })
+      .filter((route: Route | null): route is Route => 
+        route !== null && route.id !== excludeRouteId
+      )
+    
+    // Ordenar manualmente por createdAt (por si acaso no se ordenó en la query)
+    const sortedRoutes = routes.sort((a: Route, b: Route) => {
+      const aDate = new Date(a.createdAt).getTime()
+      const bDate = new Date(b.createdAt).getTime()
+      return bDate - aDate
+    })
+    
+    // Limitar el número de resultados
+    return sortedRoutes.slice(0, limit)
+  } catch (error) {
+    console.error(`❌ Error obteniendo rutas recientes de tipo ${type} desde Firestore:`, error)
+    return []
+  }
+}
+
+/**
  * Crea una nueva ruta en Firestore
  */
 export async function createRouteInFirestore(

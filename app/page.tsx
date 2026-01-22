@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { ArrowRight, Mountain, Zap, MapPin } from 'lucide-react'
 import { RouteCard } from '@/components/routes/RouteCard'
 import { getTrekkingRoutesAsync, getFerratasAsync } from '@/lib/routes'
+import { getAllBlogsFromFirestore } from '@/lib/firebase/blogs'
+import { BlogCard } from '@/components/blog/BlogCard'
 
 // Forzar recarga dinámica para obtener datos frescos de Firestore
 export const dynamic = 'force-dynamic'
@@ -9,14 +11,18 @@ export const revalidate = 0
 
 export default async function HomePage() {
   // Obtener rutas desde Firestore (solo datos estáticos si Firestore no está configurado)
-  const [allTrekkingRoutes, allFerratas] = await Promise.all([
+  const [allTrekkingRoutes, allFerratas, allBlogs] = await Promise.all([
     getTrekkingRoutesAsync(),
     getFerratasAsync(),
+    getAllBlogsFromFirestore(false), // Solo blogs publicados
   ])
   
   // Obtener rutas destacadas (primeras 3 de cada tipo)
   const featuredTrekking = allTrekkingRoutes.slice(0, 3)
   const featuredFerratas = allFerratas.slice(0, 2)
+  
+  // Obtener blogs recientes (primeros 3)
+  const recentBlogs = allBlogs.slice(0, 3)
 
   return (
     <>
@@ -152,6 +158,36 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Recent Blog Posts */}
+      {recentBlogs.length > 0 && (
+        <section className="py-16">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mb-12 flex items-center justify-between">
+              <div>
+                <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
+                  Blog Recientes
+                </h2>
+                <p className="mt-2 text-lg text-gray-600">
+                  Últimos artículos sobre montaña, rutas y aventuras
+                </p>
+              </div>
+              <Link
+                href="/blog"
+                className="hidden sm:flex items-center text-primary-600 hover:text-primary-700 font-medium"
+              >
+                Ver todos
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+              {recentBlogs.map((blog) => (
+                <BlogCard key={blog.id} blog={blog} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
     </>
   )
 }

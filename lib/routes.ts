@@ -276,6 +276,45 @@ export async function getAllRoutesForAdmin(): Promise<Route[]> {
   }
 }
 
+/**
+ * Obtiene rutas recientes por tipo excluyendo la ruta actual
+ */
+export async function getRecentRoutesAsync(
+  excludeRouteId: string,
+  type: 'trekking' | 'ferrata',
+  limit: number = 6
+): Promise<Route[]> {
+  if (!isFirestoreConfigured()) {
+    // Si no hay Firestore, devolver array vacío
+    return []
+  }
+  
+  try {
+    const firestoreRoutes = await getFirestoreRoutes()
+    if (!firestoreRoutes) {
+      return []
+    }
+    
+    const routes = await firestoreRoutes.getRecentRoutesFromFirestore(excludeRouteId, type, limit)
+    
+    // Obtener tracks desde Firestore para cada ruta
+    const routesWithTracks = await Promise.all(
+      routes.map(async (route) => {
+        const track = await getTrackByRouteSlug(route.slug)
+        return {
+          ...route,
+          track: track || undefined,
+        }
+      })
+    )
+    
+    return routesWithTracks
+  } catch (error) {
+    console.error(`Error obteniendo rutas recientes de tipo ${type}:`, error)
+    return []
+  }
+}
+
 // Exportar funciones de Firestore para uso en admin
 export {
   createRouteInFirestore,

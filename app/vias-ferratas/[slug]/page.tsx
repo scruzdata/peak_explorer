@@ -1,7 +1,7 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { RouteDetail } from '@/components/routes/RouteDetail'
-import { getRouteBySlugAsync } from '@/lib/routes'
+import { getRouteBySlugAsync, getRecentRoutesAsync } from '@/lib/routes'
 
 // Forzar recarga dinámica para obtener datos frescos de Firestore
 export const dynamic = 'force-dynamic'
@@ -48,6 +48,9 @@ export default async function FerrataPage({ params }: PageProps) {
     notFound()
   }
 
-  return <RouteDetail route={route} />
+  // Obtener vías ferratas recientes (excluyendo la actual)
+  const recentRoutes = await getRecentRoutesAsync(route.id, 'ferrata', 6)
+
+  return <RouteDetail route={route} recentRoutes={recentRoutes} />
 }
 
