@@ -7,6 +7,10 @@ import { Footer } from '@/components/layout/Footer'
 import { AuthProvider } from '@/components/providers/AuthProvider'
 import { UserProgressProvider } from '@/components/providers/UserProgressProvider'
 import { SessionProvider } from '@/components/providers/SessionProvider'
+import { CookieConsentProvider } from '@/components/cookies/CookieConsentProvider'
+import { CookieBanner } from '@/components/cookies/CookieBanner'
+import { CookieSettings } from '@/components/cookies/CookieSettings'
+import { ConditionalScripts } from '@/components/cookies/ConditionalScripts'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
@@ -46,15 +50,20 @@ export default function RootLayout({
     <html lang="es" className="scroll-smooth">
       <body className={`${inter.variable} font-sans antialiased`}>
         <SessionProvider>
-          <AuthProvider>
-            <UserProgressProvider>
-              <div className="flex min-h-screen flex-col">
-                <Header />
-                <main className="flex-1">{children}</main>
-                <Footer />
-              </div>
-            </UserProgressProvider>
-          </AuthProvider>
+          <CookieConsentProvider>
+            <AuthProvider>
+              <UserProgressProvider>
+                <div className="flex min-h-screen flex-col">
+                  <Header />
+                  <main className="flex-1">{children}</main>
+                  <Footer />
+                </div>
+                <CookieBanner />
+                <CookieSettings />
+                <ConditionalScripts />
+              </UserProgressProvider>
+            </AuthProvider>
+          </CookieConsentProvider>
         </SessionProvider>
       </body>
     </html>

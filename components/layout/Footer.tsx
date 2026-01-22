@@ -1,5 +1,8 @@
+'use client'
+
 import Link from 'next/link'
 import { Mountain } from 'lucide-react'
+import { CookieSettingsButton } from '@/components/cookies/CookieSettingsButton'
 
 export function Footer() {
   const currentYear = new Date().getFullYear()
@@ -46,6 +49,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/cookies" className="hover:text-primary-400 transition-colors">
+                  Política de Cookies
+                </Link>
+              </li>
+              <li>
                 <Link href="/afiliados" className="hover:text-primary-400 transition-colors">
                   Aviso de Afiliados
                 </Link>
@@ -71,13 +79,20 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-8 border-t border-gray-800 pt-8 text-center text-sm">
-          <p>
-            © {currentYear} Peak Explorer. Todos los derechos reservados.
-          </p>
-          <p className="mt-2 text-xs text-gray-500">
-            Algunos enlaces son de afiliados. Esto no afecta el precio que pagas.
-          </p>
+        <div className="mt-8 border-t border-gray-800 pt-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-center sm:text-left text-sm">
+              <p>
+                © {currentYear} Peak Explorer. Todos los derechos reservados.
+              </p>
+              <p className="mt-2 text-xs text-gray-500">
+                Algunos enlaces son de afiliados. Esto no afecta el precio que pagas.
+              </p>
+            </div>
+            <div className="flex-shrink-0">
+              <CookieSettingsButton />
+            </div>
+          </div>
         </div>
       </div>
     </footer>
