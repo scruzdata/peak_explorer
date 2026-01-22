@@ -2,15 +2,17 @@
 
 import { useAuth } from '@/components/providers/AuthProvider'
 import { useState, useEffect, useMemo } from 'react'
-import { Plus, Edit, Trash2, Eye, Loader2, Filter } from 'lucide-react'
+import { Plus, Edit, Trash2, Eye, Loader2, Filter, FileText, Route as RouteIcon } from 'lucide-react'
 import { getAllRoutesForAdmin, deleteRouteFromFirestore } from '@/lib/routes'
 import { Route, RouteType, Difficulty } from '@/types'
 import { RouteForm } from './RouteForm'
 import { GPXUploader } from './GPXUploader'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
 export function AdminPanel() {
   const { user, signInAsAdmin } = useAuth()
+  const pathname = usePathname()
   const [routes, setRoutes] = useState<Route[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -283,6 +285,34 @@ export function AdminPanel() {
             <Plus className="h-5 w-5" />
             <span>Nueva Ruta</span>
           </button>
+        </div>
+
+        {/* Navegación entre secciones */}
+        <div className="mb-6 border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            <Link
+              href="/admin"
+              className={`flex items-center space-x-2 border-b-2 px-1 py-4 text-sm font-medium ${
+                pathname === '/admin'
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+              }`}
+            >
+              <RouteIcon className="h-5 w-5" />
+              <span>Rutas</span>
+            </Link>
+            <Link
+              href="/admin/blog"
+              className={`flex items-center space-x-2 border-b-2 px-1 py-4 text-sm font-medium ${
+                pathname === '/admin/blog'
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+              }`}
+            >
+              <FileText className="h-5 w-5" />
+              <span>Blog</span>
+            </Link>
+          </nav>
         </div>
 
         {/* Componente de subida de GPX */}

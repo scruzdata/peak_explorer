@@ -16,6 +16,7 @@ export function Header() {
     { href: '/', label: 'Inicio' },
     { href: '/rutas', label: 'Rutas de Montaña' },
     { href: '/vias-ferratas', label: 'Vías Ferratas' },
+    { href: '/blog', label: 'Blog' },
   ]
 
   return (
