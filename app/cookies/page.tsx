@@ -232,7 +232,7 @@ export default function CookiesPage() {
               Cambios en esta política
             </h2>
             <p className="text-gray-700">
-              Nos reservamos el derecho de actualizar esta política de cookies en cualquier momento. Te notificaremos de cualquier cambio significativo publicando la nueva política en esta página y actualizando la fecha de "Última actualización" en la parte superior.
+              Nos reservamos el derecho de actualizar esta política de cookies en cualquier momento. Te notificaremos de cualquier cambio significativo publicando la nueva política en esta página y actualizando la fecha de &quot;Última actualización&quot; en la parte superior.
             </p>
           </section>
 
