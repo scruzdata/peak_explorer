@@ -41,6 +41,18 @@ export interface WebcamData {
   html?: string // Código HTML opcional para renderizar directamente (ej: enlaces con imágenes embebidas)
 }
 
+export type WaypointType = 'mirador' | 'puente' | 'fuente' | 'enlace' | 'iglesia' | 'hermita' | 'unknown'
+
+export interface Waypoint {
+  lat: number
+  lng: number
+  elevation?: number
+  name?: string
+  description?: string
+  distance?: number // Distancia acumulada desde el inicio del track (en km)
+  type?: WaypointType // Tipo de waypoint detectado automáticamente
+}
+
 export interface Route {
   id: string
   slug: string
@@ -88,6 +100,7 @@ export interface Route {
     lng: number,
     elevation: number
   }[] // Coordenadas del track de la ruta
+  waypoints?: Waypoint[] // Puntos de interés extraídos del GPX
   heroImage: ImageData
   gallery: ImageData[]
   gpx?: GPXData // Opcional: algunas rutas pueden no tener archivo GPX

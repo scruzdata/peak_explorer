@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { processGPXFile } from '@/lib/gpxProcessor'
+import { processGPXFile, parseGPXOnly } from '@/lib/gpxProcessor'
 
 /**
  * Endpoint API para procesar archivos GPX
@@ -66,8 +66,21 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(arrayBuffer)
     const gpxContent = buffer.toString('utf-8')
 
-    // Procesar el GPX (parsing + enriquecimiento con IA)
-    const routeData = await processGPXFile(gpxContent, file.name)
+    // Verificar si se debe usar enriquecimiento con IA o solo parsear
+    const useAI = formData.get('useAI') !== 'false' // Por defecto true, a menos que se especifique 'false'
+    const skipAI = formData.get('skipAI') === 'true' // Alternativa: skipAI=true
+    
+    let routeData: Partial<Route>
+    
+    if (skipAI || useAI === false) {
+      // Solo parsear GPX sin enriquecimiento con IA
+      console.log('📄 Parseando GPX sin enriquecimiento con IA (solo track y waypoints)')
+      routeData = await parseGPXOnly(gpxContent, file.name)
+    } else {
+      // Procesar el GPX completo (parsing + enriquecimiento con IA)
+      console.log('🤖 Procesando GPX con enriquecimiento con IA')
+      routeData = await processGPXFile(gpxContent, file.name)
+    }
 
     // El track se guardará en Firestore solo cuando el usuario guarde la ruta desde el formulario
     if (routeData.track && routeData.track.length > 0) {

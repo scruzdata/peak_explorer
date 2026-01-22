@@ -1,19 +1,22 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useId } from 'react'
 import { Upload, Loader2, CheckCircle2, XCircle, FileText } from 'lucide-react'
 import { Route } from '@/types'
 
 interface GPXUploaderProps {
   onSuccess: (routeData: Partial<Route>) => void
   onError?: (error: string) => void
+  skipAI?: boolean // Si es true, solo parsea el GPX sin enriquecimiento con IA
 }
 
 /**
  * Componente para subir y procesar archivos GPX
  * Extrae datos base del GPX y enriquece metadatos usando IA
  */
-export function GPXUploader({ onSuccess, onError }: GPXUploaderProps) {
+export function GPXUploader({ onSuccess, onError, skipAI = false }: GPXUploaderProps) {
+  const inputId = useId()
+  const fileInputId = `gpx-file-input-${inputId}`
   const [file, setFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle')
@@ -25,6 +28,8 @@ export function GPXUploader({ onSuccess, onError }: GPXUploaderProps) {
    */
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
+    console.log('Archivo seleccionado:', selectedFile?.name, selectedFile?.size)
+    
     if (selectedFile) {
       // Validar extensión
       if (!selectedFile.name.toLowerCase().endsWith('.gpx')) {
@@ -33,6 +38,7 @@ export function GPXUploader({ onSuccess, onError }: GPXUploaderProps) {
         if (onError) {
           onError('El archivo debe ser un archivo GPX (.gpx)')
         }
+        setFile(null)
         return
       }
 
@@ -44,12 +50,17 @@ export function GPXUploader({ onSuccess, onError }: GPXUploaderProps) {
         if (onError) {
           onError('El archivo es demasiado grande. Máximo 10MB')
         }
+        setFile(null)
         return
       }
 
       setFile(selectedFile)
       setStatus('idle')
       setStatusMessage('')
+      console.log('Archivo válido establecido:', selectedFile.name)
+    } else {
+      console.log('No se seleccionó ningún archivo')
+      setFile(null)
     }
   }
 
@@ -57,7 +68,10 @@ export function GPXUploader({ onSuccess, onError }: GPXUploaderProps) {
    * Procesa el archivo GPX enviándolo al endpoint API
    */
   const handleUpload = async () => {
+    console.log('handleUpload llamado, file:', file?.name, 'loading:', loading)
+    
     if (!file) {
+      console.log('No hay archivo seleccionado')
       setStatus('error')
       setStatusMessage('Por favor selecciona un archivo GPX')
       return
@@ -68,14 +82,22 @@ export function GPXUploader({ onSuccess, onError }: GPXUploaderProps) {
     setLogs([])
     
     // Mensajes de progreso simulados mientras se procesa
-    const progressMessages = [
-      'Procesando archivo GPX...',
-      'Parseando datos del GPX...',
-      'Extrayendo coordenadas y elevación...',
-      'Llamando a IA para enriquecer metadatos...',
-      'Generando imágenes...',
-      'Guardando track en Firestore...',
-    ]
+    const progressMessages = skipAI
+      ? [
+          'Procesando archivo GPX...',
+          'Parseando datos del GPX...',
+          'Extrayendo coordenadas y elevación...',
+          'Extrayendo waypoints...',
+          'Calculando distancias...',
+        ]
+      : [
+          'Procesando archivo GPX...',
+          'Parseando datos del GPX...',
+          'Extrayendo coordenadas y elevación...',
+          'Llamando a IA para enriquecer metadatos...',
+          'Generando imágenes...',
+          'Guardando track en Firestore...',
+        ]
     
     let progressIndex = 0
     const progressInterval = setInterval(() => {
@@ -89,6 +111,14 @@ export function GPXUploader({ onSuccess, onError }: GPXUploaderProps) {
       // Crear FormData
       const formData = new FormData()
       formData.append('file', file)
+      
+      // Si skipAI es true, indicar que no se debe usar IA
+      if (skipAI) {
+        formData.append('skipAI', 'true')
+        console.log('📄 Modo: Solo parsear GPX (sin enriquecimiento con IA)')
+      } else {
+        console.log('🤖 Modo: Procesar GPX con enriquecimiento con IA')
+      }
 
       // Enviar al endpoint API
       const response = await fetch('/api/process-gpx', {
@@ -129,7 +159,7 @@ export function GPXUploader({ onSuccess, onError }: GPXUploaderProps) {
           setStatusMessage('')
           setLogs([])
           // Resetear el input
-          const fileInput = document.getElementById('gpx-file-input') as HTMLInputElement
+          const fileInput = document.getElementById(fileInputId) as HTMLInputElement
           if (fileInput) {
             fileInput.value = ''
           }
@@ -167,21 +197,21 @@ export function GPXUploader({ onSuccess, onError }: GPXUploaderProps) {
         {/* Input de archivo */}
         <div>
           <label
-            htmlFor="gpx-file-input"
+            htmlFor={fileInputId}
             className="mb-2 block text-sm font-medium text-gray-700"
           >
             Seleccionar archivo GPX
           </label>
           <div className="flex items-center space-x-4">
             <label
-              htmlFor="gpx-file-input"
+              htmlFor={fileInputId}
               className="flex cursor-pointer items-center space-x-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
             >
               <FileText className="h-4 w-4" />
               <span>Seleccionar archivo</span>
             </label>
             <input
-              id="gpx-file-input"
+              id={fileInputId}
               type="file"
               accept=".gpx"
               onChange={handleFileChange}
@@ -198,9 +228,11 @@ export function GPXUploader({ onSuccess, onError }: GPXUploaderProps) {
 
         {/* Botón de procesar */}
         <button
+          type="button"
           onClick={handleUpload}
           disabled={!file || loading}
           className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          title={!file ? 'Selecciona un archivo GPX primero' : loading ? 'Procesando...' : 'Procesar archivo GPX'}
         >
           {loading ? (
             <>

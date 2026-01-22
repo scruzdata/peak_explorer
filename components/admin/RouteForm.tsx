@@ -31,6 +31,7 @@ import {
 } from 'lucide-react'
 import { commonFeatures } from '@/lib/data'
 import { AccordionItem } from './Accordion'
+import { GPXUploader } from './GPXUploader'
 
 interface RouteFormProps {
   route?: Route
@@ -98,6 +99,8 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
     },
     parking: routeData?.parking || [],
     restaurants: routeData?.restaurants || [],
+    track: routeData?.track,
+    waypoints: routeData?.waypoints,
     heroImage: routeData?.heroImage || {
       url: '',
       alt: '',
@@ -201,6 +204,8 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
           },
           parking: dataToSave.parking,
           restaurants: dataToSave.restaurants,
+          track: dataToSave.track,
+          waypoints: dataToSave.waypoints,
           heroImage: dataToSave.heroImage || {
             url: '',
             alt: '',
@@ -237,11 +242,25 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
       const trackToSave = dataToSave.track || route?.track
       if (trackToSave && Array.isArray(trackToSave) && trackToSave.length > 0) {
         try {
-          const routeTitle = dataToSave.title || route?.title || 'Ruta sin título'
-          const routeSlug = generateSlug(routeTitle)
+          // Si estamos editando, usar el slug de la ruta existente
+          // Si no, generar uno nuevo basado en el título
+          const routeSlug = isEditing && route?.slug 
+            ? route.slug 
+            : generateSlug(dataToSave.title || route?.title || 'Ruta sin título')
+          
           console.log(`📦 Intentando guardar track para ruta: ${routeSlug} (${trackToSave.length} puntos)`)
+          if (isEditing) {
+            console.log(`🔄 Actualizando track existente para ruta: ${routeSlug}`)
+          } else {
+            console.log(`✨ Creando nuevo track para ruta: ${routeSlug}`)
+          }
           await saveTrackInFirestore(routeSlug, trackToSave)
           console.log(`✅ Track guardado en Firestore para ruta: ${routeSlug} (${trackToSave.length} puntos)`)
+          
+          // Si hay waypoints, también se guardan en la ruta (ya están en dataToSave.waypoints)
+          if (dataToSave.waypoints && dataToSave.waypoints.length > 0) {
+            console.log(`✅ Waypoints guardados: ${dataToSave.waypoints.length} puntos de interés`)
+          }
         } catch (trackError: any) {
           // Si falla el guardado del track, registrar el error pero no fallar el proceso completo
           console.error('⚠️  Error guardando track en Firestore:', trackError)
@@ -286,6 +305,29 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
     } finally {
       setLoading(false)
     }
+  }
+
+  /**
+   * Maneja el éxito de la carga de un nuevo GPX cuando se edita una ruta
+   * Actualiza el track y waypoints con los nuevos datos del GPX
+   */
+  const handleGPXUploadSuccess = (routeData: Partial<Route>) => {
+    setFormData(prev => ({
+      ...prev,
+      // Actualizar datos básicos del track si vienen del GPX
+      distance: routeData.distance ?? prev.distance,
+      elevation: routeData.elevation ?? prev.elevation,
+      duration: routeData.duration || prev.duration,
+      routeType: routeData.routeType || prev.routeType,
+      // Reemplazar completamente el track y waypoints
+      track: routeData.track,
+      waypoints: routeData.waypoints,
+      // Actualizar coordenadas si vienen del GPX
+      location: routeData.location ? {
+        ...prev.location,
+        coordinates: routeData.location.coordinates || prev.location?.coordinates || { lat: 0, lng: 0 },
+      } : prev.location,
+    }))
   }
 
   const updateField = (field: string, value: any) => {
@@ -1112,29 +1154,67 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
 
           {/* GPX */}
           {renderSection('Archivo GPX (Opcional)', (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">URL del GPX</label>
-                <input
-                  type="url"
-                  value={formData.gpx?.url || ''}
-                  onChange={(e) => updateNestedField('gpx', 'url', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  placeholder="https://ejemplo.com/ruta.gpx"
-                />
-                <p className="mt-1 text-xs text-gray-500">Opcional: Dejar vacío si no hay archivo GPX</p>
-              </div>
+            <div className="space-y-4">
+              {/* Si estamos editando, mostrar el uploader de GPX */}
+              {isEditing && (
+                <div className="rounded-lg border-2 border-dashed border-blue-300 bg-blue-50 p-4">
+                  <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                    Actualizar Track desde GPX
+                  </h3>
+                  <p className="text-xs text-gray-600 mb-3">
+                    Sube un nuevo archivo GPX para reemplazar el track actual y los waypoints. 
+                    El track antiguo se eliminará y se creará uno nuevo.
+                  </p>
+                  <GPXUploader 
+                    onSuccess={handleGPXUploadSuccess}
+                    onError={(error) => {
+                      console.error('Error al procesar GPX:', error)
+                      alert(`Error al procesar el archivo GPX: ${error}`)
+                    }}
+                    skipAI={true}
+                  />
+                </div>
+              )}
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">URL del GPX</label>
+                  <input
+                    type="url"
+                    value={formData.gpx?.url || ''}
+                    onChange={(e) => updateNestedField('gpx', 'url', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    placeholder="https://ejemplo.com/ruta.gpx"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">Opcional: Dejar vacío si no hay archivo GPX</p>
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Nombre del archivo</label>
-                <input
-                  type="text"
-                  value={formData.gpx?.filename || ''}
-                  onChange={(e) => updateNestedField('gpx', 'filename', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  placeholder="ruta.gpx"
-                />
+                <div>
+                  <label className="block text-sm font-medium mb-1">Nombre del archivo</label>
+                  <input
+                    type="text"
+                    value={formData.gpx?.filename || ''}
+                    onChange={(e) => updateNestedField('gpx', 'filename', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    placeholder="ruta.gpx"
+                  />
+                </div>
               </div>
+              
+              {/* Mostrar información del track actual si existe */}
+              {formData.track && formData.track.length > 0 && (
+                <div className="rounded-md bg-gray-50 p-3 text-xs text-gray-600">
+                  <p className="font-medium mb-1">Track actual:</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>{formData.track.length} puntos de track</li>
+                    {formData.waypoints && formData.waypoints.length > 0 && (
+                      <li>{formData.waypoints.length} waypoints (puntos de interés)</li>
+                    )}
+                    <li>Distancia: {formData.distance?.toFixed(2) || 0} km</li>
+                    <li>Elevación: {formData.elevation || 0} m</li>
+                  </ul>
+                </div>
+              )}
             </div>
           ), RouteIcon)}
 

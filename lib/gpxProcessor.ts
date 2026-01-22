@@ -1,6 +1,46 @@
-import { Route } from '@/types'
+import { Route, Waypoint, WaypointType } from '@/types'
 import { EnrichedMetadata } from './aiEnrichment'
 import { getRouteMetadataFromAI } from './aiEnrichment'
+
+/**
+ * Detecta el tipo de waypoint basándose en palabras clave en el nombre y descripción
+ */
+function detectWaypointType(name?: string, description?: string): WaypointType {
+  const text = `${name || ''} ${description || ''}`.toLowerCase()
+  
+  // Mirador
+  if (/\b(mirador|viewpoint|viewpoint|miradouro|belvedere)\b/i.test(text)) {
+    return 'mirador'
+  }
+  
+  // Puente
+  if (/\b(puente|bridge|pont|ponte)\b/i.test(text)) {
+    return 'puente'
+  }
+  
+  // Fuente
+  if (/\b(fuente|fountain|source|font|fontaine)\b/i.test(text)) {
+    return 'fuente'
+  }
+  
+  // Enlace
+  if (/\b(enlace|link|gr[0-9]+|sendero|trail|path)\b/i.test(text)) {
+    return 'enlace'
+  }
+  
+  // Iglesia
+  if (/\b(iglesia|church|église|igreja|templo|temple)\b/i.test(text)) {
+    return 'iglesia'
+  }
+  
+  // Hermita
+  if (/\b(hermita|ermita|hermitage|ermitage|santuario|sanctuary)\b/i.test(text)) {
+    return 'hermita'
+  }
+  
+  // Por defecto, unknown
+  return 'unknown'
+}
 
 /**
  * Interfaz para los datos extraídos de un archivo GPX en el servidor
@@ -22,6 +62,7 @@ export interface GPXParseResult {
     lng: number
     elevation: number
   }[]
+  waypoints?: Waypoint[] // Puntos de interés extraídos del GPX
   routeType?: 'Circular' | 'Inicio-Fin'
   duration?: string
   description?: string
@@ -185,6 +226,102 @@ export async function parseGPXBuffer(gpxContent: string | Buffer, filename?: str
       duration = `${minutes} minutos`
     }
     
+    // Extraer waypoints (puntos de interés)
+    const wptMatches = xmlString.matchAll(/<wpt[^>]*lat=["']([^"']+)["'][^>]*lon=["']([^"']+)["'][^>]*>([\s\S]*?)<\/wpt>/gi)
+    const waypoints: Waypoint[] = []
+    
+    // Calcular distancias acumuladas para cada punto del track (para ubicar waypoints)
+    const cumulativeDistances: number[] = [0]
+    for (let i = 1; i < points.length; i++) {
+      cumulativeDistances.push(
+        cumulativeDistances[i - 1] + calculateDistance(
+          points[i - 1].lat,
+          points[i - 1].lng,
+          points[i].lat,
+          points[i].lng
+        )
+      )
+    }
+    
+    // Procesar waypoints
+    for (const match of wptMatches) {
+      const lat = parseFloat(match[1])
+      const lng = parseFloat(match[2])
+      const content = match[3]
+      
+      if (!isNaN(lat) && !isNaN(lng)) {
+        // Extraer elevación si existe
+        const eleMatch = content.match(/<ele[^>]*>([^<]+)<\/ele>/i)
+        const elevation = eleMatch ? parseFloat(eleMatch[1]) : undefined
+        
+        // Extraer nombre si existe
+        const nameMatch = content.match(/<name[^>]*>([^<]+)<\/name>/i)
+        const name = nameMatch ? nameMatch[1].trim() : undefined
+        
+        // Extraer descripción si existe
+        const descMatch = content.match(/<desc[^>]*>([^<]+)<\/desc>/i)
+        const description = descMatch ? descMatch[1].trim() : undefined
+        
+        // Calcular la distancia acumulada desde el inicio del track
+        // Encontrar el punto del track más cercano al waypoint
+        let minDistance = Infinity
+        let closestTrackIndex = 0
+        
+        for (let i = 0; i < points.length; i++) {
+          const dist = calculateDistance(lat, lng, points[i].lat, points[i].lng)
+          if (dist < minDistance) {
+            minDistance = dist
+            closestTrackIndex = i
+          }
+        }
+        
+        // Usar la distancia acumulada del punto más cercano
+        // Si el waypoint está muy cerca del track, usar la distancia exacta
+        let waypointDistance = cumulativeDistances[closestTrackIndex]
+        if (minDistance < 0.01) { // Si está a menos de 10m, usar la distancia del punto más cercano
+          waypointDistance = cumulativeDistances[closestTrackIndex]
+        } else {
+          // Interpolar entre el punto más cercano y el siguiente
+          if (closestTrackIndex < points.length - 1) {
+            const distToNext = calculateDistance(
+              lat, lng,
+              points[closestTrackIndex + 1].lat,
+              points[closestTrackIndex + 1].lng
+            )
+            if (distToNext < minDistance) {
+              waypointDistance = cumulativeDistances[closestTrackIndex + 1]
+            } else {
+              // Interpolar basándose en la distancia
+              const segmentDist = calculateDistance(
+                points[closestTrackIndex].lat,
+                points[closestTrackIndex].lng,
+                points[closestTrackIndex + 1].lat,
+                points[closestTrackIndex + 1].lng
+              )
+              if (segmentDist > 0) {
+                const ratio = minDistance / (minDistance + distToNext)
+                waypointDistance = cumulativeDistances[closestTrackIndex] + 
+                  (cumulativeDistances[closestTrackIndex + 1] - cumulativeDistances[closestTrackIndex]) * ratio
+              }
+            }
+          }
+        }
+        
+        // Detectar el tipo de waypoint basándose en el nombre y descripción
+        const waypointType = detectWaypointType(name, description)
+        
+        waypoints.push({
+          lat,
+          lng,
+          elevation,
+          name,
+          description,
+          distance: Math.round(waypointDistance * 100) / 100, // Redondear a 2 decimales
+          type: waypointType,
+        })
+      }
+    }
+    
     return {
       title,
       distance: Math.round(totalDistance * 10) / 10, // Redondear a 1 decimal
@@ -195,6 +332,7 @@ export async function parseGPXBuffer(gpxContent: string | Buffer, filename?: str
       maxElevation: Math.round(maxElevation),
       coordinates,
       track: points,
+      waypoints: waypoints.length > 0 ? waypoints : undefined,
       routeType,
       duration,
       description,
@@ -239,6 +377,7 @@ export function combineGPXAndAIData(
       coordinates: gpxData.coordinates,
     },
     track: gpxData.track,
+    waypoints: gpxData.waypoints,
     safetyTips: aiData.safetyTips || [],
     storytelling: aiData.storytelling || '',
     seo: aiData.seo ? {
@@ -272,6 +411,34 @@ export function combineGPXAndAIData(
     },
     views: 0,
     downloads: 0,
+  }
+}
+
+/**
+ * Parsea un archivo GPX sin enriquecimiento con IA (solo track y waypoints)
+ * Útil para actualizar el track de una ruta existente
+ */
+export async function parseGPXOnly(
+  gpxContent: string | Buffer,
+  filename: string
+): Promise<Partial<Route>> {
+  // Solo parsear GPX sin enriquecimiento con IA
+  const gpxData = await parseGPXBuffer(gpxContent, filename)
+  
+  // Devolver solo los datos básicos del GPX
+  return {
+    title: gpxData.title,
+    distance: gpxData.distance,
+    elevation: gpxData.elevation,
+    duration: gpxData.duration,
+    routeType: gpxData.routeType,
+    location: {
+      region: '',
+      province: '',
+      coordinates: gpxData.coordinates,
+    },
+    track: gpxData.track,
+    waypoints: gpxData.waypoints,
   }
 }
 
