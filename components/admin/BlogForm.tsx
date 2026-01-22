@@ -457,7 +457,7 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
                     placeholder="Escribe el contenido del artículo en Markdown..."
                   />
                   <p className="mt-1 text-xs text-gray-500">
-                    Puedes usar Markdown para formatear el texto. Usa el botón "Insertar Imagen" para añadir imágenes.
+                    Puedes usar Markdown para formatear el texto. Usa el botón &quot;Insertar Imagen&quot; para añadir imágenes.
                   </p>
                 </div>
 

@@ -38,6 +38,7 @@ export function AdminBlogPanel() {
 
   useEffect(() => {
     loadBlogs()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleNewBlog = () => {
@@ -217,14 +218,14 @@ export function AdminBlogPanel() {
             <FileText className="mx-auto h-12 w-12 text-gray-400" />
             <p className="mt-4 text-gray-600">
               {filterStatus === 'all' 
-                ? 'No hay artículos. Crea tu primer artículo usando el botón "Nuevo Artículo".'
+                ? 'No hay artículos. Crea tu primer artículo usando el botón &quot;Nuevo Artículo&quot;.'
                 : filterStatus === 'published'
-                ? 'No hay artículos publicados. Los artículos guardados como "Borrador" no aparecen aquí. Cambia el filtro a "Todos" o "Borradores" para verlos.'
+                ? 'No hay artículos publicados. Los artículos guardados como &quot;Borrador&quot; no aparecen aquí. Cambia el filtro a &quot;Todos&quot; o &quot;Borradores&quot; para verlos.'
                 : 'No hay borradores.'}
             </p>
             {filterStatus === 'published' && blogs.length > 0 && (
               <p className="mt-2 text-sm text-gray-500">
-                💡 Tip: Para publicar un artículo, edítalo y cambia su estado de "Borrador" a "Publicado".
+                💡 Tip: Para publicar un artículo, edítalo y cambia su estado de &quot;Borrador&quot; a &quot;Publicado&quot;.
               </p>
             )}
             <button
