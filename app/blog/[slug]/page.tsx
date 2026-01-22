@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { getBlogBySlugFromFirestore, incrementBlogViews } from '@/lib/firebase/blogs'
+import { getBlogBySlugFromFirestore, incrementBlogViews, getRecentBlogsFromFirestore } from '@/lib/firebase/blogs'
 import { BlogPost } from '@/types'
 import { Calendar, Clock, Tag } from 'lucide-react'
 import { calculateReadingTime } from '@/lib/utils'
@@ -9,6 +9,7 @@ import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import type { Components } from 'react-markdown'
 import { BlogFeaturedImage } from '@/components/blog/BlogFeaturedImage'
+import { RecentBlogsCarousel } from '@/components/blog/RecentBlogsCarousel'
 
 interface BlogPostPageProps {
   params: {
@@ -49,6 +50,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
   // Incrementar contador de visualizaciones (sin esperar)
   incrementBlogViews(blog.id).catch(console.error)
+
+  // Obtener blogs recientes (excluyendo el actual)
+  const recentBlogs = await getRecentBlogsFromFirestore(blog.id, 6)
 
   const readingTime = blog.readingTime || calculateReadingTime(blog.content)
   const publishedDate = blog.publishedAt 
@@ -176,6 +180,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           </ReactMarkdown>
         </div>
       </div>
+
+      {/* Blogs Recientes */}
+      {recentBlogs.length > 0 && (
+        <RecentBlogsCarousel blogs={recentBlogs} />
+      )}
     </article>
   )
 }

@@ -300,6 +300,61 @@ export async function getBlogByIdFromFirestore(id: string): Promise<BlogPost | n
 }
 
 /**
+ * Obtiene blogs recientes excluyendo el blog actual
+ */
+export async function getRecentBlogsFromFirestore(
+  excludeBlogId: string,
+  limit: number = 6
+): Promise<BlogPost[]> {
+  try {
+    const blogsRef = collection(db, BLOGS_COLLECTION)
+    
+    let querySnapshot
+    try {
+      // Intentar obtener blogs publicados ordenados por publishedAt
+      const q = query(
+        blogsRef,
+        where('status', '==', 'published'),
+        orderBy('publishedAt', 'desc')
+      )
+      querySnapshot = await getDocs(q)
+    } catch (orderError: any) {
+      // Si falla por falta de índice, obtener todos los publicados sin ordenar
+      console.warn('⚠️ No se pudo ordenar por publishedAt, obteniendo todos y filtrando:', orderError.message)
+      const q = query(blogsRef, where('status', '==', 'published'))
+      querySnapshot = await getDocs(q)
+    }
+    
+    // Convertir a BlogPost y filtrar el blog actual
+    const blogs = querySnapshot.docs
+      .map((doc: any) => {
+        try {
+          return firestoreToBlogPost(doc, doc.id)
+        } catch (error) {
+          console.error(`❌ Error convirtiendo blog ${doc.id}:`, error)
+          return null
+        }
+      })
+      .filter((blog: BlogPost | null): blog is BlogPost => 
+        blog !== null && blog.id !== excludeBlogId
+      )
+    
+    // Ordenar manualmente por publishedAt (por si acaso no se ordenó en la query)
+    const sortedBlogs = blogs.sort((a: BlogPost, b: BlogPost) => {
+      const aDate = a.publishedAt ? new Date(a.publishedAt).getTime() : 0
+      const bDate = b.publishedAt ? new Date(b.publishedAt).getTime() : 0
+      return bDate - aDate
+    })
+    
+    // Limitar el número de resultados
+    return sortedBlogs.slice(0, limit)
+  } catch (error) {
+    console.error('❌ Error obteniendo blogs recientes desde Firestore:', error)
+    return []
+  }
+}
+
+/**
  * Crea un nuevo blog en Firestore
  */
 export async function createBlogInFirestore(
