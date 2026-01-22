@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { processGPXFile, parseGPXOnly } from '@/lib/gpxProcessor'
+import type { Route } from '@/types'
 
 /**
  * Endpoint API para procesar archivos GPX
