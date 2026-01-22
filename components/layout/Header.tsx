@@ -21,14 +21,14 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-gray-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
-      <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center space-x-2 group">
+      <nav className="mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center px-4 py-4 sm:px-6 lg:px-8">
+        <Link href="/" className="flex items-center space-x-2 group justify-self-start">
           <Mountain className="h-8 w-8 text-primary-600 transition-transform group-hover:scale-110" />
           <span className="text-xl font-bold text-gray-900">Peak Explorer</span>
         </Link>
 
         {/* Desktop Navigation */}
-        <div className="hidden md:flex md:items-center md:space-x-8">
+        <div className="hidden md:flex md:items-center md:space-x-8 md:justify-self-center">
           {navItems.map((item) => (
             <Link
               key={item.href}
@@ -44,7 +44,7 @@ export function Header() {
         </div>
 
         {/* User Menu */}
-        <div className="hidden md:flex md:items-center md:space-x-4">
+        <div className="hidden md:flex md:items-center md:space-x-4 md:justify-self-end">
           {user ? (
             <>
               <Link
@@ -82,7 +82,7 @@ export function Header() {
         {/* Mobile Menu Button */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden p-2 text-gray-700 hover:text-primary-600 transition-colors"
+          className="md:hidden p-2 text-gray-700 hover:text-primary-600 transition-colors justify-self-end"
           aria-label="Toggle menu"
         >
           {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}

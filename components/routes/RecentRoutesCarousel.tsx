@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import Link from 'next/link'
+import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react'
 import { Route, RouteType } from '@/types'
 import { RouteCard } from './RouteCard'
 
@@ -78,19 +79,34 @@ export function RecentRoutesCarousel({ routes, type, title }: RecentRoutesCarous
     ? 'Otras Vías Ferratas' 
     : 'Otras Rutas de Senderismo'
 
+  const defaultDescription = type === 'ferrata' 
+    ? 'Descubre más vías ferratas para tu próxima aventura vertical'
+    : 'Explora más rutas de senderismo y aventuras en la montaña'
+
+  const viewAllUrl = type === 'ferrata' 
+    ? '/vias-ferratas' 
+    : '/rutas'
+
   return (
     <section className="py-12 bg-gray-50">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Título */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
-            {title || defaultTitle}
-          </h2>
-          <p className="mt-2 text-lg text-gray-600">
-            {type === 'ferrata' 
-              ? 'Descubre más vías ferratas para tu próxima aventura vertical'
-              : 'Explora más rutas de senderismo y aventuras en la montaña'}
-          </p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
+              {title || defaultTitle}
+            </h2>
+            <p className="mt-2 text-lg text-gray-600">
+              {defaultDescription}
+            </p>
+          </div>
+          <Link
+            href={viewAllUrl}
+            className="hidden sm:flex items-center text-primary-600 hover:text-primary-700 font-medium"
+          >
+            Ver todas
+            <ArrowRight className="ml-2 h-5 w-5" />
+          </Link>
         </div>
 
         {/* Carrusel */}

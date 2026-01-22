@@ -1,12 +1,15 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Save, Eye, Loader2, Upload, Sparkles, Image as ImageIcon } from 'lucide-react'
+import { X, Save, Eye, Loader2, Upload, Sparkles, Image as ImageIcon, Calendar, Clock, Tag } from 'lucide-react'
 import { BlogPost, BlogStatus, ImageData } from '@/types'
 import { createBlogInFirestore, updateBlogInFirestore } from '@/lib/firebase/blogs'
 import { uploadBlogImage } from '@/lib/firebase/storage'
 import { calculateReadingTime } from '@/lib/utils'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import remarkBreaks from 'remark-breaks'
+import type { Components } from 'react-markdown'
 
 interface BlogFormProps {
   blog?: BlogPost
@@ -249,6 +252,46 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
     }
   }
 
+  // Componentes personalizados para el renderizado de Markdown (igual que en la página publicada)
+  const markdownComponents: Components = {
+    p: ({ ...props }) => (
+      <p className="mb-6 leading-7 text-gray-700" {...props} />
+    ),
+    h2: ({ ...props }) => (
+      <h2 className="mb-4 mt-8 text-3xl font-bold text-gray-900 first:mt-0" {...props} />
+    ),
+    h3: ({ ...props }) => (
+      <h3 className="mb-3 mt-6 text-2xl font-semibold text-gray-900" {...props} />
+    ),
+    ul: ({ ...props }) => (
+      <ul className="mb-6 ml-6 list-disc space-y-2 text-gray-700" {...props} />
+    ),
+    ol: ({ ...props }) => (
+      <ol className="mb-6 ml-6 list-decimal space-y-2 text-gray-700" {...props} />
+    ),
+    li: ({ ...props }) => (
+      <li className="leading-7" {...props} />
+    ),
+    blockquote: ({ ...props }) => (
+      <blockquote className="my-6 border-l-4 border-primary-500 bg-primary-50 py-4 pl-6 pr-4 italic text-gray-800" {...props} />
+    ),
+    strong: ({ ...props }) => (
+      <strong className="font-bold text-gray-900" {...props} />
+    ),
+    em: ({ ...props }) => (
+      <em className="italic text-gray-800" {...props} />
+    ),
+    hr: ({ ...props }) => (
+      <hr className="my-8 border-gray-300" {...props} />
+    ),
+    a: ({ ...props }) => (
+      <a className="text-primary-600 underline hover:text-primary-700" {...props} />
+    ),
+    img: ({ ...props }) => (
+      <img className="my-6 w-full rounded-lg" {...props} />
+    ),
+  }
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50">
       <div className="flex min-h-screen items-center justify-center p-4">
@@ -278,21 +321,79 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
           {/* Content */}
           <div className="max-h-[calc(100vh-200px)] overflow-y-auto p-6">
             {showPreview ? (
-              <div className="prose prose-lg max-w-none">
+              <div className="bg-gray-50 min-h-screen">
+                {/* Hero Image */}
                 {featuredImage && (
-                  <img
-                    src={featuredImage.url}
-                    alt={featuredImage.alt}
-                    className="mb-6 w-full rounded-lg"
-                  />
-                )}
-                <h1>{title || 'Sin título'}</h1>
-                {excerpt && (
-                  <div className="mb-6 rounded-lg border-l-4 border-primary-500 bg-primary-50 p-4">
-                    <p className="text-lg font-medium">{excerpt}</p>
+                  <div className="mb-8">
+                    <img
+                      src={featuredImage.url}
+                      alt={featuredImage.alt || title}
+                      className="h-64 md:h-96 w-full object-cover rounded-lg"
+                    />
                   </div>
                 )}
-                <ReactMarkdown>{content || '*Sin contenido*'}</ReactMarkdown>
+
+                {/* Content */}
+                <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+                  {/* Header */}
+                  <header className="mb-8">
+                    {/* Tags */}
+                    {tags.length > 0 && (
+                      <div className="mb-4 flex flex-wrap gap-2">
+                        {tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="inline-flex items-center rounded-full bg-primary-100 px-3 py-1 text-sm font-medium text-primary-800"
+                          >
+                            <Tag className="mr-1 h-4 w-4" />
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Title */}
+                    <h1 className="mb-4 text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
+                      {title || 'Sin título'}
+                    </h1>
+
+                    {/* Metadata */}
+                    <div className="flex flex-wrap items-center gap-6 text-sm text-gray-600">
+                      <div>
+                        <span className="font-medium">Por Peak Explorer</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-4 w-4" />
+                        <span>{new Date().toLocaleDateString('es-ES', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-4 w-4" />
+                        <span>{calculateReadingTime(content || '')} min lectura</span>
+                      </div>
+                    </div>
+                  </header>
+
+                  {/* Excerpt */}
+                  {excerpt && (
+                    <div className="mb-8 rounded-lg border-l-4 border-primary-500 bg-primary-50 p-4">
+                      <p className="text-lg font-medium text-gray-800">{excerpt}</p>
+                    </div>
+                  )}
+
+                  {/* Content */}
+                  <div className="prose prose-lg max-w-none">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm, remarkBreaks] as any}
+                      components={markdownComponents}
+                    >
+                      {content || '*Sin contenido*'}
+                    </ReactMarkdown>
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="space-y-6">
@@ -435,7 +536,7 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
                     <div className="flex items-center space-x-2">
                       <label className="flex cursor-pointer items-center space-x-1 rounded-md border border-gray-300 bg-white px-3 py-1 text-sm text-gray-700 hover:bg-gray-50">
                         <Upload className="h-4 w-4" />
-                        <span>Insertar Imagen</span>
+                        <span>Insertar Imagenes</span>
                         <input
                           type="file"
                           accept="image/*"

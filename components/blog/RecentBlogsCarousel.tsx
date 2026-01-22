@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import Link from 'next/link'
+import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react'
 import { BlogPost } from '@/types'
 import { BlogCard } from './BlogCard'
 
@@ -77,13 +78,22 @@ export function RecentBlogsCarousel({ blogs, title = 'Artículos Recientes' }: R
     <section className="py-12 bg-gray-50">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Título */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
-            {title}
-          </h2>
-          <p className="mt-2 text-lg text-gray-600">
-            Descubre más artículos sobre montaña y aventuras
-          </p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
+              {title}
+            </h2>
+            <p className="mt-2 text-lg text-gray-600">
+              Descubre más artículos sobre montaña y aventuras
+            </p>
+          </div>
+          <Link
+            href="/blog"
+            className="hidden sm:flex items-center text-primary-600 hover:text-primary-700 font-medium"
+          >
+            Ver todas
+            <ArrowRight className="ml-2 h-5 w-5" />
+          </Link>
         </div>
 
         {/* Carrusel */}
