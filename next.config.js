@@ -35,6 +35,8 @@ const nextConfig = {
         'https://*.mapbox.com',
         'https://*.googleapis.com',
         'https://*.gstatic.com',
+        'https://www.googletagmanager.com', // Google Analytics
+        'https://*.google-analytics.com', // Google Analytics
         'https://*.firebaseapp.com',
         'https://*.firebase.com',
       ],
@@ -75,6 +77,9 @@ const nextConfig = {
         'https://api.mapbox.com',
         'https://*.mapbox.com',
         'https://*.googleapis.com',
+        'https://www.googletagmanager.com', // Google Analytics
+        'https://*.google-analytics.com', // Google Analytics
+        'https://*.analytics.google.com', // Google Analytics
         'https://*.firebaseapp.com',
         'https://*.firebase.com',
         'https://api.twitter.com',
