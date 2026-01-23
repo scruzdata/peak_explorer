@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Image from 'next/image'
+import NextImage from 'next/image'
 import { X, Save, Eye, Loader2, Upload, Sparkles, Image as ImageIcon, Calendar, Clock, Tag } from 'lucide-react'
 import { BlogPost, BlogStatus, ImageData } from '@/types'
 import { createBlogInFirestore, updateBlogInFirestore } from '@/lib/firebase/blogs'
@@ -327,7 +327,7 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
                 {/* Hero Image */}
                 {featuredImage && (
                   <div className="mb-8">
-                    <Image
+                    <NextImage
                       src={featuredImage.url}
                       alt={featuredImage.alt || title}
                       width={featuredImage.width || 1200}
@@ -469,7 +469,7 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
                   </p>
                   {featuredImage ? (
                     <div className="relative rounded-lg border-2 border-gray-200 overflow-hidden">
-                      <Image
+                      <NextImage
                         src={featuredImage.url}
                         alt={featuredImage.alt || title}
                         width={featuredImage.width || 1200}
