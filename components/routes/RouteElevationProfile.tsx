@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useCallback, useState } from 'react'
 import { Route } from '@/types'
-import { TrendingUp } from 'lucide-react'
+import { TrendingUp, ArrowDown, ArrowUp, TrendingDown } from 'lucide-react'
 import { calculateSlope, getSlopeColor } from '@/lib/utils'
 
 interface RouteElevationProfileProps {
@@ -10,13 +10,14 @@ interface RouteElevationProfileProps {
   onHoverTrackIndex?: (index: number | null) => void
   highlightedTrackIndex?: number | null // Índice del track resaltado externamente (p.ej. desde el mapa)
   compact?: boolean // Modo compacto para usar en el mapa
+  onWaypointClick?: (waypointIndex: number) => void // Callback cuando se hace click en un waypoint
 }
 
 /**
  * Componente que muestra el perfil de elevación de la ruta
  * Genera un gráfico de línea mostrando la elevación a lo largo del track
  */
-export function RouteElevationProfile({ route, onHoverTrackIndex, highlightedTrackIndex, compact = false }: RouteElevationProfileProps) {
+export function RouteElevationProfile({ route, onHoverTrackIndex, highlightedTrackIndex, compact = false, onWaypointClick }: RouteElevationProfileProps) {
   /**
    * Calcula los datos del perfil de elevación a partir del track
    */
@@ -80,18 +81,20 @@ export function RouteElevationProfile({ route, onHoverTrackIndex, highlightedTra
 
   // Hooks deben estar siempre al inicio, antes de cualquier return condicional
   const svgRef = useRef<SVGSVGElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+  const [hoverData, setHoverData] = useState<{ distance: number; elevation: number; x: number } | null>(null)
   
   // El índice a mostrar es el hovered (del perfil) o el highlighted (del mapa), dando prioridad al hovered
   const displayIndex = hoveredIndex !== null ? hoveredIndex : highlightedTrackIndex ?? null
 
   // Dimensiones del gráfico - ajustadas para modo compacto
   const width = compact ? 400 : 800
-  const height = compact ? 120 : 200
-  // Reducimos padding lateral e inferior para que el gráfico aproveche mejor el espacio
+  const height = compact ? 120 : 140
+  // Padding ajustado para que los ticks no se corten
   const padding = compact 
-    ? { top: 5, right: 12, bottom: 1, left: 30 }
-    : { top: 10, right: 24, bottom: 1, left: 50 }
+    ? { top: 5, right: 12, bottom: 25, left: 40 }
+    : { top: 8, right: 20, bottom: 25, left: 45 }
   const chartWidth = width - padding.left - padding.right
   const chartHeight = height - padding.top - padding.bottom
 
@@ -104,24 +107,32 @@ export function RouteElevationProfile({ route, onHoverTrackIndex, highlightedTra
    * Maneja el movimiento del mouse sobre el SVG para detectar qué punto del track está bajo el cursor
    */
   const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    if (!svgRef.current || !onHoverTrackIndex || !elevationData) return
+    if (!svgRef.current || !containerRef.current || !elevationData) return
 
-    const rect = svgRef.current.getBoundingClientRect()
+    const svgRect = svgRef.current.getBoundingClientRect()
+    const containerRect = containerRef.current.getBoundingClientRect()
+    
     // Calcular la posición X relativa al SVG, considerando el viewBox
-    const svgX = ((e.clientX - rect.left) / rect.width) * width
+    const svgX = ((e.clientX - svgRect.left) / svgRect.width) * width
     const chartX = svgX - padding.left
+    
+    // Calcular la posición X relativa al contenedor para el tooltip
+    const containerX = e.clientX - containerRect.left
     
     // Si el mouse está fuera del área del gráfico, no hacer nada
     if (chartX < 0 || chartX > chartWidth) {
       setHoveredIndex(null)
-      onHoverTrackIndex(null)
+      setHoverData(null)
+      if (onHoverTrackIndex) {
+        onHoverTrackIndex(null)
+      }
       return
     }
 
     // Calcular la distancia correspondiente a la posición X del mouse
     const distance = (chartX / scaleX)
     
-    // Encontrar el índice del punto más cercano
+    // Encontrar el índice del punto más cercano y calcular elevación interpolada
     let closestIndex = 0
     let minDiff = Math.abs(elevationData.distances[0] - distance)
     
@@ -133,8 +144,28 @@ export function RouteElevationProfile({ route, onHoverTrackIndex, highlightedTra
       }
     }
     
+    // Interpolar la elevación entre los puntos más cercanos
+    let elevation = elevationData.elevations[closestIndex]
+    if (closestIndex < elevationData.distances.length - 1) {
+      const prevDist = elevationData.distances[closestIndex]
+      const nextDist = elevationData.distances[closestIndex + 1]
+      if (distance >= prevDist && distance <= nextDist && nextDist !== prevDist) {
+        const ratio = (distance - prevDist) / (nextDist - prevDist)
+        elevation = elevationData.elevations[closestIndex] + 
+          (elevationData.elevations[closestIndex + 1] - elevationData.elevations[closestIndex]) * ratio
+      }
+    }
+    
     setHoveredIndex(closestIndex)
-    onHoverTrackIndex(closestIndex)
+    setHoverData({
+      distance,
+      elevation,
+      x: containerX
+    })
+    
+    if (onHoverTrackIndex) {
+      onHoverTrackIndex(closestIndex)
+    }
   }, [elevationData, scaleX, chartWidth, padding.left, width, onHoverTrackIndex])
 
   /**
@@ -142,6 +173,7 @@ export function RouteElevationProfile({ route, onHoverTrackIndex, highlightedTra
    */
   const handleMouseLeave = useCallback(() => {
     setHoveredIndex(null)
+    setHoverData(null)
     if (onHoverTrackIndex) {
       onHoverTrackIndex(null)
     }
@@ -224,38 +256,67 @@ export function RouteElevationProfile({ route, onHoverTrackIndex, highlightedTra
   }
 
   return (
-    <div className={`rounded-lg border border-gray-200 bg-white ${compact ? 'p-2' : 'p-6'} relative`}>
-      <h3 className={`${compact ? 'mb-2 text-xs' : 'mb-4 text-lg'} font-semibold flex items-center`}>
+    <div ref={containerRef} className={`rounded-lg border border-gray-200 bg-white ${compact ? 'p-2' : 'p-4'} relative`}>
+      <h3 className={`${compact ? 'mb-2 text-xs' : 'mb-2 text-lg'} font-semibold flex items-center`}>
         <TrendingUp className={`${compact ? 'mr-1 h-3 w-3' : 'mr-2 h-5 w-5'} text-primary-600`} />
         Perfil de Elevación
       </h3>
 
+      {/* Tooltip con datos de hover en tiempo real */}
+      {hoverData && !compact && (
+        <div 
+          className="absolute bg-gray-900 text-white px-1.5 py-0.5 rounded shadow-lg z-20 pointer-events-none"
+          style={{
+            left: `${hoverData.x}px`,
+            top: '35px',
+            transform: 'translateX(-50%)',
+            fontSize: '9px'
+          }}
+        >
+          <div className="flex items-center gap-1.5">
+            <div>
+              <div className="text-[7px] text-gray-300">Distancia</div>
+              <div className="text-[9px] font-semibold">{hoverData.distance.toFixed(2)} km</div>
+            </div>
+            <div className="h-3.5 w-px bg-gray-600"></div>
+            <div>
+              <div className="text-[7px] text-gray-300">Elevación</div>
+              <div className="text-[9px] font-semibold">{Math.round(hoverData.elevation)} m</div>
+            </div>
+          </div>
+          {/* Flecha hacia abajo */}
+          <div 
+            className="absolute -bottom-0.5 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 rotate-45 bg-gray-900"
+          ></div>
+        </div>
+      )}
+
       {/* Leyenda de colores - esquina superior derecha */}
       {!compact && (
-        <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm border border-gray-200 rounded px-1.5 py-1 shadow-sm z-10">
-          <div className="text-[9px] font-semibold text-gray-700 mb-0.5">Pendiente:</div>
+        <div className="absolute top-2 right-3 bg-white/95 backdrop-blur-sm border border-gray-200 rounded px-1 py-0.5 shadow-sm z-10">
+          <div className="text-[7px] font-semibold text-gray-700 mb-0.5">Pendiente:</div>
           <div className="space-y-0.5">
-            <div className="flex items-center gap-1">
-              <div className="h-1.5 w-3 rounded" style={{ backgroundColor: '#22c55e' }}></div>
-              <span className="text-[8px] text-gray-600">Suave (0-5%)</span>
+            <div className="flex items-center gap-0.5">
+              <div className="h-1 w-2.5 rounded" style={{ backgroundColor: '#22c55e' }}></div>
+              <span className="text-[7px] text-gray-600">Suave (0-5%)</span>
             </div>
-            <div className="flex items-center gap-1">
-              <div className="h-1.5 w-3 rounded" style={{ backgroundColor: '#eab308' }}></div>
-              <span className="text-[8px] text-gray-600">Moderada (5-10%)</span>
+            <div className="flex items-center gap-0.5">
+              <div className="h-1 w-2.5 rounded" style={{ backgroundColor: '#eab308' }}></div>
+              <span className="text-[7px] text-gray-600">Moderada (5-10%)</span>
             </div>
-            <div className="flex items-center gap-1">
-              <div className="h-1.5 w-3 rounded" style={{ backgroundColor: '#f97316' }}></div>
-              <span className="text-[8px] text-gray-600">Fuerte (10-20%)</span>
+            <div className="flex items-center gap-0.5">
+              <div className="h-1 w-2.5 rounded" style={{ backgroundColor: '#f97316' }}></div>
+              <span className="text-[7px] text-gray-600">Fuerte (10-20%)</span>
             </div>
-            <div className="flex items-center gap-1">
-              <div className="h-1.5 w-3 rounded" style={{ backgroundColor: '#ef4444' }}></div>
-              <span className="text-[8px] text-gray-600">Muy fuerte (&gt;20%)</span>
+            <div className="flex items-center gap-0.5">
+              <div className="h-1 w-2.5 rounded" style={{ backgroundColor: '#ef4444' }}></div>
+              <span className="text-[7px] text-gray-600">Muy fuerte (&gt;20%)</span>
             </div>
           </div>
         </div>
       )}
       
-      <div className={`overflow-x-auto ${compact ? 'max-h-[140px]' : ''}`}>
+      <div className={`overflow-x-auto ${compact ? 'max-h-[140px]' : 'mt-9'}`}>
         <svg
           ref={svgRef}
           width={width}
@@ -417,7 +478,7 @@ export function RouteElevationProfile({ route, onHoverTrackIndex, highlightedTra
             
             // Calcular la posición Y del waypoint (más arriba que su elevación real)
             // Añadir un offset hacia arriba (aproximadamente 5-10% del rango de elevación)
-            const elevationOffset = elevationRange * 0.08 // 8% del rango hacia arriba
+            const elevationOffset = elevationRange * 0.5 // 50% del rango hacia arriba
             const waypointY = padding.top + chartHeight - ((waypointElevation + elevationOffset) - minElevation) * scaleY
             
             // Asegurar que el waypoint no esté fuera del área del gráfico
@@ -429,7 +490,21 @@ export function RouteElevationProfile({ route, onHoverTrackIndex, highlightedTra
             const arrowColor = '#b8860b' // DarkGoldenrod - amarillento oscuro
             
             return (
-              <g key={`waypoint-${index}`} className="waypoint-marker">
+              <g 
+                key={`waypoint-${index}`} 
+                className="waypoint-marker"
+                style={{ cursor: onWaypointClick ? 'pointer' : 'default' }}
+                onClick={() => onWaypointClick?.(index)}
+              >
+                {/* Área invisible más grande para facilitar el click */}
+                <circle
+                  cx={waypointX}
+                  cy={clampedWaypointY}
+                  r="20"
+                  fill="transparent"
+                  pointerEvents="all"
+                />
+                
                 {/* Línea vertical desde el waypoint hasta el track */}
                 <line
                   x1={waypointX}
@@ -443,11 +518,11 @@ export function RouteElevationProfile({ route, onHoverTrackIndex, highlightedTra
                 />
                 
                 {/* Flecha hacia abajo en el track */}
-                <path
+                {/* <path
                   d={`M ${waypointX} ${trackY} L ${waypointX - arrowHeadSize} ${trackY + arrowHeadSize} L ${waypointX + arrowHeadSize} ${trackY + arrowHeadSize} Z`}
                   fill={arrowColor}
                   opacity="0.9"
-                />
+                /> */}
                 
                 {/* Gota de agua en la posición del waypoint (más arriba) */}
                 <g transform={`translate(${waypointX}, ${clampedWaypointY})`}>
@@ -474,9 +549,9 @@ export function RouteElevationProfile({ route, onHoverTrackIndex, highlightedTra
                   <g>
                     {/* Fondo del texto */}
                     <rect
-                      x={waypointX - (waypoint.name.length * (compact ? 3.5 : 4.5)) / 2}
+                      x={waypointX - (waypoint.name.length * (compact ? 1 : 6)) / 2}
                       y={clampedWaypointY - (compact ? 20 : 25)}
-                      width={waypoint.name.length * (compact ? 3.5 : 4.5)}
+                      width={waypoint.name.length * (compact ? 3 : 6)}
                       height={compact ? 11 : 13}
                       fill="white"
                       fillOpacity="0.95"
@@ -503,18 +578,27 @@ export function RouteElevationProfile({ route, onHoverTrackIndex, highlightedTra
       </div>
       
       {/* Estadísticas */}
-      <div className={`${compact ? 'mt-2 grid grid-cols-3 gap-2 border-t border-gray-100 pt-2' : 'mt-4 grid grid-cols-3 gap-4 border-t border-gray-100 pt-4'}`}>
-        <div>
-          <div className={`${compact ? 'text-[9px]' : 'text-xs'} text-gray-500`}>Elevación mínima</div>
-          <div className={`${compact ? 'text-xs' : 'text-lg'} font-semibold text-gray-900`}>{Math.round(minElevation)}m</div>
+      <div className={`${compact ? 'mt-2 grid grid-cols-3 gap-2 border-t border-gray-100 pt-2' : 'mt-2 grid grid-cols-3 gap-3 border-t border-gray-100 pt-2'}`}>
+        <div className="text-center">
+          <div className={`${compact ? 'text-[9px]' : 'text-[10px]'} text-gray-500 flex items-center justify-center gap-1`}>
+            <ArrowDown className={`${compact ? 'h-2.5 w-2.5' : 'h-3 w-3'}`} />
+            Elevación mínima
+          </div>
+          <div className={`${compact ? 'text-xs' : 'text-sm'} font-semibold text-gray-900`}>{Math.round(minElevation)}m</div>
         </div>
-        <div>
-          <div className={`${compact ? 'text-[9px]' : 'text-xs'} text-gray-500`}>Elevación máxima</div>
-          <div className={`${compact ? 'text-xs' : 'text-lg'} font-semibold text-gray-900`}>{Math.round(maxElevation)}m</div>
+        <div className="text-center">
+          <div className={`${compact ? 'text-[9px]' : 'text-[10px]'} text-gray-500 flex items-center justify-center gap-1`}>
+            <ArrowUp className={`${compact ? 'h-2.5 w-2.5' : 'h-3 w-3'}`} />
+            Elevación máxima
+          </div>
+          <div className={`${compact ? 'text-xs' : 'text-sm'} font-semibold text-gray-900`}>{Math.round(maxElevation)}m</div>
         </div>
-        <div>
-          <div className={`${compact ? 'text-[9px]' : 'text-xs'} text-gray-500`}>Desnivel total</div>
-          <div className={`${compact ? 'text-xs' : 'text-lg'} font-semibold text-gray-900`}>{Math.round(maxElevation - minElevation)}m</div>
+        <div className="text-center">
+          <div className={`${compact ? 'text-[9px]' : 'text-[10px]'} text-gray-500 flex items-center justify-center gap-1`}>
+            <TrendingUp className={`${compact ? 'h-2.5 w-2.5' : 'h-3 w-3'}`} />
+            Desnivel total
+          </div>
+          <div className={`${compact ? 'text-xs' : 'text-sm'} font-semibold text-gray-900`}>{Math.round(maxElevation - minElevation)}m</div>
         </div>
       </div>
     </div>

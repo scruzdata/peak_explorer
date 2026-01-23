@@ -106,6 +106,7 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
   const [showCompletionModal, setShowCompletionModal] = useState(false)
   const [hoveredTrackIndex, setHoveredTrackIndex] = useState<number | null>(null) // Desde el perfil de elevación
   const [mapHoveredTrackIndex, setMapHoveredTrackIndex] = useState<number | null>(null) // Desde el mapa
+  const [selectedWaypoint, setSelectedWaypoint] = useState<number | null>(null) // Waypoint seleccionado desde el perfil de elevación
   const [showDogsInfo, setShowDogsInfo] = useState(false)
   const [showApproachInfo, setShowApproachInfo] = useState(false)
   const [showReturnInfo, setShowReturnInfo] = useState(false)
@@ -443,7 +444,7 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
                 </section>
               )}
 
-              {/* Map */}
+              {/* Map and Elevation Profile */}
               <section>
                 <h2 className="mb-4 text-2xl font-bold">Mapa y Track GPX</h2>
                 <div className="h-96 rounded-lg overflow-hidden border border-gray-200">
@@ -451,17 +452,18 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
                     route={route} 
                     hoveredTrackIndex={hoveredTrackIndex}
                     onMapHoverTrackIndex={setMapHoveredTrackIndex}
+                    selectedWaypoint={selectedWaypoint}
+                    onWaypointSelect={setSelectedWaypoint}
                   />
                 </div>
-              </section>
-
-              {/* Elevation Profile */}
-              <section className="mt-6">
-                <RouteElevationProfile 
-                  route={route} 
-                  onHoverTrackIndex={setHoveredTrackIndex}
-                  highlightedTrackIndex={mapHoveredTrackIndex}
-                />
+                <div className="mt-2">
+                  <RouteElevationProfile 
+                    route={route} 
+                    onHoverTrackIndex={setHoveredTrackIndex}
+                    highlightedTrackIndex={mapHoveredTrackIndex}
+                    onWaypointClick={setSelectedWaypoint}
+                  />
+                </div>
               </section>
 
               {/* Storytelling */}

@@ -74,13 +74,15 @@ interface RouteMapProps {
   route: Route
   hoveredTrackIndex?: number | null
   onMapHoverTrackIndex?: (index: number | null) => void
+  selectedWaypoint?: number | null
+  onWaypointSelect?: (index: number | null) => void
 }
 
 /**
  * Componente que muestra el mapa de la ruta usando Mapbox
  * Muestra solo los POIs del parking con iconos de coche
  */
-export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex }: RouteMapProps) {
+export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selectedWaypoint: externalSelectedWaypoint, onWaypointSelect }: RouteMapProps) {
   const [selectedParking, setSelectedParking] = useState<number | null>(null)
   const [mapStyle, setMapStyle] = useState<'satellite-streets-v12' | 'outdoors-v12'>('outdoors-v12')
   const [is3D, setIs3D] = useState(false)
@@ -89,9 +91,21 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex }: Rou
   const [showParking, setShowParking] = useState(true)
   const [showRestaurants, setShowRestaurants] = useState(true)
   const [showTrack, setShowTrack] = useState(true)
+  const [showWaypoints, setShowWaypoints] = useState(true)
   const [showSlopeColors, setShowSlopeColors] = useState(false)
   const [selectedRestaurant, setSelectedRestaurant] = useState<number | null>(null)
-  const [selectedWaypoint, setSelectedWaypoint] = useState<number | null>(null)
+  const [internalSelectedWaypoint, setInternalSelectedWaypoint] = useState<number | null>(null)
+  
+  // Usar el waypoint externo si está disponible, sino usar el interno
+  const selectedWaypoint = externalSelectedWaypoint !== undefined ? externalSelectedWaypoint : internalSelectedWaypoint
+  const setSelectedWaypoint = onWaypointSelect || setInternalSelectedWaypoint
+
+  // Si ocultamos waypoints, cerrar el popup/selección actual
+  useEffect(() => {
+    if (!showWaypoints && selectedWaypoint !== null) {
+      setSelectedWaypoint(null)
+    }
+  }, [showWaypoints, selectedWaypoint, setSelectedWaypoint])
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isInteractive, setIsInteractive] = useState(false)
@@ -928,7 +942,7 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex }: Rou
         ))}
 
         {/* Marcadores de waypoints (puntos de interés) */}
-        {route.waypoints && route.waypoints.length > 0 && route.waypoints.map((waypoint, index) => {
+        {showWaypoints && route.waypoints && route.waypoints.length > 0 && route.waypoints.map((waypoint, index) => {
           const WaypointIcon = getWaypointIconComponent(waypoint.type)
           
           return (
@@ -1053,7 +1067,7 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex }: Rou
           title="Resetear vista del mapa"
         >
           <RotateCcw className="h-3 w-3" />
-          <span>Resetear</span>
+          {/* <span>Resetear</span> */}
         </button>
         <button
           onClick={() => setIsFullscreen(true)}
@@ -1061,7 +1075,7 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex }: Rou
           title="Ver mapa en pantalla completa"
         >
           <Maximize2 className="h-3 w-3" />
-          <span>Pantalla completa</span>
+          {/* <span></span> */}
         </button>
       </div>
 
@@ -1167,6 +1181,23 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex }: Rou
               >
                 {showRestaurants ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
                 <span>Restaurantes</span>
+              </button>
+            )}
+            {route.waypoints && route.waypoints.length > 0 && (
+              <button
+                onClick={() => {
+                  setShowWaypoints(!showWaypoints)
+                  setIsMenuOpen(false)
+                }}
+                className={`px-2 py-1.5 text-left hover:bg-gray-50 transition-colors text-xs font-medium flex items-center gap-1.5 ${
+                  showWaypoints
+                    ? 'text-gray-700'
+                    : 'text-gray-500'
+                }`}
+                title="Mostrar/ocultar waypoints"
+              >
+                {showWaypoints ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                <span>Waypoints</span>
               </button>
             )}
           </div>
@@ -1448,6 +1479,113 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex }: Rou
                     )}
                   </Marker>
                 ))}
+
+                {/* Marcadores de waypoints (puntos de interés) en pantalla completa */}
+                {showWaypoints && route.waypoints && route.waypoints.length > 0 && route.waypoints.map((waypoint, index) => {
+                  const WaypointIcon = getWaypointIconComponent(waypoint.type)
+
+                  return (
+                    <Marker
+                      key={`fullscreen-waypoint-${index}`}
+                      longitude={waypoint.lng}
+                      latitude={waypoint.lat}
+                      anchor="bottom"
+                    >
+                      <div
+                        className="cursor-pointer"
+                        onClick={() => setSelectedWaypoint(selectedWaypoint === index ? null : index)}
+                      >
+                        <div className="relative">
+                          {/* Forma de gota de agua más pequeña y color amarillento oscuro */}
+                          <div
+                            className="shadow-lg hover:opacity-90 transition-opacity"
+                            style={{
+                              width: '22px',
+                              height: '28px',
+                              borderRadius: '50% 50% 50% 0',
+                              transform: 'rotate(-45deg)',
+                              position: 'relative',
+                              backgroundColor: '#b8860b', // DarkGoldenrod - amarillento oscuro
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            {/* Icono rotado para compensar la rotación del fondo */}
+                            <div style={{ transform: 'rotate(45deg)' }}>
+                              <WaypointIcon className="h-3 w-3 text-white" />
+                            </div>
+                          </div>
+                          {/* Punto inferior de la gota */}
+                          <div
+                            style={{
+                              width: '6px',
+                              height: '6px',
+                              borderRadius: '50%',
+                              bottom: '-3px',
+                              left: '50%',
+                              transform: 'translateX(-50%)',
+                              backgroundColor: '#b8860b',
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                              position: 'absolute',
+                            }}
+                          />
+                        </div>
+                      </div>
+                      {selectedWaypoint === index && (
+                        <Popup
+                          longitude={waypoint.lng}
+                          latitude={waypoint.lat}
+                          anchor="bottom"
+                          onClose={() => setSelectedWaypoint(null)}
+                          closeButton={true}
+                          closeOnClick={false}
+                          className="waypoint-popup"
+                        >
+                          <div className="p-1.5 min-w-[120px] rounded-xl bg-white border border-gray-200 shadow-xl">
+                            <div className="flex items-start gap-1.5">
+                              <div className="flex-shrink-0 w-5 h-5 rounded-md bg-gradient-to-br from-amber-600 to-amber-700 flex items-center justify-center shadow-md">
+                                <WaypointIcon className="h-2.5 w-2.5 text-white" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-bold text-[11px] text-gray-900 mb-0.5 leading-tight">
+                                  {waypoint.name || `Punto de interés ${index + 1}`}
+                                </h3>
+                                {waypoint.description && (
+                                  <p className="text-[9px] text-gray-600 mb-1 leading-tight">
+                                    {waypoint.description}
+                                  </p>
+                                )}
+                                {waypoint.elevation !== undefined && (
+                                  <p className="text-[9px] text-gray-500 mb-1 leading-tight">
+                                    Elevación: {Math.round(waypoint.elevation)}m
+                                  </p>
+                                )}
+                                {waypoint.distance !== undefined && (
+                                  <p className="text-[9px] text-gray-500 mb-1 leading-tight">
+                                    Distancia: {waypoint.distance.toFixed(2)} km
+                                  </p>
+                                )}
+                                <p className="text-[9px] font-mono text-gray-500 mb-1 leading-tight">
+                                  {waypoint.lat.toFixed(6)}, {waypoint.lng.toFixed(6)}
+                                </p>
+                                <a
+                                  href={`https://www.google.com/maps?q=${waypoint.lat},${waypoint.lng}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-0.5 text-[9px] text-amber-600 hover:text-amber-700 font-semibold transition-colors"
+                                >
+                                  <ExternalLink className="h-2.5 w-2.5" />
+                                  <span>Google Maps</span>
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                        </Popup>
+                      )}
+                    </Marker>
+                  )
+                })}
               </Map>
             </div>
 
@@ -1553,6 +1691,23 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex }: Rou
                       <span>Restaurantes</span>
                     </button>
                   )}
+                  {route.waypoints && route.waypoints.length > 0 && (
+                    <button
+                      onClick={() => {
+                        setShowWaypoints(!showWaypoints)
+                        setIsMenuOpen(false)
+                      }}
+                      className={`px-2 py-1.5 text-left hover:bg-gray-50 transition-colors text-xs font-medium flex items-center gap-1.5 ${
+                        showWaypoints
+                          ? 'text-gray-700'
+                          : 'text-gray-500'
+                      }`}
+                      title="Mostrar/ocultar waypoints"
+                    >
+                      {showWaypoints ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                      <span>Waypoints</span>
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -1565,7 +1720,7 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex }: Rou
                 title="Resetear vista del mapa"
               >
                 <RotateCcw className="h-3 w-3" />
-                <span>Resetear</span>
+                {/* <span>Resetear</span> */}
               </button>
             </div>
 
