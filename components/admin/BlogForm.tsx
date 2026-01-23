@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { X, Save, Eye, Loader2, Upload, Sparkles, Image as ImageIcon, Calendar, Clock, Tag } from 'lucide-react'
 import { BlogPost, BlogStatus, ImageData } from '@/types'
 import { createBlogInFirestore, updateBlogInFirestore } from '@/lib/firebase/blogs'
@@ -287,8 +288,9 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
     a: ({ ...props }) => (
       <a className="text-primary-600 underline hover:text-primary-700" {...props} />
     ),
-    img: ({ ...props }) => (
-      <img className="my-6 w-full rounded-lg" {...props} />
+    img: (props) => (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img className="my-6 w-full rounded-lg" alt={(props as any).alt || ''} {...props} />
     ),
   }
 
@@ -325,9 +327,11 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
                 {/* Hero Image */}
                 {featuredImage && (
                   <div className="mb-8">
-                    <img
+                    <Image
                       src={featuredImage.url}
                       alt={featuredImage.alt || title}
+                      width={featuredImage.width || 1200}
+                      height={featuredImage.height || 800}
                       className="h-64 md:h-96 w-full object-cover rounded-lg"
                     />
                   </div>
@@ -465,9 +469,11 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
                   </p>
                   {featuredImage ? (
                     <div className="relative rounded-lg border-2 border-gray-200 overflow-hidden">
-                      <img
+                      <Image
                         src={featuredImage.url}
-                        alt={featuredImage.alt}
+                        alt={featuredImage.alt || title}
+                        width={featuredImage.width || 1200}
+                        height={featuredImage.height || 800}
                         className="h-64 w-full object-cover"
                       />
                       <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center">
