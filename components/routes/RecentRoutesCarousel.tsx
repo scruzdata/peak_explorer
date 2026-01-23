@@ -124,12 +124,12 @@ export function RecentRoutesCarousel({ routes, type, title }: RecentRoutesCarous
           {/* Contenedor del carrusel */}
           <div
             ref={scrollContainerRef}
-            className="flex-1 flex gap-8 overflow-x-auto scrollbar-hide scroll-smooth pb-4"
+            className="flex-1 flex gap-6 overflow-x-auto scrollbar-hide scroll-smooth pb-4"
           >
             {routes.map((route) => (
               <div
                 key={route.id}
-                className="flex-shrink-0 w-full sm:w-80 lg:w-96"
+                className="flex-shrink-0 w-full sm:w-64 lg:w-72"
               >
                 <RouteCard route={route} type={type} />
               </div>

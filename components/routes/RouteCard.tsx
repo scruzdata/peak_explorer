@@ -376,7 +376,7 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
           onDoubleClick?.()
         }}
       >
-        <div className="relative h-48 overflow-hidden group/image">
+        <div className="relative h-36 overflow-hidden group/image">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentImageIndex}
@@ -399,8 +399,8 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
           
           {/* Rating Badge */}
           {hasRating && (
-            <div className="absolute top-3 right-3 flex items-center gap-1 rounded-full bg-white/90 px-3 py-1 text-sm font-semibold text-gray-900 shadow z-10">
-              <Star className="h-4 w-4 text-amber-500" fill="currentColor" strokeWidth={1.5} />
+            <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-white/90 px-2 py-1 text-xs font-semibold text-gray-900 shadow z-10">
+              <Star className="h-3.5 w-3.5 text-amber-500" fill="currentColor" strokeWidth={1.5} />
               {ratingValue}
             </div>
           )}
@@ -411,34 +411,34 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
               {/* Left Arrow */}
               <button
                 onClick={goToPrevious}
-                className="absolute left-3 top-1/2 -translate-y-1/2 z-20 rounded-full bg-white/90 backdrop-blur-sm p-2 shadow-lg hover:bg-white transition-all opacity-0 group-hover/image:opacity-100"
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-20 rounded-full bg-white/90 backdrop-blur-sm p-1.5 shadow-lg hover:bg-white transition-all opacity-0 group-hover/image:opacity-100"
                 aria-label="Imagen anterior"
               >
-                <ChevronLeft className="h-5 w-5 text-gray-900" />
+                <ChevronLeft className="h-4 w-4 text-gray-900" />
               </button>
               
               {/* Right Arrow */}
               <button
                 onClick={goToNext}
-                className="absolute right-3 top-1/2 -translate-y-1/2 z-20 rounded-full bg-white/90 backdrop-blur-sm p-2 shadow-lg hover:bg-white transition-all opacity-0 group-hover/image:opacity-100"
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-20 rounded-full bg-white/90 backdrop-blur-sm p-1.5 shadow-lg hover:bg-white transition-all opacity-0 group-hover/image:opacity-100"
                 aria-label="Siguiente imagen"
               >
-                <ChevronRight className="h-5 w-5 text-gray-900" />
+                <ChevronRight className="h-4 w-4 text-gray-900" />
               </button>
             </>
           )}
 
           {/* Dots Indicator */}
           {hasMultipleImages && (
-            <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-2">
               {allImages.map((_, index) => (
                 <button
                   key={index}
                   onClick={(e) => goToImage(index, e)}
-                  className={`h-2 rounded-full transition-all ${
+                  className={`h-1.5 rounded-full transition-all ${
                     index === currentImageIndex 
-                      ? 'w-8 bg-white' 
-                      : 'w-2 bg-white/60 hover:bg-white/80'
+                      ? 'w-6 bg-white' 
+                      : 'w-1.5 bg-white/60 hover:bg-white/80'
                   }`}
                   aria-label={`Ir a imagen ${index + 1}`}
                 />
@@ -447,7 +447,7 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
           )}
 
           {/* Difficulty/Grade Badge */}
-          <div className="absolute bottom-3 left-3 z-10">
+          <div className="absolute bottom-2 left-2 z-10">
             {type === 'ferrata' && route.ferrataGrade ? (
               <span className={`badge ${getFerrataGradeColor(route.ferrataGrade)}`}>
                 {route.ferrataGrade}
@@ -460,31 +460,31 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
           </div>
         </div>
 
-        <div className="p-6">
-          <h3 className="mb-2 text-xl font-bold text-gray-900 group-hover:text-primary-600 transition-colors">
+        <div className="p-4">
+          <h3 className="mb-1.5 text-lg font-bold text-gray-900 group-hover:text-primary-600 transition-colors">
             {route.title}
           </h3>
-          <p className="mb-4 line-clamp-2 text-gray-600">
+          <p className="mb-3 line-clamp-2 text-sm text-gray-600">
             {route.summary}
           </p>
 
-          <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+          <div className="flex flex-wrap gap-3 text-xs text-gray-600">
             <div className="flex items-center">
-              <MapPin className="mr-1 h-4 w-4" />
+              <MapPin className="mr-1 h-3.5 w-3.5" />
               {formatDistance(route.distance)}
             </div>
             <div className="flex items-center">
-              <TrendingUp className="mr-1 h-4 w-4" />
+              <TrendingUp className="mr-1 h-3.5 w-3.5" />
               {formatElevation(route.elevation)}
             </div>
             <div className="flex items-center">
-              <Clock className="mr-1 h-4 w-4" />
+              <Clock className="mr-1 h-3.5 w-3.5" />
               {route.duration}
             </div>
           </div>
 
-          <div className="mt-4 flex items-center text-sm text-gray-500">
-            <MapPin className="mr-1 h-4 w-4" />
+          <div className="mt-3 flex items-center text-xs text-gray-500">
+            <MapPin className="mr-1 h-3.5 w-3.5" />
             {route.location.region}, {route.location.province}
           </div>
         </div>
