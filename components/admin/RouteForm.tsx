@@ -322,11 +322,14 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
       // Reemplazar completamente el track y waypoints
       track: routeData.track,
       waypoints: routeData.waypoints,
-      // Actualizar coordenadas si vienen del GPX
-      location: routeData.location ? {
-        ...prev.location,
-        coordinates: routeData.location.coordinates || prev.location?.coordinates || { lat: 0, lng: 0 },
-      } : prev.location,
+      // Actualizar SOLO las coordenadas si vienen del GPX, manteniendo región y provincia
+      location:
+        routeData.location?.coordinates && prev.location
+          ? {
+              ...prev.location,
+              coordinates: routeData.location.coordinates,
+            }
+          : prev.location,
     }))
   }
 
