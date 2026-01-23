@@ -4,6 +4,7 @@ import { RouteCard } from '@/components/routes/RouteCard'
 import { getTrekkingRoutesAsync, getFerratasAsync } from '@/lib/routes'
 import { getAllBlogsFromFirestore } from '@/lib/firebase/blogs'
 import { BlogCard } from '@/components/blog/BlogCard'
+import { FerrataClimberIcon } from '@/components/routes/RoutesMapView'
 
 // Forzar recarga dinámica para obtener datos frescos de Firestore
 export const dynamic = 'force-dynamic'
@@ -49,13 +50,13 @@ export default async function HomePage() {
             Descubre rutas de trekking y vías ferratas con guías completas, mapas GPX y consejos de seguridad
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center animate-scale-in">
-            <Link href="/rutas" className="btn-primary text-lg px-8 py-4">
+            <Link href="/rutas" className="btn-secondary text-lg px-8 py-4 bg-white/10 backdrop-blur text-white hover:bg-white/20">
               Ver Rutas de Montaña
-              <ArrowRight className="ml-2 h-5 w-5" />
+              <Mountain className="ml-2 h-5 w-5" />
             </Link>
             <Link href="/vias-ferratas" className="btn-secondary text-lg px-8 py-4 bg-white/10 backdrop-blur text-white hover:bg-white/20">
               Ver Vías Ferratas
-              <Zap className="ml-2 h-5 w-5" />
+              <FerrataClimberIcon className="ml-2 h-10 w-10" />
             </Link>
           </div>
         </div>
@@ -182,7 +183,7 @@ export default async function HomePage() {
             </div>
             <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
               {recentBlogs.map((blog) => (
-                <BlogCard key={blog.id} blog={blog} />
+                <BlogCard key={blog.id} blog={blog} openInNewTab={true} />
               ))}
             </div>
           </div>

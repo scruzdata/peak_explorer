@@ -52,7 +52,7 @@ interface RoutesMapViewProps {
 /**
  * Componente SVG que representa a una persona escalando una vía ferrata con casco, arnés y mochila
  */
-function FerrataClimberIcon({ className, color }: { className?: string; color?: string }) {
+export function FerrataClimberIcon({ className, color }: { className?: string; color?: string }) {
   return (
     <svg
       version="1.0"

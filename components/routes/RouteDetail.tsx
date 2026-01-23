@@ -20,7 +20,6 @@ import {
   TrendingUp, 
   Bookmark, 
   BookmarkCheck, 
-  Download, 
   CheckCircle2,
   ExternalLink,
   AlertTriangle,
@@ -228,33 +227,6 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
     }
   }
 
-  const handleDownloadGPX = () => {
-    // Verificar que existe el GPX antes de descargar
-    if (!route.gpx?.url) {
-      console.warn('No hay archivo GPX disponible para esta ruta')
-      return
-    }
-    
-    // Simular descarga
-    const link = document.createElement('a')
-    link.href = route.gpx.url
-    link.download = route.gpx.filename || 'ruta.gpx'
-    link.click()
-    
-    // Badge por primer GPX descargado
-    if (progress && progress.stats.gpxDownloads === 0) {
-      unlockBadge({
-        id: 'first-gpx',
-        name: 'Primer GPX Descargado',
-        description: 'Has descargado tu primer track GPS',
-        icon: '📥',
-        unlockedAt: new Date().toISOString(),
-        category: 'first',
-      })
-      confetti({ particleCount: 100, spread: 70 })
-    }
-  }
-
   return (
     <>
       <ReadingProgress />
@@ -296,23 +268,6 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
             </div>
           </div>
         </section>
-
-        {/* Action Buttons */}
-        <div className="sticky top-16 z-30 border-b border-gray-200 bg-white/95 backdrop-blur">
-          <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-            <div className="flex flex-wrap items-center gap-4">
-              {route.gpx?.url && (
-                <button
-                  onClick={handleDownloadGPX}
-                  className="flex items-center space-x-2 rounded-lg bg-primary-600 px-4 py-2 font-medium text-white hover:bg-primary-700 transition-colors"
-                >
-                  <Download className="h-5 w-5" />
-                  <span>Descargar GPX</span>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
 
         {/* Main Content */}
         <div className="mx-auto max-w-[95rem] px-4 py-12 sm:px-6 lg:px-8">

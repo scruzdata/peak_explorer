@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { Calendar, Clock, Tag } from 'lucide-react'
 import { calculateReadingTime } from '@/lib/utils'
 
-export function BlogCard({ blog }: { blog: BlogPost }) {
+export function BlogCard({ blog, openInNewTab = false }: { blog: BlogPost; openInNewTab?: boolean }) {
   const readingTime = blog.readingTime || calculateReadingTime(blog.content)
   const publishedDate = blog.publishedAt 
     ? new Date(blog.publishedAt).toLocaleDateString('es-ES', {
@@ -24,6 +24,8 @@ export function BlogCard({ blog }: { blog: BlogPost }) {
     <Link
       href={`/blog/${blog.slug}`}
       className="group block overflow-hidden rounded-lg bg-white shadow-md transition-all duration-300 hover:shadow-xl"
+      target={openInNewTab ? "_blank" : undefined}
+      rel={openInNewTab ? "noopener noreferrer" : undefined}
     >
       {/* Imagen destacada */}
       {blog.featuredImage?.url ? (
