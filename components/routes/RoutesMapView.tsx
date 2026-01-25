@@ -1228,7 +1228,7 @@ export function RoutesMapView({
       </div>
 
       {/* Contador de rutas (todavía más pegado al borde izquierdo para no solapar la tarjeta) */}
-      <div className="absolute bottom-4 left-0 sm:left-1 px-2.5 py-1.5 bg-white rounded-lg shadow-md text-xs text-gray-700">
+      <div className="absolute bottom-4 right-0 sm:right-1 px-2.5 py-1.5 bg-white rounded-lg shadow-md text-xs text-gray-700">
         {type === 'ferrata' ? (
           <>
             {routesWithCoordinates.length} {routesWithCoordinates.length === 1 ? 'vía ferrata' : 'vías ferratas'} en el mapa

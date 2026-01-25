@@ -11,6 +11,7 @@ import { Route, RouteType, Difficulty, FerrataGrade, Season, RouteStatus, RouteT
 import { createRouteInFirestore, updateRouteInFirestore } from '@/lib/routes'
 import { saveTrackInFirestore } from '@/lib/firebase/tracks'
 import { generateSlug } from '@/lib/utils'
+import { uploadRouteImage, uploadFerrataImage } from '@/lib/firebase/storage'
 import { 
   X, 
   Save, 
@@ -22,7 +23,7 @@ import {
   Utensils, 
   Award, 
   Search, 
-  Image, 
+  Image as ImageIcon, 
   Route as RouteIcon, 
   Shield, 
   Video, 
@@ -48,6 +49,7 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
   const isFirestoreRoute = route ? !route.id.startsWith('route-') && !route.id.startsWith('temp-gpx-') : false
   const isEditing = !!route && isFirestoreRoute
   const [loading, setLoading] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
   
   /**
    * Convierte webcams antiguas (string[]) al nuevo formato (WebcamData[])
@@ -527,6 +529,66 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
       gallery.splice(index, 1)
       return { ...prev, gallery }
     })
+  }
+
+  const handleImageUpload = async (file: File, type: 'gallery' | 'hero' = 'gallery') => {
+    if (!file.type.startsWith('image/')) {
+      alert('Por favor selecciona un archivo de imagen')
+      return
+    }
+
+    setUploadingImage(true)
+    try {
+      // Generar el nombre de la carpeta: usar slug si existe, o generar uno del título
+      const routeFolderName = route?.slug || route?.id || (formData.title?.trim() ? generateSlug(formData.title.trim()) : undefined)
+      
+      // Subir según el tipo de ruta
+      const { url } = formData.type === 'ferrata'
+        ? await uploadFerrataImage(file, routeFolderName)
+        : await uploadRouteImage(file, routeFolderName)
+      
+      // Obtener dimensiones de la imagen usando HTMLImageElement
+      const img = document.createElement('img') as HTMLImageElement
+      img.src = url
+      
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve()
+        img.onerror = () => reject(new Error('Error al cargar la imagen'))
+        // Timeout de seguridad
+        setTimeout(() => reject(new Error('Timeout al cargar la imagen')), 10000)
+      })
+
+      const imageData = {
+        url,
+        alt: file.name,
+        width: img.naturalWidth || img.width || 1200,
+        height: img.naturalHeight || img.height || 800,
+      }
+
+      if (type === 'hero') {
+        // Actualizar la imagen principal
+        setFormData(prev => ({
+          ...prev,
+          heroImage: imageData,
+        }))
+        alert('✅ Imagen principal subida correctamente')
+      } else {
+        // Añadir la imagen a la galería
+        setFormData(prev => ({
+          ...prev,
+          gallery: [
+            ...(prev.gallery || []),
+            imageData,
+          ],
+        }))
+        alert('✅ Imagen subida correctamente y añadida a la galería')
+      }
+    } catch (error) {
+      console.error('Error subiendo imagen:', error)
+      alert('Error al subir la imagen. Inténtalo de nuevo.')
+    } finally {
+      setUploadingImage(false)
+    }
   }
 
   type MarkdownAction = 'bold' | 'italic' | 'heading' | 'list' | 'quote' | 'code' | 'break' | 'link'
@@ -1051,6 +1113,37 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
           {/* Imagen Hero */}
           {renderSection('Imagen Principal', (
             <>
+              <div className="mb-4">
+                <label className="flex cursor-pointer items-center justify-center space-x-2 rounded-md border-2 border-dashed border-primary-300 bg-primary-50 px-4 py-3 text-sm text-primary-700 hover:border-primary-400 hover:bg-primary-100">
+                  {uploadingImage ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <span>Subiendo imagen principal...</span>
+                    </>
+                  ) : (
+                    <>
+                      <ImageIcon className="h-5 w-5" />
+                      <span>Subir Imagen Principal</span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) handleImageUpload(file, 'hero')
+                      // Resetear el input para permitir subir la misma imagen de nuevo
+                      e.target.value = ''
+                    }}
+                    className="hidden"
+                    disabled={uploadingImage}
+                  />
+                </label>
+                <p className="mt-2 text-xs text-gray-500">
+                  O introduce manualmente la URL de la imagen
+                </p>
+              </div>
+
               <div>
               <label className="block text-sm font-medium mb-1">URL de la imagen</label>
               <input
@@ -1058,6 +1151,7 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
                 value={formData.heroImage?.url || ''}
                 onChange={(e) => updateNestedField('heroImage', 'url', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="https://ejemplo.com/imagen.jpg"
               />
             </div>
 
@@ -1068,14 +1162,43 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
                 value={formData.heroImage?.alt || ''}
                 onChange={(e) => updateNestedField('heroImage', 'alt', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="Descripción de la imagen principal"
               />
             </div>
             </>
-          ), Image)}
+          ), ImageIcon)}
 
         {/* Galería */}
         {renderSection('Galería', (
           <>
+            <div className="mb-4 flex items-center justify-between">
+              <p className="text-sm text-gray-600">Añade imágenes a la galería de la ruta</p>
+              <label className="flex cursor-pointer items-center space-x-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                {uploadingImage ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Subiendo...</span>
+                  </>
+                ) : (
+                  <>
+                    <ImageIcon className="h-4 w-4" />
+                    <span>Subir Imagen</span>
+                  </>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) handleImageUpload(file, 'gallery')
+                    // Resetear el input para permitir subir la misma imagen de nuevo
+                    e.target.value = ''
+                  }}
+                  className="hidden"
+                  disabled={uploadingImage}
+                />
+              </label>
+            </div>
             {(formData.gallery || []).map((image, index) => (
             <div key={index} className="border border-gray-200 rounded-md p-4 space-y-3">
               <div className="flex items-center justify-between">
@@ -1153,7 +1276,7 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
               + Añadir imagen
             </button>
           </>
-        ), Image)}
+        ), ImageIcon)}
 
           {/* GPX */}
           {renderSection('Archivo GPX (Opcional)', (

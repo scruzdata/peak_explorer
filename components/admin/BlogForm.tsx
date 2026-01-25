@@ -6,7 +6,7 @@ import { X, Save, Eye, Loader2, Upload, Sparkles, Image as ImageIcon, Calendar, 
 import { BlogPost, BlogStatus, ImageData } from '@/types'
 import { createBlogInFirestore, updateBlogInFirestore } from '@/lib/firebase/blogs'
 import { uploadBlogImage } from '@/lib/firebase/storage'
-import { calculateReadingTime } from '@/lib/utils'
+import { calculateReadingTime, generateSlug } from '@/lib/utils'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
@@ -77,7 +77,9 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
 
     setUploadingImage(true)
     try {
-      const { url } = await uploadBlogImage(file)
+      // Generar el nombre de la carpeta del blog: usar slug si existe, o generar uno del título
+      const blogFolderName = blog?.slug || blog?.id || (title.trim() ? generateSlug(title.trim()) : undefined)
+      const { url } = await uploadBlogImage(file, undefined, blogFolderName)
       
       // Obtener dimensiones de la imagen
       const img = new Image()

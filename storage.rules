@@ -1,7 +1,7 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Reglas para la carpeta Blog
+    // Reglas para la carpeta Blog (archivos directamente en Blog)
     match /Blog/{imageId} {
       // Permitir lectura pública de todas las imágenes
       allow read: if true;
@@ -19,12 +19,95 @@ service firebase.storage {
       // allow write: if request.auth != null;
     }
     
-    // Reglas para otras carpetas (ajustar según necesites)
-    // Por ejemplo, si tienes una carpeta para rutas:
-    // match /routes/{imageId} {
-    //   allow read: if true;
-    //   allow write: if true; // Solo para desarrollo
-    // }
+    // Reglas para subcarpetas dentro de Blog (Blog/{blogFolderName}/{imageId})
+    match /Blog/{blogFolderName}/{imageId} {
+      // Permitir lectura pública de todas las imágenes
+      allow read: if true;
+      
+      // IMPORTANTE: Cambiar estas reglas según tu sistema de autenticación
+      // Opción 1: Permitir escritura solo para admins autenticados (recomendado)
+      // allow write: if request.auth != null && 
+      //                 request.auth.token.role == 'admin';
+      
+      // Opción 2: Permitir escritura sin autenticación (solo para desarrollo)
+      // ⚠️ CAMBIAR ESTO EN PRODUCCIÓN - permite que cualquiera escriba
+      allow write: if true;
+      
+      // Opción 3: Permitir escritura solo si estás autenticado (sin verificar rol)
+      // allow write: if request.auth != null;
+    }
+    
+    // Reglas para la carpeta Rutas (archivos directamente en Rutas)
+    match /Rutas/{imageId} {
+      // Permitir lectura pública de todas las imágenes
+      allow read: if true;
+      
+      // IMPORTANTE: Cambiar estas reglas según tu sistema de autenticación
+      // Opción 1: Permitir escritura solo para admins autenticados (recomendado)
+      // allow write: if request.auth != null && 
+      //                 request.auth.token.role == 'admin';
+      
+      // Opción 2: Permitir escritura sin autenticación (solo para desarrollo)
+      // ⚠️ CAMBIAR ESTO EN PRODUCCIÓN - permite que cualquiera escriba
+      allow write: if true;
+      
+      // Opción 3: Permitir escritura solo si estás autenticado (sin verificar rol)
+      // allow write: if request.auth != null;
+    }
+    
+    // Reglas para subcarpetas dentro de Rutas (Rutas/{routeFolderName}/{imageId})
+    match /Rutas/{routeFolderName}/{imageId} {
+      // Permitir lectura pública de todas las imágenes
+      allow read: if true;
+      
+      // IMPORTANTE: Cambiar estas reglas según tu sistema de autenticación
+      // Opción 1: Permitir escritura solo para admins autenticados (recomendado)
+      // allow write: if request.auth != null && 
+      //                 request.auth.token.role == 'admin';
+      
+      // Opción 2: Permitir escritura sin autenticación (solo para desarrollo)
+      // ⚠️ CAMBIAR ESTO EN PRODUCCIÓN - permite que cualquiera escriba
+      allow write: if true;
+      
+      // Opción 3: Permitir escritura solo si estás autenticado (sin verificar rol)
+      // allow write: if request.auth != null;
+    }
+    
+    // Reglas para la carpeta Vias_ferratas (archivos directamente en Vias_ferratas)
+    match /Vias_ferratas/{imageId} {
+      // Permitir lectura pública de todas las imágenes
+      allow read: if true;
+      
+      // IMPORTANTE: Cambiar estas reglas según tu sistema de autenticación
+      // Opción 1: Permitir escritura solo para admins autenticados (recomendado)
+      // allow write: if request.auth != null && 
+      //                 request.auth.token.role == 'admin';
+      
+      // Opción 2: Permitir escritura sin autenticación (solo para desarrollo)
+      // ⚠️ CAMBIAR ESTO EN PRODUCCIÓN - permite que cualquiera escriba
+      allow write: if true;
+      
+      // Opción 3: Permitir escritura solo si estás autenticado (sin verificar rol)
+      // allow write: if request.auth != null;
+    }
+    
+    // Reglas para subcarpetas dentro de Vias_ferratas (Vias_ferratas/{ferrataFolderName}/{imageId})
+    match /Vias_ferratas/{ferrataFolderName}/{imageId} {
+      // Permitir lectura pública de todas las imágenes
+      allow read: if true;
+      
+      // IMPORTANTE: Cambiar estas reglas según tu sistema de autenticación
+      // Opción 1: Permitir escritura solo para admins autenticados (recomendado)
+      // allow write: if request.auth != null && 
+      //                 request.auth.token.role == 'admin';
+      
+      // Opción 2: Permitir escritura sin autenticación (solo para desarrollo)
+      // ⚠️ CAMBIAR ESTO EN PRODUCCIÓN - permite que cualquiera escriba
+      allow write: if true;
+      
+      // Opción 3: Permitir escritura solo si estás autenticado (sin verificar rol)
+      // allow write: if request.auth != null;
+    }
     
     // Denegar acceso a todo lo demás por defecto
     match /{allPaths=**} {
