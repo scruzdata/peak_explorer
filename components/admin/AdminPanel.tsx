@@ -336,6 +336,26 @@ export function AdminPanel() {
           />
         </div>
 
+        {/* Stats */}
+        <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
+          <div className="rounded-lg bg-white p-6 shadow-md">
+            <div className="text-sm text-gray-600">Total Rutas {filteredRoutes.length !== routes.length && `(${filteredRoutes.length} filtradas)`}</div>
+            <div className="mt-2 text-3xl font-bold">{filteredRoutes.length}</div>
+          </div>
+          <div className="rounded-lg bg-white p-6 shadow-md">
+            <div className="text-sm text-gray-600">Rutas de Trekking</div>
+            <div className="mt-2 text-3xl font-bold">
+              {filteredRoutes.filter((r: Route) => r.type === 'trekking').length}
+            </div>
+          </div>
+          <div className="rounded-lg bg-white p-6 shadow-md">
+            <div className="text-sm text-gray-600">Vías Ferratas</div>
+            <div className="mt-2 text-3xl font-bold">
+              {filteredRoutes.filter((r: Route) => r.type === 'ferrata').length}
+            </div>
+          </div>
+        </div>
+
         {/* Filtros */}
         <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6 shadow-md">
           <div className="mb-4 flex items-center space-x-2">
@@ -438,26 +458,6 @@ export function AdminPanel() {
               </button>
             </div>
           )}
-        </div>
-
-        {/* Stats */}
-        <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
-          <div className="rounded-lg bg-white p-6 shadow-md">
-            <div className="text-sm text-gray-600">Total Rutas {filteredRoutes.length !== routes.length && `(${filteredRoutes.length} filtradas)`}</div>
-            <div className="mt-2 text-3xl font-bold">{filteredRoutes.length}</div>
-          </div>
-          <div className="rounded-lg bg-white p-6 shadow-md">
-            <div className="text-sm text-gray-600">Rutas de Trekking</div>
-            <div className="mt-2 text-3xl font-bold">
-              {filteredRoutes.filter((r: Route) => r.type === 'trekking').length}
-            </div>
-          </div>
-          <div className="rounded-lg bg-white p-6 shadow-md">
-            <div className="text-sm text-gray-600">Vías Ferratas</div>
-            <div className="mt-2 text-3xl font-bold">
-              {filteredRoutes.filter((r: Route) => r.type === 'ferrata').length}
-            </div>
-          </div>
         </div>
 
         {/* Routes Table */}

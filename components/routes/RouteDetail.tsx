@@ -282,7 +282,7 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
             )}
 
             {/* Main Column */}
-            <div className={`space-y-12 ${route.twitterHashtag && route.twitterHashtag.trim() ? 'lg:col-span-6 order-2 lg:order-2' : 'lg:col-span-7 order-2 lg:order-2'}`}>
+            <div className={`space-y-12 ${route.twitterHashtag && route.twitterHashtag.trim() ? 'lg:col-span-6 order-2 lg:order-2' : 'lg:col-span-9 order-2 lg:order-2'}`}>
               {/* Stats */}
               <section className="space-y-2">
                 {/* Primera fila */}
@@ -451,7 +451,7 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
             </div>
 
             {/* Right Sidebar */}
-            <aside className={`space-y-6 ${route.twitterHashtag && route.twitterHashtag.trim() ? 'lg:col-span-3 order-3 lg:order-3' : 'lg:col-span-5 order-3 lg:order-3'}`}>
+            <aside className={`space-y-6 ${route.twitterHashtag && route.twitterHashtag.trim() ? 'lg:col-span-3 order-3 lg:order-3' : 'lg:col-span-3 order-3 lg:order-3'}`}>
               {/* Info Card */}
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-6">
                 <h3 className="mb-4 text-lg font-semibold">Información</h3>

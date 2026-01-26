@@ -185,6 +185,26 @@ export function AdminBlogPanel() {
           </nav>
         </div>
 
+        {/* Stats */}
+        <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
+          <div className="rounded-lg bg-white p-6 shadow-md">
+            <div className="text-sm text-gray-600">Total Artículos</div>
+            <div className="mt-2 text-3xl font-bold">{filteredBlogs.length}</div>
+          </div>
+          <div className="rounded-lg bg-white p-6 shadow-md">
+            <div className="text-sm text-gray-600">Publicados</div>
+            <div className="mt-2 text-3xl font-bold">
+              {blogs.filter((b) => b.status === 'published').length}
+            </div>
+          </div>
+          <div className="rounded-lg bg-white p-6 shadow-md">
+            <div className="text-sm text-gray-600">Borradores</div>
+            <div className="mt-2 text-3xl font-bold">
+              {blogs.filter((b) => b.status === 'draft').length}
+            </div>
+          </div>
+        </div>
+
         {/* Filtros */}
         <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6 shadow-md">
           <div className="space-y-4">
@@ -242,26 +262,6 @@ export function AdminBlogPanel() {
                 </button>
               </div>
             )}
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
-          <div className="rounded-lg bg-white p-6 shadow-md">
-            <div className="text-sm text-gray-600">Total Artículos</div>
-            <div className="mt-2 text-3xl font-bold">{filteredBlogs.length}</div>
-          </div>
-          <div className="rounded-lg bg-white p-6 shadow-md">
-            <div className="text-sm text-gray-600">Publicados</div>
-            <div className="mt-2 text-3xl font-bold">
-              {blogs.filter((b) => b.status === 'published').length}
-            </div>
-          </div>
-          <div className="rounded-lg bg-white p-6 shadow-md">
-            <div className="text-sm text-gray-600">Borradores</div>
-            <div className="mt-2 text-3xl font-bold">
-              {blogs.filter((b) => b.status === 'draft').length}
-            </div>
           </div>
         </div>
 

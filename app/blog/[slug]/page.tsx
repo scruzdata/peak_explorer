@@ -102,6 +102,44 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     a: ({ ...props }) => (
       <a className="text-primary-600 underline hover:text-primary-700" {...props} />
     ),
+    img: (props) => {
+      const imgProps = props as any
+      // Detectar alineación y tamaño del alt text: ![alt|alignment|size%](url)
+      const altText = imgProps.alt || ''
+      const alignmentMatch = altText.match(/\|(left|right|center|full)/)
+      const sizeMatch = altText.match(/\|(\d+)%/)
+      const alignment = alignmentMatch ? (alignmentMatch[1] as 'left' | 'center' | 'right' | 'full') : 'full'
+      const size = sizeMatch ? parseInt(sizeMatch[1]) : 100
+      const cleanAlt = altText.replace(/\|(left|right|center|full)/g, '').replace(/\|\d+%/g, '')
+      
+      const alignmentClasses = {
+        left: 'float-left mr-4 mb-4',
+        right: 'float-right ml-4 mb-4',
+        center: 'mx-auto my-6 block',
+        full: 'my-6 w-full block'
+      }
+      
+      const maxWidthClasses = {
+        left: 'max-w-xs',
+        right: 'max-w-xs',
+        center: 'max-w-md',
+        full: 'max-w-full'
+      }
+      
+      return (
+        <div 
+          className={`${alignmentClasses[alignment]} ${maxWidthClasses[alignment]}`}
+          style={{ width: size !== 100 ? `${size}%` : undefined }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img 
+            className="rounded-lg w-full h-auto" 
+            alt={cleanAlt} 
+            {...imgProps} 
+          />
+        </div>
+      )
+    },
   }
 
   return (
@@ -117,7 +155,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       )}
 
       {/* Content */}
-      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}
         <header className="mb-8">
           {/* Tags */}

@@ -11,6 +11,9 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import type { Components } from 'react-markdown'
+import { MarkdownImageEditor } from './MarkdownImageEditor'
+
+// Ya no necesitamos rehype-raw, usamos formato de markdown extendido
 
 interface BlogFormProps {
   blog?: BlogPost
@@ -22,7 +25,10 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
   const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  const [showInteractivePreview, setShowInteractivePreview] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [showPromptModal, setShowPromptModal] = useState(false)
+  const [promptText, setPromptText] = useState('')
 
   // Estados del formulario
   const [title, setTitle] = useState(blog?.title || '')
@@ -126,7 +132,7 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
           }
         }, 0)
         
-        alert('✅ Imagen añadida al contenido. Puedes mover el código Markdown a donde quieras.')
+        // No mostrar alerta, el editor mostrará la imagen automáticamente
       }
     } catch (error) {
       console.error('Error subiendo imagen:', error)
@@ -136,12 +142,18 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
     }
   }
 
-  const handleGenerateWithAI = async () => {
-    const userPrompt = window.prompt('Introduce el tema o prompt para generar el artículo:')
-    if (!userPrompt || !userPrompt.trim()) {
+  const handleGenerateWithAI = () => {
+    setShowPromptModal(true)
+    setPromptText('')
+  }
+
+  const handleConfirmGenerate = async () => {
+    if (!promptText.trim()) {
+      alert('Por favor introduce un prompt para generar el artículo')
       return
     }
 
+    setShowPromptModal(false)
     setGenerating(true)
     try {
       const response = await fetch('/api/generate-blog', {
@@ -149,7 +161,7 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt: userPrompt }),
+        body: JSON.stringify({ prompt: promptText.trim() }),
       })
 
       if (!response.ok) {
@@ -173,6 +185,7 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
       alert('Error al generar el artículo con IA. Inténtalo de nuevo.')
     } finally {
       setGenerating(false)
+      setPromptText('')
     }
   }
 
@@ -290,10 +303,30 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
     a: ({ ...props }) => (
       <a className="text-primary-600 underline hover:text-primary-700" {...props} />
     ),
-    img: (props) => (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img className="my-6 w-full rounded-lg" alt={(props as any).alt || ''} {...props} />
-    ),
+    img: (props) => {
+      const imgProps = props as any
+      // Detectar alineación del alt text: ![alt|alignment](url)
+      const altText = imgProps.alt || ''
+      const alignmentMatch = altText.match(/\|(left|right|center|full)$/)
+      const alignment = alignmentMatch ? (alignmentMatch[1] as 'left' | 'center' | 'right' | 'full') : 'full'
+      const cleanAlt = altText.replace(/\|(left|right|center|full)$/, '')
+      
+      const alignmentClasses = {
+        left: 'float-left mr-4 mb-4 max-w-xs',
+        right: 'float-right ml-4 mb-4 max-w-xs',
+        center: 'mx-auto my-6 max-w-md block',
+        full: 'my-6 w-full'
+      }
+      
+      return (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img 
+          className={`rounded-lg ${alignmentClasses[alignment]}`} 
+          alt={cleanAlt} 
+          {...imgProps} 
+        />
+      )
+    },
   }
 
   return (
@@ -542,15 +575,26 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
                       Contenido (Markdown) *
                     </label>
                     <div className="flex items-center space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowInteractivePreview(!showInteractivePreview)}
+                        className="flex items-center space-x-1 rounded-md border border-gray-300 bg-white px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
+                        title={showInteractivePreview ? "Mostrar editor de texto" : "Mostrar vista previa interactiva"}
+                      >
+                        <Eye className="h-4 w-4" />
+                        <span>{showInteractivePreview ? 'Editor' : 'Vista Previa'}</span>
+                      </button>
                       <label className="flex cursor-pointer items-center space-x-1 rounded-md border border-gray-300 bg-white px-3 py-1 text-sm text-gray-700 hover:bg-gray-50">
                         <Upload className="h-4 w-4" />
-                        <span>Insertar Imagenes</span>
+                        <span>{uploadingImage ? 'Subiendo...' : 'Insertar Imagenes'}</span>
                         <input
                           type="file"
                           accept="image/*"
                           onChange={(e) => {
                             const file = e.target.files?.[0]
                             if (file) handleImageUpload(file, 'content')
+                            // Resetear el input para permitir subir la misma imagen de nuevo
+                            e.target.value = ''
                           }}
                           className="hidden"
                           disabled={uploadingImage}
@@ -558,15 +602,23 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
                       </label>
                     </div>
                   </div>
-                  <textarea
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    rows={20}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-                    placeholder="Escribe el contenido del artículo en Markdown..."
+                  <MarkdownImageEditor
+                    content={content}
+                    onChange={setContent}
+                    showPreview={showInteractivePreview}
+                    onImageUpload={async (file) => {
+                      const { url } = await uploadBlogImage(
+                        file,
+                        undefined,
+                        blog?.slug || blog?.id || (title.trim() ? generateSlug(title.trim()) : undefined)
+                      )
+                      return url
+                    }}
                   />
                   <p className="mt-1 text-xs text-gray-500">
-                    Puedes usar Markdown para formatear el texto. Usa el botón &quot;Insertar Imagen&quot; para añadir imágenes.
+                    {showInteractivePreview 
+                      ? '💡 Arrastra las imágenes directamente en el texto para moverlas. Haz clic en "Editor" para editar el markdown.'
+                      : 'Puedes usar Markdown para formatear el texto. Las imágenes aparecerán arriba con controles para moverlas y alinearlas. Usa "Vista Previa" para mover imágenes arrastrándolas en el texto.'}
                   </p>
                 </div>
 
@@ -733,6 +785,77 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
           </div>
         </div>
       </div>
+
+      {/* Modal para el prompt de IA */}
+      {showPromptModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-70">
+          <div className="relative w-full max-w-3xl rounded-lg bg-white shadow-xl mx-4">
+            {/* Header del modal */}
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Generar Artículo con IA
+              </h3>
+              <button
+                onClick={() => {
+                  setShowPromptModal(false)
+                  setPromptText('')
+                }}
+                className="rounded-md p-2 text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Contenido del modal */}
+            <div className="p-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Introduce el tema o prompt para generar el artículo:
+              </label>
+              <textarea
+                value={promptText}
+                onChange={(e) => setPromptText(e.target.value)}
+                rows={12}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 resize-none font-mono text-sm"
+                placeholder="Ejemplo:&#10;&#10;Tema: Guía completa de senderismo en los Pirineos&#10;&#10;Requisitos:&#10;- Incluir información sobre rutas populares&#10;- Consejos de seguridad&#10;- Equipamiento necesario&#10;- Mejores épocas para visitar&#10;&#10;Tono: Informativo y amigable"
+                autoFocus
+              />
+              <p className="mt-2 text-xs text-gray-500">
+                Puedes estructurar tu prompt con múltiples líneas, listas y especificaciones detalladas.
+              </p>
+            </div>
+
+            {/* Footer del modal */}
+            <div className="flex items-center justify-end space-x-4 border-t border-gray-200 bg-white px-6 py-4">
+              <button
+                onClick={() => {
+                  setShowPromptModal(false)
+                  setPromptText('')
+                }}
+                className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmGenerate}
+                disabled={!promptText.trim() || generating}
+                className="flex items-center space-x-2 rounded-md bg-primary-600 px-4 py-2 text-sm text-white hover:bg-primary-700 disabled:opacity-50"
+              >
+                {generating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Generando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4" />
+                    <span>Generar Artículo</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
