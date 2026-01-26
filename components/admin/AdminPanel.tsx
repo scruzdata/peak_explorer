@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/components/providers/AuthProvider'
 import { useState, useEffect, useMemo } from 'react'
-import { Plus, Edit, Trash2, Eye, Loader2, Filter, FileText, Route as RouteIcon } from 'lucide-react'
+import { Plus, Edit, Trash2, Eye, Loader2, Filter, FileText, Route as RouteIcon, Search } from 'lucide-react'
 import { getAllRoutesForAdmin, deleteRouteFromFirestore } from '@/lib/routes'
 import { Route, RouteType, Difficulty } from '@/types'
 import { RouteForm } from './RouteForm'
@@ -23,6 +23,7 @@ export function AdminPanel() {
   const [filterType, setFilterType] = useState<RouteType | 'all'>('all')
   const [filterRegion, setFilterRegion] = useState<string>('all')
   const [filterDifficulty, setFilterDifficulty] = useState<Difficulty | 'all'>('all')
+  const [searchText, setSearchText] = useState<string>('')
   
   // Cargar rutas SOLO desde Firestore (sin fallback a datos estáticos)
   const loadRoutes = async () => {
@@ -216,9 +217,19 @@ export function AdminPanel() {
         return false
       }
 
+      // Filtro por búsqueda de texto (solo título)
+      if (searchText.trim() !== '') {
+        const searchLower = searchText.toLowerCase().trim()
+        const titleMatch = route.title.toLowerCase().includes(searchLower)
+        
+        if (!titleMatch) {
+          return false
+        }
+      }
+
       return true
     })
-  }, [routes, filterType, filterRegion, filterDifficulty])
+  }, [routes, filterType, filterRegion, filterDifficulty, searchText])
 
   if (!user || user.role !== 'admin') {
     return (
@@ -331,6 +342,27 @@ export function AdminPanel() {
             <Filter className="h-5 w-5 text-gray-600" />
             <h2 className="text-lg font-semibold text-gray-800">Filtros</h2>
           </div>
+          
+          {/* Búsqueda de texto */}
+          <div className="mb-4">
+            <label htmlFor="search-text" className="mb-2 block text-sm font-medium text-gray-700">
+              Buscar
+            </label>
+            <div className="relative">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                <Search className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                id="search-text"
+                type="text"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                placeholder="Buscar por título..."
+                className="w-full rounded-md border border-gray-300 bg-white pl-10 pr-3 py-2 text-sm text-gray-700 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              />
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {/* Filtro por Tipo */}
             <div>
@@ -391,13 +423,14 @@ export function AdminPanel() {
           </div>
           
           {/* Botón para limpiar filtros */}
-          {(filterType !== 'all' || filterRegion !== 'all' || filterDifficulty !== 'all') && (
+          {(filterType !== 'all' || filterRegion !== 'all' || filterDifficulty !== 'all' || searchText.trim() !== '') && (
             <div className="mt-4">
               <button
                 onClick={() => {
                   setFilterType('all')
                   setFilterRegion('all')
                   setFilterDifficulty('all')
+                  setSearchText('')
                 }}
                 className="text-sm text-primary-600 hover:text-primary-800"
               >

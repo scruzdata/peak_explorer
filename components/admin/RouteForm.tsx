@@ -161,7 +161,10 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
       // Si estamos editando una ruta de Firestore, actualizar
       if (isEditing && route?.id && isFirestoreRoute) {
         console.log('Actualizando ruta de Firestore:', route.id)
-        result = await updateRouteInFirestore(route.id, dataToSave as Partial<Route>)
+        // Eliminar el campo 'track' de dataToSave antes de actualizar la ruta
+        // porque el track se guarda en la colección 'tracks' separada
+        const { track, ...routeDataWithoutTrack } = dataToSave
+        result = await updateRouteInFirestore(route.id, routeDataWithoutTrack as Partial<Route>)
         if (result) {
           console.log('✅ Ruta actualizada exitosamente')
         } else {
@@ -206,7 +209,7 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
           },
           parking: dataToSave.parking,
           restaurants: dataToSave.restaurants,
-          track: dataToSave.track,
+          // track NO se guarda aquí, se guarda en la colección 'tracks' separada
           waypoints: dataToSave.waypoints,
           heroImage: dataToSave.heroImage || {
             url: '',

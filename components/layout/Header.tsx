@@ -21,7 +21,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-gray-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
-      <nav className="mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center px-4 py-4 sm:px-6 lg:px-8">
+      <nav className="mx-auto grid max-w-7xl grid-cols-[1fr_auto] md:grid-cols-[1fr_auto_1fr] items-center px-4 py-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center space-x-2 group justify-self-start">
           <Mountain className="h-8 w-8 text-primary-600 transition-transform group-hover:scale-110" />
           <span className="text-xl font-bold text-gray-900">Peak Explorer</span>

@@ -85,8 +85,10 @@ function removeUndefinedFields(obj: any, depth = 0): any {
  */
 function routeToFirestore(route: Omit<Route, 'id' | 'slug' | 'createdAt' | 'updatedAt'>): any {
   const now = Timestamp.now()
+  // Extraer el campo track antes de copiar el resto
+  const { track, ...routeWithoutTrack } = route
   const routeData = {
-    ...route,
+    ...routeWithoutTrack,
     createdAt: now,
     updatedAt: now,
   }
@@ -382,8 +384,10 @@ export async function updateRouteInFirestore(
     console.log(`✅ Ruta encontrada: ${routeSnap.data().title}`)
     
     // Preparar datos de actualización (excluir createdAt, id, slug se regenera si cambia el título)
+    // También excluir el campo 'track' ya que se guarda en la colección 'tracks' separada
+    const { track, ...routeDataWithoutTrack } = routeData
     const updateData: any = {
-      ...routeData,
+      ...routeDataWithoutTrack,
       updatedAt: Timestamp.now(),
     }
     

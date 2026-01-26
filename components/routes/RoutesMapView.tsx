@@ -927,7 +927,7 @@ export function RoutesMapView({
 
         {/* Popup para mostrar las rutas de un cluster - posicionado en esquina superior izquierda */}
         {clusterPopup && !cardRoute && (
-          <div className="absolute top-4 left-6 sm:left-8 z-20 w-48 sm:w-56 max-w-[60vw]">
+          <div className="absolute top-4 left-6 sm:left-8 z-20 w-[200px] sm:w-[220px] lg:w-[200px] max-w-[calc(100%-3rem)] sm:max-w-[calc(100%-4rem)] lg:max-w-[calc(100%-3rem)]">
             {/* Contenedor principal de la tarjeta de cluster (el encabezado y la lista se ajustan directamente a este div) */}
             <div className="relative overflow-hidden rounded-xl bg-white shadow-xl border border-gray-200">
               {/* Botón cerrar */}
@@ -1077,8 +1077,8 @@ export function RoutesMapView({
 
       {/* Tarjeta fija de la ruta seleccionada (arriba a la izquierda) - Se muestra cuando se selecciona desde el POI o desde el grid */}
       {cardRoute && showDetailPanel && (
-        <div className="absolute top-12 left-4 sm:left-6 z-20 w-48 sm:w-56 max-w-[60vw]">
-          <div className="relative overflow-hidden rounded-md bg-white shadow-md border border-gray-200">
+        <div className="absolute top-12 left-4 sm:left-6 bottom-4 sm:bottom-6 z-20 w-[200px] sm:w-[220px] lg:w-[200px] max-w-[calc(100%-2rem)] sm:max-w-[calc(100%-3rem)] lg:max-w-[calc(100%-2rem)] flex flex-col">
+          <div className="flex-shrink-0 relative overflow-hidden rounded-md bg-white shadow-md border border-gray-200">
             {/* Botón cerrar */}
             <button
               type="button"
@@ -1091,13 +1091,13 @@ export function RoutesMapView({
                 // Cerrar el popup del cluster si está abierto
                 setClusterPopup(null)
               }}
-              className="absolute top-2 right-2 z-20 inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/90 text-gray-600 shadow hover:bg-white"
+              className="absolute top-1.5 right-1.5 z-20 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/90 text-gray-600 shadow hover:bg-white"
             >
-              <X className="h-3 w-3" />
+              <X className="h-2.5 w-2.5" />
             </button>
 
             {/* Imagen */}
-            <div className="relative h-24 w-full overflow-hidden">
+            <div className="relative h-16 w-full overflow-hidden">
               <Image
                 src={cardRoute.heroImage.url}
                 alt={cardRoute.heroImage.alt}
@@ -1109,19 +1109,19 @@ export function RoutesMapView({
 
               {/* Rating (más hacia la izquierda) */}
               {cardRoute.rating && typeof cardRoute.rating === 'number' && (
-                <div className="absolute top-2 left-2 flex items-center gap-0.5 rounded-full bg-white/95 backdrop-blur px-1.5 py-0.5 text-[11px] font-semibold text-gray-900 shadow border border-gray-200">
-                  <Star className="h-2.5 w-2.5 text-amber-500" fill="currentColor" strokeWidth={1.5} />
+                <div className="absolute top-1 left-1 flex items-center gap-0.5 rounded-full bg-white/95 backdrop-blur px-1 py-0.5 text-[10px] font-semibold text-gray-900 shadow border border-gray-200">
+                  <Star className="h-2 w-2 text-amber-500" fill="currentColor" strokeWidth={1.5} />
                   <span>{cardRoute.rating.toFixed(1)}</span>
                 </div>
               )}
 
               {/* Badges dificultad / grado */}
-              <div className="absolute bottom-2 left-2 flex items-center gap-1">
-                <span className={`text-[11px] px-1.5 py-0.5 rounded-md font-medium shadow-sm ${getDifficultyColor(cardRoute.difficulty)}`}>
+              <div className="absolute bottom-1 left-1 flex items-center gap-0.5">
+                <span className={`text-[10px] px-1 py-0.5 rounded-md font-medium shadow-sm ${getDifficultyColor(cardRoute.difficulty)}`}>
                   {cardRoute.difficulty}
                 </span>
                 {cardRoute.ferrataGrade && (
-                  <span className="text-[11px] px-1.5 py-0.5 rounded-md font-medium bg-blue-100 text-blue-800 shadow-sm">
+                  <span className="text-[10px] px-1 py-0.5 rounded-md font-medium bg-blue-100 text-blue-800 shadow-sm">
                     {cardRoute.ferrataGrade}
                   </span>
                 )}
@@ -1129,41 +1129,41 @@ export function RoutesMapView({
             </div>
 
             {/* Contenido */}
-            <div className="p-2">
-              <h3 className="mb-0.5 text-[11px] font-bold text-gray-900 line-clamp-2 leading-snug">
+            <div className="p-1.5">
+              <h3 className="mb-0.5 text-[10px] font-bold text-gray-900 line-clamp-1 leading-tight">
                 {cardRoute.title}
               </h3>
-              <p className="mb-0.5 text-[10px] text-gray-600 line-clamp-2 leading-snug">
+              <p className="mb-0.5 text-[9px] text-gray-600 line-clamp-1 leading-tight">
                 {cardRoute.summary}
               </p>
-              <p className="mb-1 text-[10px] text-gray-500">
+              <p className="mb-0.5 text-[9px] text-gray-500">
                 {cardRoute.location.region}, {cardRoute.location.province}
               </p>
 
               {/* Información de la ruta: distancia, elevación y duración */}
-              <div className="mb-1 flex flex-wrap gap-2 text-[9px] text-gray-600">
+              <div className="mb-1 flex flex-wrap gap-1 text-[8px] text-gray-600">
                 <div className="flex items-center gap-0.5">
-                  <MapPin className="h-2.5 w-2.5" />
+                  <MapPin className="h-2 w-2" />
                   <span>{formatDistance(cardRoute.distance)}</span>
                 </div>
                 <div className="flex items-center gap-0.5">
-                  <TrendingUp className="h-2.5 w-2.5" />
+                  <TrendingUp className="h-2 w-2" />
                   <span>{formatElevation(cardRoute.elevation)}</span>
                 </div>
                 <div className="flex items-center gap-0.5">
-                  <Clock className="h-2.5 w-2.5" />
+                  <Clock className="h-2 w-2" />
                   <span>{cardRoute.duration}</span>
                 </div>
               </div>
 
               {/* Estado de carga del track */}
               {isLoadingTrack && (
-                <p className="mb-0.5 text-[10px] text-primary-600">
-                  Cargando track de la ruta…
+                <p className="mb-0.5 text-[9px] text-primary-600">
+                  Cargando track…
                 </p>
               )}
               {trackError && (
-                <p className="mb-0.5 text-[10px] text-red-600">
+                <p className="mb-0.5 text-[9px] text-red-600">
                   {trackError}
                 </p>
               )}
@@ -1178,10 +1178,10 @@ export function RoutesMapView({
                       handleMarkerDoubleClick(coords.lat, coords.lng)
                     }
                   }}
-                  className="mb-1.5 w-full rounded-sm bg-blue-600 px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm transition hover:bg-blue-700 flex items-center justify-center gap-1"
+                  className="mb-1 w-full rounded-sm bg-blue-600 px-2 py-0.5 text-[9px] font-semibold text-white shadow-sm transition hover:bg-blue-700 flex items-center justify-center gap-1"
                   title="Hacer zoom al POI en el mapa"
                 >
-                  <ZoomIn className="h-3 w-3" />
+                  <ZoomIn className="h-2.5 w-2.5" />
                   Zoom
                 </button>
               )}
@@ -1192,16 +1192,16 @@ export function RoutesMapView({
                   const url = `/${cardRoute.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${cardRoute.slug}`
                   window.open(url, '_blank', 'noopener,noreferrer')
                 }}
-                className="mt-0.5 w-full rounded-sm bg-primary-600 px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm transition hover:bg-primary-700"
+                className="w-full rounded-sm bg-primary-600 px-2 py-0.5 text-[9px] font-semibold text-white shadow-sm transition hover:bg-primary-700"
               >
-                Ver detalles de la ruta
+                Ver detalles
               </button>
             </div>
           </div>
 
           {/* Perfil de elevación debajo de la tarjeta */}
           {cardRoute.track && cardRoute.track.length > 0 && (
-            <div className="mt-2 rounded-md bg-white shadow-md border border-gray-200 overflow-hidden">
+            <div className="mt-1.5 flex-shrink-0 rounded-md bg-white shadow-md border border-gray-200 overflow-hidden">
               <RouteElevationProfile route={cardRoute as Route} compact={true} />
             </div>
           )}

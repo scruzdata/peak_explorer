@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Plus, Edit, Trash2, Eye, Loader2, FileText, Route as RouteIcon } from 'lucide-react'
+import { Plus, Edit, Trash2, Eye, Loader2, FileText, Route as RouteIcon, Search } from 'lucide-react'
 import { getAllBlogsFromFirestore, deleteBlogFromFirestore } from '@/lib/firebase/blogs'
 import { BlogPost, BlogStatus } from '@/types'
 import { BlogForm } from './BlogForm'
@@ -16,6 +16,7 @@ export function AdminBlogPanel() {
   const [editingBlog, setEditingBlog] = useState<BlogPost | undefined>()
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [filterStatus, setFilterStatus] = useState<'all' | BlogStatus>('all')
+  const [searchText, setSearchText] = useState<string>('')
 
   // Cargar blogs desde Firestore (incluyendo borradores)
   const loadBlogs = async () => {
@@ -86,8 +87,22 @@ export function AdminBlogPanel() {
   // Filtrar y ordenar blogs según el estado
   const filteredBlogs = useMemo(() => {
     const filtered = blogs.filter((blog) => {
-      if (filterStatus === 'all') return true
-      return blog.status === filterStatus
+      // Filtro por estado
+      if (filterStatus !== 'all' && blog.status !== filterStatus) {
+        return false
+      }
+
+      // Filtro por búsqueda de texto (solo título)
+      if (searchText.trim() !== '') {
+        const searchLower = searchText.toLowerCase().trim()
+        const titleMatch = blog.title.toLowerCase().includes(searchLower)
+        
+        if (!titleMatch) {
+          return false
+        }
+      }
+
+      return true
     })
     
     // Ordenar: publicados primero (por publishedAt descendente), luego borradores (por createdAt descendente)
@@ -107,12 +122,12 @@ export function AdminBlogPanel() {
       return bDate - aDate
     })
     
-    console.log(`🔍 Filtro activo: "${filterStatus}", Blogs filtrados: ${sorted.length} de ${blogs.length} totales`)
+    console.log(`🔍 Filtro activo: "${filterStatus}", Búsqueda: "${searchText}", Blogs filtrados: ${sorted.length} de ${blogs.length} totales`)
     if (blogs.length > 0 && sorted.length === 0) {
       console.log('⚠️ No hay blogs que coincidan con el filtro. Estados disponibles:', [...new Set(blogs.map(b => b.status))])
     }
     return sorted
-  }, [blogs, filterStatus])
+  }, [blogs, filterStatus, searchText])
 
   if (loading) {
     return (
@@ -172,23 +187,61 @@ export function AdminBlogPanel() {
 
         {/* Filtros */}
         <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6 shadow-md">
-          <div className="flex items-center space-x-4">
-            <label htmlFor="filter-status" className="text-sm font-medium text-gray-700">
-              Estado:
-            </label>
-            <select
-              id="filter-status"
-              value={filterStatus}
-              onChange={(e) => {
-                const value = e.target.value
-                setFilterStatus(value === 'all' ? 'all' : (value as BlogStatus))
-              }}
-              className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-            >
-              <option value="all">Todos</option>
-              <option value="published">Publicados</option>
-              <option value="draft">Borradores</option>
-            </select>
+          <div className="space-y-4">
+            {/* Búsqueda de texto */}
+            <div>
+              <label htmlFor="search-text" className="mb-2 block text-sm font-medium text-gray-700">
+                Buscar
+              </label>
+              <div className="relative">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                  <Search className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="search-text"
+                  type="text"
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  placeholder="Buscar por título..."
+                  className="w-full rounded-md border border-gray-300 bg-white pl-10 pr-3 py-2 text-sm text-gray-700 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                />
+              </div>
+            </div>
+
+            {/* Filtro por estado */}
+            <div className="flex items-center space-x-4">
+              <label htmlFor="filter-status" className="text-sm font-medium text-gray-700">
+                Estado:
+              </label>
+              <select
+                id="filter-status"
+                value={filterStatus}
+                onChange={(e) => {
+                  const value = e.target.value
+                  setFilterStatus(value === 'all' ? 'all' : (value as BlogStatus))
+                }}
+                className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              >
+                <option value="all">Todos</option>
+                <option value="published">Publicados</option>
+                <option value="draft">Borradores</option>
+              </select>
+            </div>
+
+            {/* Botón para limpiar filtros */}
+            {(filterStatus !== 'all' || searchText.trim() !== '') && (
+              <div>
+                <button
+                  onClick={() => {
+                    setFilterStatus('all')
+                    setSearchText('')
+                  }}
+                  className="text-sm text-primary-600 hover:text-primary-800"
+                >
+                  Limpiar filtros
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
