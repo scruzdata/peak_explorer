@@ -24,7 +24,8 @@ import {
   ExternalLink,
   AlertTriangle,
   Info,
-  X
+  X,
+  Download
 } from 'lucide-react'
 import confetti from 'canvas-confetti'
 
@@ -114,6 +115,7 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
   const [showFoodInfo, setShowFoodInfo] = useState(false)
   const [selectedWebcamIndex, setSelectedWebcamIndex] = useState(0)
   const [showWebcamImageModal, setShowWebcamImageModal] = useState(false)
+  const [isDownloadingGPX, setIsDownloadingGPX] = useState(false)
   
   // Refs para los botones de información
   const dogsInfoButtonRef = useRef<HTMLButtonElement>(null)
@@ -224,6 +226,32 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
       }
       
       confetti({ particleCount: 200, spread: 70 })
+    }
+  }
+
+  const handleDownloadGPX = async () => {
+    try {
+      setIsDownloadingGPX(true)
+      const response = await fetch(`/api/routes/${route.id}/gpx`)
+      
+      if (!response.ok) {
+        throw new Error('Error al descargar el GPX')
+      }
+      
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `ruta-${route.slug}.gpx`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Error descargando GPX:', error)
+      alert('Error al descargar el archivo GPX. Por favor, inténtalo de nuevo.')
+    } finally {
+      setIsDownloadingGPX(false)
     }
   }
 
@@ -401,7 +429,18 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
 
               {/* Map and Elevation Profile */}
               <section>
-                <h2 className="mb-4 text-2xl font-bold">Mapa y Track GPX</h2>
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="text-2xl font-bold">Mapa y Track GPX</h2>
+                  <button
+                    onClick={handleDownloadGPX}
+                    disabled={isDownloadingGPX}
+                    className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    aria-label={`Descargar track GPX de ${route.title}`}
+                  >
+                    <Download className={`h-4 w-4 ${isDownloadingGPX ? 'animate-pulse' : ''}`} />
+                    <span>{isDownloadingGPX ? 'Descargando...' : 'Descargar track GPX'}</span>
+                  </button>
+                </div>
                 <div className="h-96 rounded-lg overflow-hidden border border-gray-200">
                   <RouteMap 
                     route={route} 

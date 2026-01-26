@@ -31,6 +31,7 @@ function ensureFirestoreAvailable(): void {
 export interface TrackDocument {
   routeSlug: string
   points: TrackPoint[]
+  gpx?: string // GPX cacheado (opcional)
   createdAt: Timestamp
   updatedAt: Timestamp
 }
