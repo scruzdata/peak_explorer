@@ -6,12 +6,13 @@ import type { LucideIcon } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
+import rehypeRaw from 'rehype-raw'
 import type { Components } from 'react-markdown'
 import { Route, RouteType, Difficulty, FerrataGrade, Season, RouteStatus, RouteTypeShape, DogsAllowed, WebcamData } from '@/types'
 import { createRouteInFirestore, updateRouteInFirestore } from '@/lib/routes'
 import { saveTrackInFirestore } from '@/lib/firebase/tracks'
 import { generateSlug } from '@/lib/utils'
-import { uploadRouteImage, uploadFerrataImage } from '@/lib/firebase/storage'
+import { uploadRouteImage, uploadFerrataImage, deleteStorageFileByUrl } from '@/lib/firebase/storage'
 import { 
   X, 
   Save, 
@@ -28,7 +29,16 @@ import {
   Shield, 
   Video, 
   Hash, 
-  Book 
+  Book,
+  Bold,
+  Italic,
+  List,
+  Quote,
+  Code2,
+  Link2,
+  Heading,
+  AlignCenter,
+  Pilcrow
 } from 'lucide-react'
 import { commonFeatures } from '@/lib/data'
 import { AccordionItem } from './Accordion'
@@ -534,6 +544,23 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
     })
   }
 
+  const handleRemoveGalleryImage = async (index: number) => {
+    const image = formData.gallery?.[index]
+    if (!image) return
+
+    // Intentar borrar también del Storage si la URL pertenece a nuestro bucket
+    if (image.url) {
+      try {
+        await deleteStorageFileByUrl(image.url)
+      } catch (error) {
+        console.error('Error eliminando imagen de Storage:', error)
+        // No bloqueamos la eliminación en el formulario si falla Storage
+      }
+    }
+
+    removeGalleryImage(index)
+  }
+
   const handleImageUpload = async (file: File, type: 'gallery' | 'hero' = 'gallery') => {
     if (!file.type.startsWith('image/')) {
       alert('Por favor selecciona un archivo de imagen')
@@ -594,7 +621,7 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
     }
   }
 
-  type MarkdownAction = 'bold' | 'italic' | 'heading' | 'list' | 'quote' | 'code' | 'break' | 'link'
+  type MarkdownAction = 'bold' | 'italic' | 'heading' | 'list' | 'quote' | 'code' | 'break' | 'link' | 'center'
   const storytellingRef = useRef<HTMLTextAreaElement>(null)
 
   const applyMarkdown = (action: MarkdownAction) => {
@@ -615,6 +642,7 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
       code: 'console.log("hola")',
       break: '',
       link: 'enlace descriptivo',
+      center: 'Contenido centrado',
     }
 
     const selectedText = selection || defaults[action]
@@ -644,6 +672,11 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
         break
       case 'link':
         replacement = `[${selectedText}](https://ejemplo.com)`
+        break
+      case 'center':
+        // Usamos un contenedor flex para centrar iframes/imágenes incluso con estilos de .prose
+        // y un div interno con text-align:center para centrar también texto.
+        replacement = `\n<div style="display:flex;justify-content:center"><div style="text-align:center">\n${selectedText}\n</div></div>\n`
         break
       default:
         replacement = selectedText
@@ -1203,69 +1236,89 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
               </label>
             </div>
             {(formData.gallery || []).map((image, index) => (
-            <div key={index} className="border border-gray-200 rounded-md p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-600">Imagen #{index + 1}</span>
+            <div key={index} className="border border-gray-200 rounded-md p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-gray-600">Imagen #{index + 1}</span>
                 <button
                   type="button"
-                  onClick={() => removeGalleryImage(index)}
-                  className="text-red-600 text-sm hover:text-red-800"
+                  onClick={() => handleRemoveGalleryImage(index)}
+                  className="text-red-600 text-xs hover:text-red-800"
                 >
                   Eliminar
                 </button>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">URL</label>
-                <input
-                  type="url"
-                  value={image?.url || ''}
-                  onChange={(e) => updateGalleryImage(index, 'url', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  placeholder="https://ejemplo.com/imagen.jpg"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Texto alternativo</label>
-                <input
-                  type="text"
-                  value={image?.alt || ''}
-                  onChange={(e) => updateGalleryImage(index, 'alt', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  placeholder="Descripción corta de la imagen"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Fuente (Opcional)</label>
-                <input
-                  type="text"
-                  value={image?.source || ''}
-                  onChange={(e) => updateGalleryImage(index, 'source', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  placeholder="Ej: Wikiloc, AllTrails, etc."
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Ancho (px)</label>
-                  <input
-                    type="number"
-                    value={image?.width || 0}
-                    onChange={(e) => updateGalleryImage(index, 'width', parseInt(e.target.value) || 0)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  />
+              <div className="flex gap-3">
+                {/* Miniatura */}
+                <div className="flex-shrink-0">
+                  <div className="relative h-24 w-32 overflow-hidden rounded border border-gray-200 bg-gray-50">
+                    {image?.url ? (
+                      <img
+                        src={image.url}
+                        alt={image.alt || `Imagen ${index + 1}`}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-[10px] text-gray-400">
+                        Sin imagen
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Alto (px)</label>
-                  <input
-                    type="number"
-                    value={image?.height || 0}
-                    onChange={(e) => updateGalleryImage(index, 'height', parseInt(e.target.value) || 0)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  />
+
+                {/* Datos de la imagen */}
+                <div className="flex-1 grid grid-cols-2 gap-2 text-xs">
+                  <div className="col-span-2">
+                    <label className="block text-[11px] font-medium mb-0.5">URL</label>
+                    <input
+                      type="url"
+                      value={image?.url || ''}
+                      onChange={(e) => updateGalleryImage(index, 'url', e.target.value)}
+                      className="w-full px-2 py-1 border border-gray-300 rounded-md text-xs"
+                      placeholder="https://ejemplo.com/imagen.jpg"
+                    />
+                  </div>
+
+                  <div className="col-span-2">
+                    <label className="block text-[11px] font-medium mb-0.5">Texto alternativo</label>
+                    <input
+                      type="text"
+                      value={image?.alt || ''}
+                      onChange={(e) => updateGalleryImage(index, 'alt', e.target.value)}
+                      className="w-full px-2 py-1 border border-gray-300 rounded-md text-xs"
+                      placeholder="Descripción corta"
+                    />
+                  </div>
+
+                  <div className="col-span-2">
+                    <label className="block text-[11px] font-medium mb-0.5">Fuente (Opcional)</label>
+                    <input
+                      type="text"
+                      value={image?.source || ''}
+                      onChange={(e) => updateGalleryImage(index, 'source', e.target.value)}
+                      className="w-full px-2 py-1 border border-gray-300 rounded-md text-xs"
+                      placeholder="Ej: Wikiloc, AllTrails..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-medium mb-0.5">Ancho (px)</label>
+                    <input
+                      type="number"
+                      value={image?.width || 0}
+                      onChange={(e) => updateGalleryImage(index, 'width', parseInt(e.target.value) || 0)}
+                      className="w-full px-2 py-1 border border-gray-300 rounded-md text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-medium mb-0.5">Alto (px)</label>
+                    <input
+                      type="number"
+                      value={image?.height || 0}
+                      onChange={(e) => updateGalleryImage(index, 'height', parseInt(e.target.value) || 0)}
+                      className="w-full px-2 py-1 border border-gray-300 rounded-md text-xs"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -1464,29 +1517,86 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
               </div>
               <div className="space-y-2">
               <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={() => applyMarkdown('bold')} className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
-                  Negrita
+                <button
+                  type="button"
+                  onClick={() => applyMarkdown('bold')}
+                  className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
+                  aria-label="Negrita"
+                  title="Negrita"
+                >
+                  <Bold className="h-4 w-4" />
                 </button>
-                <button type="button" onClick={() => applyMarkdown('italic')} className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
-                  Cursiva
+                <button
+                  type="button"
+                  onClick={() => applyMarkdown('italic')}
+                  className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
+                  aria-label="Cursiva"
+                  title="Cursiva"
+                >
+                  <Italic className="h-4 w-4" />
                 </button>
-                <button type="button" onClick={() => applyMarkdown('heading')} className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
-                  Título
+                <button
+                  type="button"
+                  onClick={() => applyMarkdown('heading')}
+                  className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
+                  aria-label="Título"
+                  title="Título"
+                >
+                  <Heading className="h-4 w-4" />
                 </button>
-                <button type="button" onClick={() => applyMarkdown('list')} className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
-                  Lista
+                <button
+                  type="button"
+                  onClick={() => applyMarkdown('list')}
+                  className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
+                  aria-label="Lista"
+                  title="Lista"
+                >
+                  <List className="h-4 w-4" />
                 </button>
-                <button type="button" onClick={() => applyMarkdown('quote')} className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
-                  Cita
+                <button
+                  type="button"
+                  onClick={() => applyMarkdown('quote')}
+                  className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
+                  aria-label="Cita"
+                  title="Cita"
+                >
+                  <Quote className="h-4 w-4" />
                 </button>
-                <button type="button" onClick={() => applyMarkdown('code')} className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
-                  Código
+                <button
+                  type="button"
+                  onClick={() => applyMarkdown('code')}
+                  className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
+                  aria-label="Código"
+                  title="Código"
+                >
+                  <Code2 className="h-4 w-4" />
                 </button>
-                <button type="button" onClick={() => applyMarkdown('link')} className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
-                  Enlace
+                <button
+                  type="button"
+                  onClick={() => applyMarkdown('link')}
+                  className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
+                  aria-label="Enlace"
+                  title="Enlace"
+                >
+                  <Link2 className="h-4 w-4" />
                 </button>
-                <button type="button" onClick={() => applyMarkdown('break')} className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
-                  Párrafo
+                <button
+                  type="button"
+                  onClick={() => applyMarkdown('break')}
+                  className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
+                  aria-label="Nuevo párrafo"
+                  title="Nuevo párrafo"
+                >
+                  <Pilcrow className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyMarkdown('center')}
+                  className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
+                  aria-label="Centrar"
+                  title="Centrar"
+                >
+                  <AlignCenter className="h-4 w-4" />
                 </button>
               </div>
 
@@ -1510,6 +1620,10 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
                 <div className="prose prose-sm sm:prose lg:prose-lg max-w-none">
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm, remarkBreaks] as any}
+                    rehypePlugins={[rehypeRaw] as any}
+                    // Permitimos HTML crudo para poder incrustar iframes de YouTube u otros embeds.
+                    // Este contenido solo lo editas tú desde el panel, así que el riesgo es controlado.
+                    skipHtml={false}
                     components={previewComponents}
                   >
                     {formData.storytelling || '*La vista previa aparecerá aquí cuando escribas contenido.*'}

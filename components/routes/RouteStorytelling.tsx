@@ -3,6 +3,7 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
+import rehypeRaw from 'rehype-raw'
 import type { Components } from 'react-markdown'
 
 interface RouteStorytellingProps {
@@ -25,6 +26,10 @@ export function RouteStorytelling({ content }: RouteStorytellingProps) {
       <div className="prose prose-lg max-w-none">
         <ReactMarkdown
           remarkPlugins={[remarkGfm, remarkBreaks] as any}
+          rehypePlugins={[rehypeRaw] as any}
+          // Permitimos HTML crudo para incrustar iframes (YouTube, etc.) en la narrativa.
+          // El contenido viene de tu panel de admin, no de usuarios anónimos.
+          skipHtml={false}
           components={markdownComponents}
         >
           {content}

@@ -15,6 +15,45 @@ function getFirebaseStorage() {
 }
 
 /**
+ * Intenta extraer el path interno de Firebase Storage a partir de una URL pública
+ * generada por `getPublicStorageURL`.
+ * Devuelve null si la URL no pertenece a este bucket o no tiene el formato esperado.
+ */
+function extractStoragePathFromPublicURL(url: string): string | null {
+  try {
+    const storage = getFirebaseStorage()
+    const bucket = storage.app.options.storageBucket
+    if (!bucket) return null
+
+    const parsed = new URL(url)
+
+    // Solo manejamos URLs del dominio oficial de Firebase Storage
+    if (!parsed.hostname.includes('firebasestorage.googleapis.com')) {
+      return null
+    }
+
+    const marker = `/v0/b/${bucket}/o/`
+    const markerIndex = parsed.pathname.indexOf(marker)
+    if (markerIndex === -1) {
+      return null
+    }
+
+    // Obtener la parte codificada después de `/o/`
+    const encodedPath = parsed.pathname.substring(markerIndex + marker.length)
+    if (!encodedPath) return null
+
+    // Revertir la codificación que hicimos en getPublicStorageURL
+    const pathSegments = encodedPath.split('%2F').map(segment => decodeURIComponent(segment))
+    const fullPath = pathSegments.join('/')
+
+    return fullPath
+  } catch (error) {
+    console.error('Error extrayendo storage path desde URL:', error)
+    return null
+  }
+}
+
+/**
  * Genera una URL pública sin tokens para una imagen en Firebase Storage
  * @param path Ruta completa del archivo en Storage (ej: "Blog/blog-123.jpg")
  * @returns URL pública sin tokens
@@ -194,6 +233,27 @@ export async function uploadFerrataImage(
     }
   } catch (error) {
     console.error('Error subiendo imagen de vía ferrata:', error)
+    throw error
+  }
+}
+
+/**
+ * Elimina cualquier archivo de Firebase Storage a partir de su URL pública
+ * (solo funciona con URLs generadas por getPublicStorageURL de este mismo bucket).
+ */
+export async function deleteStorageFileByUrl(url: string): Promise<void> {
+  try {
+    const storagePath = extractStoragePathFromPublicURL(url)
+    if (!storagePath) {
+      // URL externa o no compatible, no hacemos nada
+      return
+    }
+
+    const storage = getFirebaseStorage()
+    const fileRef = ref(storage, storagePath)
+    await deleteObject(fileRef)
+  } catch (error) {
+    console.error('Error eliminando archivo de Storage por URL:', error)
     throw error
   }
 }
