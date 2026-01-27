@@ -108,7 +108,8 @@ const nextConfig = {
         'https://www.alberguesyrefugios.com',
         'https://camareando.com',
         'https://cantur.com',
-        'https://rtsp.me'
+        'https://rtsp.me',
+        'https://www.youtube.com/',
       ],
       'worker-src': [
         "'self'",
