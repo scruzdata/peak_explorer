@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import NextImage from 'next/image'
 import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
@@ -1263,10 +1264,12 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
                 <div className="flex-shrink-0">
                   <div className="relative h-24 w-32 overflow-hidden rounded border border-gray-200 bg-gray-50">
                     {image?.url ? (
-                      <img
+                      <NextImage
                         src={image.url}
                         alt={image.alt || `Imagen ${index + 1}`}
-                        className="h-full w-full object-cover"
+                        fill
+                        sizes="128px"
+                        className="object-cover"
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center text-[10px] text-gray-400">

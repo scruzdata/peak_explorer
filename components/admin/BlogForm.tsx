@@ -26,6 +26,7 @@ import {
   AlignCenter,
   Pilcrow
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { BlogPost, BlogStatus, ImageData } from '@/types'
 import { createBlogInFirestore, updateBlogInFirestore } from '@/lib/firebase/blogs'
 import { uploadBlogImage, deleteStorageFileByUrl } from '@/lib/firebase/storage'
@@ -549,7 +550,7 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
   }
 
   // Helper para secciones tipo acordeón (similar a rutas)
-  const renderSection = (title: string, content: React.ReactNode, icon?: React.ComponentType<any>, defaultOpen: boolean = false) => {
+  const renderSection = (title: string, content: React.ReactNode, icon?: LucideIcon, defaultOpen: boolean = false) => {
     const Icon = icon
     return (
       <AccordionItem title={title} icon={Icon} defaultOpen={defaultOpen}>
