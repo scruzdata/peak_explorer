@@ -1,19 +1,41 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import NextImage from 'next/image'
-import { X, Save, Eye, Loader2, Upload, Sparkles, Image as ImageIcon, Calendar, Clock, Tag } from 'lucide-react'
+import { 
+  X, 
+  Save, 
+  Eye, 
+  Loader2, 
+  Upload, 
+  Sparkles, 
+  Image as ImageIcon, 
+  Calendar, 
+  Clock, 
+  Tag, 
+  FileText, 
+  Layers, 
+  Search,
+  Bold,
+  Italic,
+  List,
+  Quote,
+  Code2,
+  Link2,
+  Heading,
+  AlignCenter,
+  Pilcrow
+} from 'lucide-react'
 import { BlogPost, BlogStatus, ImageData } from '@/types'
 import { createBlogInFirestore, updateBlogInFirestore } from '@/lib/firebase/blogs'
-import { uploadBlogImage } from '@/lib/firebase/storage'
+import { uploadBlogImage, deleteStorageFileByUrl } from '@/lib/firebase/storage'
 import { calculateReadingTime, generateSlug } from '@/lib/utils'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
+import rehypeRaw from 'rehype-raw'
 import type { Components } from 'react-markdown'
-import { MarkdownImageEditor } from './MarkdownImageEditor'
-
-// Ya no necesitamos rehype-raw, usamos formato de markdown extendido
+import { AccordionItem } from './Accordion'
 
 interface BlogFormProps {
   blog?: BlogPost
@@ -38,10 +60,12 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
   const [tagInput, setTagInput] = useState('')
   const [status, setStatus] = useState<BlogStatus>(blog?.status || 'draft')
   const [featuredImage, setFeaturedImage] = useState<ImageData | undefined>(blog?.featuredImage)
+  const [images, setImages] = useState<ImageData[]>(blog?.images || [])
   const [seoTitle, setSeoTitle] = useState(blog?.seo.metaTitle || '')
   const [seoDescription, setSeoDescription] = useState(blog?.seo.metaDescription || '')
   const [seoKeywords, setSeoKeywords] = useState<string[]>(blog?.seo.keywords || [])
   const [keywordInput, setKeywordInput] = useState('')
+  const contentRef = useRef<HTMLTextAreaElement>(null)
 
   // Generar SEO automáticamente si no está definido
   useEffect(() => {
@@ -239,6 +263,7 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
         tags,
         status,
         featuredImage: finalFeaturedImage,
+        images,
         seo: {
           metaTitle: seoTitle.trim() || title.trim(),
           metaDescription: seoDescription.trim() || excerpt.trim(),
@@ -327,6 +352,212 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
         />
       )
     },
+  }
+
+  type MarkdownAction = 'bold' | 'italic' | 'heading' | 'list' | 'quote' | 'code' | 'break' | 'link' | 'imageLeft' | 'imageRight' | 'imageCenter'
+
+  // Función auxiliar para obtener dimensiones de una imagen desde su URL
+  const getImageDimensions = (url: string): Promise<{ width: number; height: number }> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image()
+      img.onload = () => {
+        resolve({ width: img.naturalWidth || img.width, height: img.naturalHeight || img.height })
+      }
+      img.onerror = () => {
+        // Si falla, usar dimensiones por defecto
+        resolve({ width: 400, height: 300 })
+      }
+      img.src = url
+      // Timeout de seguridad
+      setTimeout(() => {
+        if (!img.complete) {
+          resolve({ width: 400, height: 300 })
+        }
+      }, 5000)
+    })
+  }
+
+  const applyMarkdown = async (action: MarkdownAction) => {
+    const textarea = contentRef.current
+    if (!textarea) return
+
+    const value = content || ''
+    const start = textarea.selectionStart ?? value.length
+    const end = textarea.selectionEnd ?? value.length
+    const selection = value.slice(start, end)
+
+    const defaults: Record<MarkdownAction, string> = {
+      bold: 'texto en negrita',
+      italic: 'texto en cursiva',
+      heading: 'Título de sección',
+      list: 'Elemento de lista',
+      quote: 'Cita o nota',
+      code: 'console.log("hola")',
+      break: '',
+      link: 'enlace descriptivo',
+      imageLeft: 'https://ejemplo.com/imagen.jpg',
+      imageRight: 'https://ejemplo.com/imagen.jpg',
+      imageCenter: 'https://ejemplo.com/imagen.jpg',
+    }
+
+    const selectedText = selection || defaults[action]
+    let replacement = ''
+
+    // Detectar si la selección es una URL de imagen
+    const isImageUrl = (text: string): boolean => {
+      const trimmed = text.trim()
+      return (
+        (trimmed.startsWith('http://') || trimmed.startsWith('https://')) &&
+        (trimmed.match(/\.(jpg|jpeg|png|gif|webp|avif)(\?|$)/i) !== null || 
+         trimmed.includes('firebasestorage.googleapis.com') ||
+         trimmed.includes('storage.googleapis.com'))
+      )
+    }
+
+    switch (action) {
+      case 'bold':
+        replacement = `**${selectedText}**`
+        break
+      case 'italic':
+        replacement = `*${selectedText}*`
+        break
+      case 'heading':
+        replacement = `\n\n# ${selectedText}\n`
+        break
+      case 'list':
+        replacement = `\n- ${selectedText}`
+        break
+      case 'quote':
+        replacement = `\n> ${selectedText}`
+        break
+      case 'code':
+        replacement = `\n\`\`\`\n${selectedText}\n\`\`\`\n`
+        break
+      case 'break':
+        replacement = `\n\n${selectedText ? `${selectedText}\n\n` : ''}`
+        break
+      case 'link':
+        replacement = `[${selectedText}](https://ejemplo.com)`
+        break
+      case 'imageLeft': {
+        const url = selection.trim() || defaults.imageLeft
+        if (isImageUrl(url)) {
+          // Obtener dimensiones de la imagen
+          const { width, height } = await getImageDimensions(url)
+          // Insertar HTML con float y tamaño
+          replacement = `\n\n<div style="float:left; margin:0 1rem 1rem 0; width:${Math.min(width, 400)}px; max-width:40%;">
+  <img src="${url}" alt="Descripción imagen" style="width:100%; height:auto; border-radius:8px;" />
+  <small style="display:block; font-size:12px; color:#6b7280;">Pie de foto opcional</small>
+</div>\n\n`
+        } else {
+          // Si no es URL de imagen, usar Markdown tradicional
+          replacement = `\n\n![Descripción imagen|left](${url})\n\n`
+        }
+        break
+      }
+      case 'imageRight': {
+        const url = selection.trim() || defaults.imageRight
+        if (isImageUrl(url)) {
+          // Obtener dimensiones de la imagen
+          const { width, height } = await getImageDimensions(url)
+          // Insertar HTML con float y tamaño
+          replacement = `\n\n<div style="float:right; margin:0 0 1rem 1rem; width:${Math.min(width, 400)}px; max-width:40%;">
+  <img src="${url}" alt="Descripción imagen" style="width:100%; height:auto; border-radius:8px;" />
+  <small style="display:block; font-size:12px; color:#6b7280;">Pie de foto opcional</small>
+</div>\n\n`
+        } else {
+          // Si no es URL de imagen, usar Markdown tradicional
+          replacement = `\n\n![Descripción imagen|right](${url})\n\n`
+        }
+        break
+      }
+      case 'imageCenter': {
+        const url = selection.trim() || defaults.imageCenter
+        if (isImageUrl(url)) {
+          // Obtener dimensiones de la imagen
+          const { width, height } = await getImageDimensions(url)
+          // Insertar HTML centrado con tamaño
+          replacement = `\n\n<div style="display:flex; justify-content:center; margin:1rem 0;">
+  <div style="text-align:center; max-width:${Math.min(width, 600)}px; width:100%;">
+    <img src="${url}" alt="Descripción imagen" style="width:100%; height:auto; border-radius:8px;" />
+    <small style="display:block; font-size:12px; color:#6b7280; margin-top:0.5rem;">Pie de foto opcional</small>
+  </div>
+</div>\n\n`
+        } else {
+          // Si no es URL de imagen, usar Markdown tradicional
+          replacement = `\n\n![Descripción imagen|center](${url})\n\n`
+        }
+        break
+      }
+      default:
+        replacement = selectedText
+    }
+
+    const newValue = `${value.slice(0, start)}${replacement}${value.slice(end)}`
+    setContent(newValue)
+
+    window.requestAnimationFrame(() => {
+      const cursor = start + replacement.length
+      textarea.focus()
+      textarea.setSelectionRange(cursor, cursor)
+    })
+  }
+
+  // Helpers para galería de imágenes (sección separada)
+  const addGalleryImage = () => {
+    setImages(prev => [
+      ...prev,
+      {
+        url: '',
+        alt: '',
+        width: 1200,
+        height: 800,
+      },
+    ])
+  }
+
+  const updateGalleryImage = (index: number, field: keyof ImageData, value: string | number) => {
+    setImages(prev => {
+      const next = [...prev]
+      next[index] = { ...next[index], [field]: value } as ImageData
+      return next
+    })
+  }
+
+  const removeGalleryImage = (index: number) => {
+    setImages(prev => {
+      const next = [...prev]
+      next.splice(index, 1)
+      return next
+    })
+  }
+
+  const handleRemoveGalleryImage = async (index: number) => {
+    const image = images[index]
+    if (!image) return
+
+    if (image.url) {
+      try {
+        await deleteStorageFileByUrl(image.url)
+      } catch (error) {
+        console.error('Error eliminando imagen de Storage del blog:', error)
+        // No bloqueamos la eliminación local
+      }
+    }
+
+    removeGalleryImage(index)
+  }
+
+  // Helper para secciones tipo acordeón (similar a rutas)
+  const renderSection = (title: string, content: React.ReactNode, icon?: React.ComponentType<any>, defaultOpen: boolean = false) => {
+    const Icon = icon
+    return (
+      <AccordionItem title={title} icon={Icon} defaultOpen={defaultOpen}>
+        <div className="space-y-4">
+          {content}
+        </div>
+      </AccordionItem>
+    )
   }
 
   return (
@@ -427,6 +658,7 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
                   <div className="prose prose-lg max-w-none">
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm, remarkBreaks] as any}
+                      rehypePlugins={[rehypeRaw] as any}
                       components={markdownComponents}
                     >
                       {content || '*Sin contenido*'}
@@ -435,8 +667,8 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
                 </div>
               </div>
             ) : (
-              <div className="space-y-6">
-                {/* Opciones de creación */}
+              <div className="space-y-4">
+                {/* Opciones de creación (solo nuevo) */}
                 {!blog && (
                   <div className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-6">
                     <div className="text-center">
@@ -466,210 +698,470 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
                   </div>
                 )}
 
-                {/* Título */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Título *
-                  </label>
-                  <input
-                    type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-                    placeholder="Título del artículo"
-                  />
-                </div>
+                {/* Información básica */}
+                {renderSection(
+                  'Información Básica',
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Título *
+                      </label>
+                      <input
+                        type="text"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                        placeholder="Título del artículo"
+                      />
+                    </div>
 
-                {/* Extracto */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Extracto *
-                  </label>
-                  <textarea
-                    value={excerpt}
-                    onChange={(e) => setExcerpt(e.target.value)}
-                    rows={3}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-                    placeholder="Breve descripción del artículo"
-                  />
-                </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Extracto *
+                      </label>
+                      <textarea
+                        value={excerpt}
+                        onChange={(e) => setExcerpt(e.target.value)}
+                        rows={3}
+                        className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                        placeholder="Breve descripción del artículo"
+                      />
+                    </div>
+                  </>,
+                  FileText,
+                  true
+                )}
 
                 {/* Imagen destacada */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Imagen Principal / Destacada *
-                  </label>
-                  <p className="mb-3 text-xs text-gray-500">
-                    Esta imagen aparecerá en el grid de blogs y en el header del artículo. Se recomienda una imagen de al menos 1200x800px.
-                  </p>
-                  {featuredImage ? (
-                    <div className="relative rounded-lg border-2 border-gray-200 overflow-hidden">
-                      <NextImage
-                        src={featuredImage.url}
-                        alt={featuredImage.alt || title}
-                        width={featuredImage.width || 1200}
-                        height={featuredImage.height || 800}
-                        className="h-64 w-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center">
-                        <div className="opacity-0 hover:opacity-100 transition-opacity flex gap-2">
-                          <label className="cursor-pointer rounded-md bg-white/90 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-white">
-                            <span>Cambiar</span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0]
-                                if (file) handleImageUpload(file, 'featured')
-                              }}
-                              className="hidden"
-                              disabled={uploadingImage}
-                            />
-                          </label>
-                          <button
-                            onClick={() => setFeaturedImage(undefined)}
-                            className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
-                          >
-                            Eliminar
-                          </button>
+                {renderSection(
+                  'Imagen Principal / Destacada',
+                  <>
+                    <p className="mb-3 text-xs text-gray-500">
+                      Esta imagen aparecerá en el grid de blogs y en el header del artículo. Se recomienda una imagen de al menos 1200x800px.
+                    </p>
+                    {featuredImage ? (
+                      <div className="relative rounded-lg border-2 border-gray-200 overflow-hidden">
+                        <NextImage
+                          src={featuredImage.url}
+                          alt={featuredImage.alt || title}
+                          width={featuredImage.width || 1200}
+                          height={featuredImage.height || 800}
+                          className="h-64 w-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center">
+                          <div className="opacity-0 hover:opacity-100 transition-opacity flex gap-2">
+                            <label className="cursor-pointer rounded-md bg-white/90 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-white">
+                              <span>Cambiar</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0]
+                                  if (file) handleImageUpload(file, 'featured')
+                                }}
+                                className="hidden"
+                                disabled={uploadingImage}
+                              />
+                            </label>
+                            <button
+                              onClick={() => setFeaturedImage(undefined)}
+                              className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-2 text-xs">
+                          {featuredImage.width} x {featuredImage.height}px
                         </div>
                       </div>
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-2 text-xs">
-                        {featuredImage.width} x {featuredImage.height}px
+                    ) : (
+                      <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-primary-300 bg-primary-50 p-8 hover:border-primary-400 transition-colors">
+                        <label className="flex cursor-pointer flex-col items-center">
+                          {uploadingImage ? (
+                            <>
+                              <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+                              <span className="mt-2 text-sm text-primary-700">Subiendo imagen...</span>
+                            </>
+                          ) : (
+                            <>
+                              <ImageIcon className="h-10 w-10 text-primary-600" />
+                              <span className="mt-2 text-sm font-medium text-primary-700">Haz clic para subir imagen principal</span>
+                              <span className="mt-1 text-xs text-primary-600">Recomendado: 1200x800px o superior</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0]
+                                  if (file) handleImageUpload(file, 'featured')
+                                }}
+                                className="hidden"
+                                disabled={uploadingImage}
+                              />
+                            </>
+                          )}
+                        </label>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-primary-300 bg-primary-50 p-8 hover:border-primary-400 transition-colors">
-                      <label className="flex cursor-pointer flex-col items-center">
-                        {uploadingImage ? (
-                          <>
-                            <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
-                            <span className="mt-2 text-sm text-primary-700">Subiendo imagen...</span>
-                          </>
-                        ) : (
-                          <>
-                            <ImageIcon className="h-10 w-10 text-primary-600" />
-                            <span className="mt-2 text-sm font-medium text-primary-700">Haz clic para subir imagen principal</span>
-                            <span className="mt-1 text-xs text-primary-600">Recomendado: 1200x800px o superior</span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0]
-                                if (file) handleImageUpload(file, 'featured')
-                              }}
-                              className="hidden"
-                              disabled={uploadingImage}
-                            />
-                          </>
-                        )}
-                      </label>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </>,
+                  ImageIcon,
+                  true
+                )}
 
-                {/* Contenido */}
-                <div>
-                  <div className="mb-2 flex items-center justify-between">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Contenido (Markdown) *
-                    </label>
-                    <div className="flex items-center space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => setShowInteractivePreview(!showInteractivePreview)}
-                        className="flex items-center space-x-1 rounded-md border border-gray-300 bg-white px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
-                        title={showInteractivePreview ? "Mostrar editor de texto" : "Mostrar vista previa interactiva"}
-                      >
-                        <Eye className="h-4 w-4" />
-                        <span>{showInteractivePreview ? 'Editor' : 'Vista Previa'}</span>
-                      </button>
-                      <label className="flex cursor-pointer items-center space-x-1 rounded-md border border-gray-300 bg-white px-3 py-1 text-sm text-gray-700 hover:bg-gray-50">
-                        <Upload className="h-4 w-4" />
-                        <span>{uploadingImage ? 'Subiendo...' : 'Insertar Imagenes'}</span>
+                {/* Galería de imágenes */}
+                {renderSection(
+                  'Galería',
+                  <>
+                    <p className="text-xs text-gray-500 mb-2">
+                      Imágenes adicionales que quieres asociar al artículo. Se guardan en la carpeta del blog en Firebase Storage.
+                    </p>
+                    <div className="mb-3">
+                      <label className="inline-flex cursor-pointer items-center space-x-1 rounded-md border border-gray-300 bg-white px-3 py-1 text-xs text-gray-700 hover:bg-gray-50">
+                        <Upload className="h-3 w-3" />
+                        <span>{uploadingImage ? 'Subiendo...' : 'Añadir imagen a galería'}</span>
                         <input
                           type="file"
                           accept="image/*"
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             const file = e.target.files?.[0]
-                            if (file) handleImageUpload(file, 'content')
-                            // Resetear el input para permitir subir la misma imagen de nuevo
-                            e.target.value = ''
+                            if (!file) return
+                            try {
+                              setUploadingImage(true)
+                              const blogFolderName = blog?.slug || blog?.id || (title.trim() ? generateSlug(title.trim()) : undefined)
+                              const { url } = await uploadBlogImage(file, undefined, blogFolderName)
+
+                              const img = new Image()
+                              img.src = url
+                              await new Promise((resolve, reject) => {
+                                img.onload = resolve
+                                img.onerror = reject
+                              })
+
+                              const imageData: ImageData = {
+                                url,
+                                alt: file.name,
+                                width: img.width,
+                                height: img.height,
+                              }
+
+                              setImages(prev => [...prev, imageData])
+                            } catch (error) {
+                              console.error('Error subiendo imagen de galería:', error)
+                              alert('Error al subir la imagen de galería. Inténtalo de nuevo.')
+                            } finally {
+                              setUploadingImage(false)
+                              e.target.value = ''
+                            }
                           }}
                           className="hidden"
                           disabled={uploadingImage}
                         />
                       </label>
                     </div>
-                  </div>
-                  <MarkdownImageEditor
-                    content={content}
-                    onChange={setContent}
-                    showPreview={showInteractivePreview}
-                    onImageUpload={async (file) => {
-                      const { url } = await uploadBlogImage(
-                        file,
-                        undefined,
-                        blog?.slug || blog?.id || (title.trim() ? generateSlug(title.trim()) : undefined)
-                      )
-                      return url
-                    }}
-                  />
-                  <p className="mt-1 text-xs text-gray-500">
-                    {showInteractivePreview 
-                      ? '💡 Arrastra las imágenes directamente en el texto para moverlas. Haz clic en "Editor" para editar el markdown.'
-                      : 'Puedes usar Markdown para formatear el texto. Las imágenes aparecerán arriba con controles para moverlas y alinearlas. Usa "Vista Previa" para mover imágenes arrastrándolas en el texto.'}
-                  </p>
-                </div>
+
+                    <div className="space-y-3">
+                      {images.map((image, index) => (
+                        <div key={index} className="border border-gray-200 rounded-md p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-medium text-gray-600">Imagen #{index + 1}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveGalleryImage(index)}
+                              className="text-red-600 text-xs hover:text-red-800"
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+
+                          <div className="flex gap-3">
+                            <div className="flex-shrink-0">
+                              <div className="relative h-20 w-28 overflow-hidden rounded border border-gray-200 bg-gray-50">
+                                {image?.url ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={image.url}
+                                    alt={image.alt || `Imagen ${index + 1}`}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex h-full w-full items-center justify-center text-[10px] text-gray-400">
+                                    Sin imagen
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex-1 grid grid-cols-2 gap-2 text-xs">
+                              <div className="col-span-2">
+                                <label className="block text-[11px] font-medium mb-0.5">URL</label>
+                                <input
+                                  type="url"
+                                  value={image?.url || ''}
+                                  onChange={(e) => updateGalleryImage(index, 'url', e.target.value)}
+                                  className="w-full px-2 py-1 border border-gray-300 rounded-md text-xs"
+                                  placeholder="https://..."
+                                />
+                              </div>
+                              <div className="col-span-2">
+                                <label className="block text-[11px] font-medium mb-0.5">Texto alternativo</label>
+                                <input
+                                  type="text"
+                                  value={image?.alt || ''}
+                                  onChange={(e) => updateGalleryImage(index, 'alt', e.target.value)}
+                                  className="w-full px-2 py-1 border border-gray-300 rounded-md text-xs"
+                                  placeholder="Descripción corta"
+                                />
+                              </div>
+                              <div className="col-span-2">
+                                <label className="block text-[11px] font-medium mb-0.5">Fuente (opcional)</label>
+                                <input
+                                  type="text"
+                                  value={image?.source || ''}
+                                  onChange={(e) => updateGalleryImage(index, 'source', e.target.value)}
+                                  className="w-full px-2 py-1 border border-gray-300 rounded-md text-xs"
+                                  placeholder="Ej: Wikiloc, AllTrails..."
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[11px] font-medium mb-0.5">Ancho (px)</label>
+                                <input
+                                  type="number"
+                                  value={image?.width || 0}
+                                  onChange={(e) => updateGalleryImage(index, 'width', parseInt(e.target.value) || 0)}
+                                  className="w-full px-2 py-1 border border-gray-300 rounded-md text-xs"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[11px] font-medium mb-0.5">Alto (px)</label>
+                                <input
+                                  type="number"
+                                  value={image?.height || 0}
+                                  onChange={(e) => updateGalleryImage(index, 'height', parseInt(e.target.value) || 0)}
+                                  className="w-full px-2 py-1 border border-gray-300 rounded-md text-xs"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
+                      {images.length === 0 && (
+                        <p className="text-xs text-gray-400">
+                          Aún no has añadido imágenes a la galería.
+                        </p>
+                      )}
+                    </div>
+                  </>,
+                  Layers
+                )}
+
+                {/* Contenido */}
+                {renderSection(
+                  'Contenido (Markdown)',
+                  <>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Contenido (Markdown) *
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowInteractivePreview(!showInteractivePreview)}
+                        className="flex items-center space-x-1 rounded-md border border-gray-300 bg-white px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
+                        title={showInteractivePreview ? 'Ocultar vista previa' : 'Mostrar vista previa'}
+                      >
+                        <Eye className="h-4 w-4" />
+                        <span>{showInteractivePreview ? 'Ocultar vista previa' : 'Vista previa'}</span>
+                      </button>
+                    </div>
+
+                    {/* Barra de herramientas estilo rutas */}
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => applyMarkdown('bold')}
+                          className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
+                          aria-label="Negrita"
+                          title="Negrita"
+                        >
+                          <Bold className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applyMarkdown('italic')}
+                          className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
+                          aria-label="Cursiva"
+                          title="Cursiva"
+                        >
+                          <Italic className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applyMarkdown('heading')}
+                          className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
+                          aria-label="Título"
+                          title="Título"
+                        >
+                          <Heading className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applyMarkdown('list')}
+                          className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
+                          aria-label="Lista"
+                          title="Lista"
+                        >
+                          <List className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applyMarkdown('quote')}
+                          className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
+                          aria-label="Cita"
+                          title="Cita"
+                        >
+                          <Quote className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applyMarkdown('code')}
+                          className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
+                          aria-label="Código"
+                          title="Código"
+                        >
+                          <Code2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applyMarkdown('link')}
+                          className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
+                          aria-label="Enlace"
+                          title="Enlace"
+                        >
+                          <Link2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applyMarkdown('break')}
+                          className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
+                          aria-label="Nuevo párrafo"
+                          title="Nuevo párrafo"
+                        >
+                          <Pilcrow className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applyMarkdown('imageLeft')}
+                          className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
+                          aria-label="Imagen izquierda"
+                          title="Imagen izquierda"
+                        >
+                          <ImageIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applyMarkdown('imageRight')}
+                          className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
+                          aria-label="Imagen derecha"
+                          title="Imagen derecha"
+                        >
+                          <ImageIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applyMarkdown('imageCenter')}
+                          className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
+                          aria-label="Imagen centrada"
+                          title="Imagen centrada"
+                        >
+                          <AlignCenter className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      <textarea
+                        ref={contentRef}
+                        value={content}
+                        onChange={(e) => setContent(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm"
+                        rows={14}
+                        placeholder="# Título\n\nContenido en Markdown..."
+                      />
+                      <p className="text-xs text-gray-500">
+                        Usa Markdown para dar formato: títulos con <code>#</code>, listas con <code>-</code>, negritas <code>**texto**</code>, cursivas <code>*texto*</code>, e imágenes con sintaxis <code>![alt|left](url)</code>, <code>![alt|right](url)</code> o <code>![alt|center](url)</code>.
+                      </p>
+
+                      {showInteractivePreview && (
+                        <div className="mt-4 border rounded-md p-4 bg-gray-50">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="text-sm font-semibold text-gray-700">Vista previa</h4>
+                            <span className="text-xs text-gray-500">Así se mostrará el contenido en el blog</span>
+                          </div>
+                          <div className="prose prose-sm sm:prose lg:prose-lg max-w-none">
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm, remarkBreaks] as any}
+                              rehypePlugins={[rehypeRaw] as any}
+                              components={markdownComponents}
+                            >
+                              {content || '*La vista previa aparecerá aquí cuando escribas contenido.*'}
+                            </ReactMarkdown>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </>,
+                  FileText,
+                  true
+                )}
 
                 {/* Tags */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Etiquetas
-                  </label>
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="inline-flex items-center rounded-full bg-primary-100 px-3 py-1 text-sm text-primary-800"
-                      >
-                        {tag}
-                        <button
-                          onClick={() => handleRemoveTag(tag)}
-                          className="ml-2 text-primary-600 hover:text-primary-800"
+                {renderSection(
+                  'Etiquetas',
+                  <>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="inline-flex items-center rounded-full bg-primary-100 px-3 py-1 text-sm text-primary-800"
                         >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                  <div className="flex space-x-2">
-                    <input
-                      type="text"
-                      value={tagInput}
-                      onChange={(e) => setTagInput(e.target.value)}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault()
-                          handleAddTag()
-                        }
-                      }}
-                      className="flex-1 rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-                      placeholder="Añadir etiqueta"
-                    />
-                    <button
-                      onClick={handleAddTag}
-                      className="rounded-md bg-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-300"
-                    >
-                      Añadir
-                    </button>
-                  </div>
-                </div>
+                          {tag}
+                          <button
+                            onClick={() => handleRemoveTag(tag)}
+                            className="ml-2 text-primary-600 hover:text-primary-800"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                    <div className="flex space-x-2">
+                      <input
+                        type="text"
+                        value={tagInput}
+                        onChange={(e) => setTagInput(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            handleAddTag()
+                          }
+                        }}
+                        className="flex-1 rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                        placeholder="Añadir etiqueta"
+                      />
+                      <button
+                        onClick={handleAddTag}
+                        className="rounded-md bg-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-300"
+                      >
+                        Añadir
+                      </button>
+                    </div>
+                  </>,
+                  Tag
+                )}
 
                 {/* SEO */}
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                  <h3 className="mb-4 text-sm font-semibold text-gray-900">SEO</h3>
-                  <div className="space-y-4">
+                {renderSection(
+                  'SEO',
+                  <>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Meta Título
@@ -736,28 +1228,34 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
                         </button>
                       </div>
                     </div>
-                  </div>
-                </div>
+                  </>,
+                  Search
+                )}
 
                 {/* Estado */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Estado *
-                  </label>
-                  <select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value as BlogStatus)}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-                  >
-                    <option value="draft">Borrador (no visible públicamente)</option>
-                    <option value="published">Publicado (visible en /blog)</option>
-                  </select>
-                  <p className="mt-1 text-xs text-gray-500">
-                    {status === 'draft' 
-                      ? '⚠️ Este artículo está guardado como borrador y no será visible en la sección pública del blog.'
-                      : '✅ Este artículo será visible públicamente en /blog'}
-                  </p>
-                </div>
+                {renderSection(
+                  'Estado',
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Estado *
+                      </label>
+                      <select
+                        value={status}
+                        onChange={(e) => setStatus(e.target.value as BlogStatus)}
+                        className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                      >
+                        <option value="draft">Borrador (no visible públicamente)</option>
+                        <option value="published">Publicado (visible en /blog)</option>
+                      </select>
+                      <p className="mt-1 text-xs text-gray-500">
+                        {status === 'draft'
+                          ? '⚠️ Este artículo está guardado como borrador y no será visible en la sección pública del blog.'
+                          : '✅ Este artículo será visible públicamente en /blog'}
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>

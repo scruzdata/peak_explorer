@@ -621,7 +621,7 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
     }
   }
 
-  type MarkdownAction = 'bold' | 'italic' | 'heading' | 'list' | 'quote' | 'code' | 'break' | 'link' | 'center'
+  type MarkdownAction = 'bold' | 'italic' | 'heading' | 'list' | 'quote' | 'code' | 'break' | 'link' | 'center' | 'imageLeft' | 'imageRight'
   const storytellingRef = useRef<HTMLTextAreaElement>(null)
 
   const applyMarkdown = (action: MarkdownAction) => {
@@ -641,8 +641,10 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
       quote: 'Cita o nota',
       code: 'console.log("hola")',
       break: '',
-      link: 'enlace descriptivo',
+      link: 'enlace descriptiva',
       center: 'Contenido centrado',
+      imageLeft: 'https://ejemplo.com/imagen.jpg',
+      imageRight: 'https://ejemplo.com/imagen.jpg',
     }
 
     const selectedText = selection || defaults[action]
@@ -677,6 +679,14 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
         // Usamos un contenedor flex para centrar iframes/imágenes incluso con estilos de .prose
         // y un div interno con text-align:center para centrar también texto.
         replacement = `\n<div style="display:flex;justify-content:center"><div style="text-align:center">\n${selectedText}\n</div></div>\n`
+        break
+      case 'imageLeft':
+        // Imagen flotante a la izquierda con ancho editable (porcentaje) y texto fluyendo a la derecha
+        replacement = `\n<div style="float:left; margin:0 1rem 1rem 0; width:40%; max-width:320px;">\n  <img src="${selectedText}" alt="Descripción de la imagen" style="width:100%; height:auto; border-radius:8px;" />\n  <small style="display:block; font-size:12px; color:#6b7280;">Pie de foto opcional</small>\n</div>\n`
+        break
+      case 'imageRight':
+        // Imagen flotante a la derecha con ancho editable (porcentaje) y texto fluyendo a la izquierda
+        replacement = `\n<div style="float:right; margin:0 0 1rem 1rem; width:40%; max-width:320px;">\n  <img src="${selectedText}" alt="Descripción de la imagen" style="width:100%; height:auto; border-radius:8px;" />\n  <small style="display:block; font-size:12px; color:#6b7280;">Pie de foto opcional</small>\n</div>\n`
         break
       default:
         replacement = selectedText
@@ -1597,6 +1607,24 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
                   title="Centrar"
                 >
                   <AlignCenter className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyMarkdown('imageLeft')}
+                  className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
+                  aria-label="Imagen flotante izquierda"
+                  title="Imagen flotante izquierda"
+                >
+                  <ImageIcon className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyMarkdown('imageRight')}
+                  className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
+                  aria-label="Imagen flotante derecha"
+                  title="Imagen flotante derecha"
+                >
+                  <ImageIcon className="h-4 w-4" />
                 </button>
               </div>
 
