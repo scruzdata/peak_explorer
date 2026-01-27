@@ -178,6 +178,22 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
     setSelectedWebcamIndex(0)
   }, [route.id])
 
+  /**
+   * Galería con la imagen principal primero seguida del resto
+   * Si la imagen principal ya está en la galería, evitamos duplicarla
+   */
+  const galleryImages = (() => {
+    if (!route.gallery || route.gallery.length === 0) return []
+
+    const isHeroInGallery = route.gallery.some(
+      (image) => image.url === route.heroImage.url
+    )
+
+    if (isHeroInGallery) return route.gallery
+
+    return [route.heroImage, ...route.gallery]
+  })()
+
   const handleBookmark = () => {
     if (bookmarked) {
       removeBookmark(route.id)
@@ -464,9 +480,9 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
               <RouteStorytelling content={route.storytelling} />
 
               {/* Gallery */}
-              {route.gallery && route.gallery.length > 0 && (
+              {galleryImages.length > 0 && (
                 <section className="mt-6">
-                  <RouteGallery images={route.gallery} routeTitle={route.title} />
+                  <RouteGallery images={galleryImages} routeTitle={route.title} />
                 </section>
               )}
 

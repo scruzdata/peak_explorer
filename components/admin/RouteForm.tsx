@@ -1434,8 +1434,8 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
             </>
           ), Video)}
 
-          {/* Twitter Hashtag */}
-          {renderSection('Twitter Hashtag', (
+          {/* Google News Hashtag */}
+          {renderSection('Google News Hashtag', (
             <>
               <p className="text-sm text-gray-600">
               Añade un hashtag de Twitter para mostrar un timeline con las noticias más recientes relacionadas con la ruta. Ejemplo: #PicoVeleta o #Mulhacen
