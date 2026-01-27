@@ -2,7 +2,7 @@ import NextAuth, { NextAuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 
 // Email del superadmin permitido
-const SUPERADMIN_EMAIL = 'maitaiweb@gmail.com'
+const SUPERADMIN_EMAIL = process.env.NEXT_PUBLIC_SUPERADMIN_EMAIL
 
 // Validar que las credenciales de Google estén configuradas
 const googleClientId = process.env.GOOGLE_CLIENT_ID

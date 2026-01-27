@@ -1,7 +1,7 @@
 import { withAuth } from 'next-auth/middleware'
 import { NextResponse } from 'next/server'
 
-const SUPERADMIN_EMAIL = 'maitaiweb@gmail.com'
+const SUPERADMIN_EMAIL = process.env.NEXT_PUBLIC_SUPERADMIN_EMAIL
 
 export default withAuth(
   function middleware(req) {

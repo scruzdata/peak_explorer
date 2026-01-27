@@ -7,6 +7,7 @@ import { useEffect, ReactNode } from 'react'
 interface AdminProtectedProps {
   children: ReactNode
 }
+const SUPERADMIN_EMAIL = process.env.NEXT_PUBLIC_SUPERADMIN_EMAIL
 
 export function AdminProtected({ children }: AdminProtectedProps) {
   const { data: session, status } = useSession()
@@ -34,7 +35,7 @@ export function AdminProtected({ children }: AdminProtectedProps) {
   }
 
   // Verificar que el email sea el superadmin
-  if (session.user?.email !== 'maitaiweb@gmail.com') {
+  if (session.user?.email !== SUPERADMIN_EMAIL) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
         <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-8 shadow-lg text-center">
