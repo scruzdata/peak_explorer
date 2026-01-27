@@ -15,8 +15,16 @@ export default async function BlogPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="bg-gradient-to-br from-primary-600 to-primary-800 text-white">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+      <div
+        className="relative text-white"
+        style={{
+          backgroundImage: "url('/fondo_blogs.jpg')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/40 to-primary-900/60" />
+        <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
             Blog de Montaña
           </h1>
