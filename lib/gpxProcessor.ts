@@ -14,7 +14,7 @@ function detectWaypointType(name?: string, description?: string): WaypointType {
   }
   
   // Puente
-  if (/\b(puente|bridge|pont|ponte)\b/i.test(text)) {
+  if (/\b(puente|bridge|pont|ponte|arco)\b/i.test(text)) {
     return 'puente'
   }
   
@@ -36,6 +36,26 @@ function detectWaypointType(name?: string, description?: string): WaypointType {
   // Hermita
   if (/\b(hermita|ermita|hermitage|ermitage|santuario|sanctuary)\b/i.test(text)) {
     return 'hermita'
+  }
+  
+  // Árbol
+  if (/\b(arbol|tree|árbol|arbre|albero|pino|pine|roble|oak|haya|beech|tejo|pinar|pino)\b/i.test(text)) {
+    return 'arbol'
+  }
+  
+  // Laguna/Lago
+  if (/\b(laguna|lago|lake|étang|étang|lac|pond|estanque|ibón|ibon)\b/i.test(text)) {
+    return 'laguna'
+  }
+  
+  // Refugio/Albergue/Casa
+  if (/\b(refugio|albergue|casa|refuge|shelter|hut|cabana|cabaña|hutte|bivouac|bivac|hostal|hostel|alberg|gîte)\b/i.test(text)) {
+    return 'refugio'
+  }
+  
+  // Pico/Montaña/Collado
+  if (/\b(pico|peak|summit|cima|montaña|montana|mountain|monte|collado|col|pass|collet|port|portillo|portella|brecha|breche|garganta|gorge)\b/i.test(text)) {
+    return 'pico'
   }
   
   // Por defecto, unknown

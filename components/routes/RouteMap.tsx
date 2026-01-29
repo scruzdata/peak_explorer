@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { Route } from '@/types'
 import dynamic from 'next/dynamic'
-import { Car, RotateCcw, Play, Pause, Square, Download, Eye, EyeOff, Menu, X, Maximize2, Minimize2, UtensilsCrossed, Search, ExternalLink, MapPin } from 'lucide-react'
+import { Car, RotateCcw, Play, Pause, Square, Download, Eye, EyeOff, Menu, X, Maximize2, Minimize2, UtensilsCrossed, Search, ExternalLink, MapPin, Mountain } from 'lucide-react'
 // Iconos de react-icons para waypoints
 // Usando iconos de diferentes familias para asegurar que todos existan
 import { 
@@ -14,7 +14,10 @@ import {
 } from 'react-icons/gi'
 import { 
   FaCamera,             // Mirador - cámara de fotos (Font Awesome)
-  FaFaucet              // Fuente - fuente de beber agua (Font Awesome)
+  FaFaucet,              // Fuente - fuente de beber agua (Font Awesome)
+  FaLeaf,                // Árbol (Font Awesome - alternativa)
+  FaTint,                // Laguna/Lago (Font Awesome - gota de agua)
+  FaHome                 // Refugio/Albergue/Casa (Font Awesome)
 } from 'react-icons/fa'
 import { RouteElevationProfile } from './RouteElevationProfile'
 import { calculateSlope, getSlopeColor } from '@/lib/utils'
@@ -25,19 +28,46 @@ import type { WaypointType } from '@/types'
  * Obtiene el icono apropiado para un tipo de waypoint
  * Retorna el componente React correspondiente de react-icons
  */
-function getWaypointIconComponent(type?: WaypointType) {
+function getWaypointIconComponent(type?: WaypointType | string) {
   switch (type) {
     case 'mirador':
+    case 'panoramica':
       return FaCamera
     case 'puente':
       return GiBridge
     case 'fuente':
       return FaFaucet
     case 'enlace':
+    case 'sendero':
+    case 'camino':
       return GiTrail
     case 'iglesia':
     case 'hermita':
       return GiChurch
+    case 'arbol':
+    case 'tree':
+      return FaLeaf
+    case 'laguna':
+    case 'lago':
+    case 'ibon':
+    case 'lake':
+      return FaTint
+    case 'refugio':
+    case 'albergue':
+    case 'casa':
+    case 'home':
+    case 'shelter':
+      return FaHome
+    case 'pico':
+    case 'montaña':
+    case 'montana':
+    case 'mountain':
+    case 'peak':
+    case 'collado':
+    case 'col':
+    case 'pass':
+    case 'collet':
+      return Mountain
     case 'unknown':
     default:
       return GiHelp

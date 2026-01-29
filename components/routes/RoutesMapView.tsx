@@ -1097,7 +1097,7 @@ export function RoutesMapView({
             </button>
 
             {/* Imagen */}
-            <div className="relative h-16 w-full overflow-hidden">
+            <div className="relative h-24 w-full overflow-hidden">
               <Image
                 src={cardRoute.heroImage.url}
                 alt={cardRoute.heroImage.alt}

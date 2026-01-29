@@ -84,17 +84,18 @@ export function RouteElevationProfile({ route, onHoverTrackIndex, highlightedTra
   const containerRef = useRef<HTMLDivElement>(null)
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const [hoverData, setHoverData] = useState<{ distance: number; elevation: number; x: number } | null>(null)
+  const [hoveredWaypointIndex, setHoveredWaypointIndex] = useState<number | null>(null)
   
   // El índice a mostrar es el hovered (del perfil) o el highlighted (del mapa), dando prioridad al hovered
   const displayIndex = hoveredIndex !== null ? hoveredIndex : highlightedTrackIndex ?? null
 
   // Dimensiones del gráfico - ajustadas para modo compacto
   const width = compact ? 400 : 800
-  const height = compact ? 120 : 140
-  // Padding ajustado para que los ticks no se corten
+  const height = compact ? 150 : 140
+  // Padding ajustado para que los ticks no se corten y las etiquetas de waypoints no se corten
   const padding = compact 
     ? { top: 5, right: 12, bottom: 25, left: 40 }
-    : { top: 8, right: 20, bottom: 25, left: 45 }
+    : { top: 38, right: 20, bottom: 25, left: 45 }
   const chartWidth = width - padding.left - padding.right
   const chartHeight = height - padding.top - padding.bottom
 
@@ -316,7 +317,7 @@ export function RouteElevationProfile({ route, onHoverTrackIndex, highlightedTra
         </div>
       )}
       
-      <div className={`overflow-x-auto ${compact ? 'max-h-[140px]' : 'mt-9'}`}>
+      <div className={`overflow-x-auto ${compact ? 'max-h-[140px]' : 'mt-2'}`}>
         <svg
           ref={svgRef}
           width={width}
@@ -449,7 +450,7 @@ export function RouteElevationProfile({ route, onHoverTrackIndex, highlightedTra
             // Calcular posición X basada en la distancia
             const waypointX = padding.left + waypoint.distance * scaleX
             
-            // Calcular la posición Y en el track (línea de elevación)
+            // Calcular la posición Y en el track (línea de elevación) - esta es la posición real del waypoint
             let trackY = padding.top + chartHeight
             for (let i = 0; i < distances.length - 1; i++) {
               if (waypoint.distance >= distances[i] && waypoint.distance <= distances[i + 1]) {
@@ -460,34 +461,26 @@ export function RouteElevationProfile({ route, onHoverTrackIndex, highlightedTra
               }
             }
             
-            // Calcular posición Y del waypoint: un poco más arriba de su altura real
-            // Usar la elevación del waypoint si existe, sino usar la del track
-            let waypointElevation: number = minElevation // Valor por defecto
-            if (waypoint.elevation !== undefined) {
-              waypointElevation = waypoint.elevation
-            } else {
-              // Interpolar la elevación del track en esa distancia
-              for (let i = 0; i < distances.length - 1; i++) {
-                if (waypoint.distance >= distances[i] && waypoint.distance <= distances[i + 1]) {
-                  const ratio = (waypoint.distance - distances[i]) / (distances[i + 1] - distances[i])
-                  waypointElevation = elevations[i] + (elevations[i + 1] - elevations[i]) * ratio
-                  break
-                }
-              }
-            }
-            
-            // Calcular la posición Y del waypoint (más arriba que su elevación real)
-            // Añadir un offset hacia arriba (aproximadamente 5-10% del rango de elevación)
-            const elevationOffset = elevationRange * 0.5 // 50% del rango hacia arriba
-            const waypointY = padding.top + chartHeight - ((waypointElevation + elevationOffset) - minElevation) * scaleY
-            
-            // Asegurar que el waypoint no esté fuera del área del gráfico
-            const clampedWaypointY = Math.max(padding.top + 10, Math.min(padding.top + chartHeight - 10, waypointY))
-            
-            // Altura de la flecha desde el waypoint hasta el track
-            const arrowLength = Math.abs(clampedWaypointY - trackY)
-            const arrowHeadSize = compact ? 5 : 7
+            const isHovered = hoveredWaypointIndex === index
             const arrowColor = '#b8860b' // DarkGoldenrod - amarillento oscuro
+            const arrowHeadSize = compact ? 5 : 7
+            
+            // Verificar si el waypoint debe mostrarse por defecto (contiene "pico", "Pico" o "Monte" en nombre o tipo)
+            const nameMatches = waypoint.name && (
+              waypoint.name.toLowerCase().includes('pico') || 
+              waypoint.name.includes('Monte')
+            )
+            const typeMatches = waypoint.type && (
+              waypoint.type.toLowerCase().includes('pico') || 
+              waypoint.type.includes('Monte')
+            )
+            const shouldShowByDefault = nameMatches || typeMatches
+            
+            // Mostrar etiqueta si está hovered o si debe mostrarse por defecto
+            const shouldShowLabel = isHovered || shouldShowByDefault
+            
+            // Calcular posición Y de la etiqueta (arriba del waypoint)
+            const labelY = trackY - (compact ? 20 : 25)
             
             return (
               <g 
@@ -495,62 +488,50 @@ export function RouteElevationProfile({ route, onHoverTrackIndex, highlightedTra
                 className="waypoint-marker"
                 style={{ cursor: onWaypointClick ? 'pointer' : 'default' }}
                 onClick={() => onWaypointClick?.(index)}
+                onMouseEnter={() => setHoveredWaypointIndex(index)}
+                onMouseLeave={() => setHoveredWaypointIndex(null)}
               >
-                {/* Área invisible más grande para facilitar el click */}
+                {/* Área invisible más grande para facilitar el hover y click en el punto */}
                 <circle
                   cx={waypointX}
-                  cy={clampedWaypointY}
-                  r="20"
+                  cy={trackY}
+                  r="15"
                   fill="transparent"
                   pointerEvents="all"
                 />
                 
-                {/* Línea vertical desde el waypoint hasta el track */}
-                <line
-                  x1={waypointX}
-                  y1={clampedWaypointY}
-                  x2={waypointX}
-                  y2={trackY}
-                  stroke={arrowColor}
-                  strokeWidth={compact ? "2" : "2.5"}
-                  strokeDasharray="4 3"
-                  opacity="0.8"
+                {/* Punto del waypoint en su posición real en el track */}
+                <circle
+                  cx={waypointX}
+                  cy={trackY}
+                  r={compact ? "4" : "5"}
+                  fill={arrowColor}
+                  stroke="white"
+                  strokeWidth={compact ? "1.5" : "2"}
+                  opacity="0.95"
                 />
                 
-                {/* Flecha hacia abajo en el track */}
-                {/* <path
-                  d={`M ${waypointX} ${trackY} L ${waypointX - arrowHeadSize} ${trackY + arrowHeadSize} L ${waypointX + arrowHeadSize} ${trackY + arrowHeadSize} Z`}
-                  fill={arrowColor}
-                  opacity="0.9"
-                /> */}
-                
-                {/* Gota de agua en la posición del waypoint (más arriba) */}
-                <g transform={`translate(${waypointX}, ${clampedWaypointY})`}>
-                  {/* Forma de gota de agua */}
-                  <path
-                    d={`M 0,0 Q -3,-4 -6,-6 Q -6,-8 -4,-10 Q -2,-11 0,-11 Q 2,-11 4,-10 Q 6,-8 6,-6 Q 3,-4 0,0 Z`}
-                    fill={arrowColor}
-                    stroke="white"
-                    strokeWidth={compact ? "1" : "1.5"}
-                    opacity="0.95"
+                {/* Línea vertical desde la etiqueta hasta el track (cuando debe mostrarse) */}
+                {shouldShowLabel && (
+                  <line
+                    x1={waypointX}
+                    y1={labelY - (compact ? 6 : 8)}
+                    x2={waypointX}
+                    y2={trackY}
+                    stroke={arrowColor}
+                    strokeWidth={compact ? "2" : "2.5"}
+                    strokeDasharray="4 3"
+                    opacity="0.8"
                   />
-                  {/* Punto central pequeño */}
-                  <circle
-                    cx="0"
-                    cy="-6"
-                    r={compact ? "1.5" : "2"}
-                    fill="white"
-                    opacity="0.9"
-                  />
-                </g>
+                )}
                 
-                {/* Nombre del waypoint (si existe) */}
-                {waypoint.name && (
+                {/* Nombre del waypoint (cuando debe mostrarse) */}
+                {shouldShowLabel && waypoint.name && (
                   <g>
                     {/* Fondo del texto */}
                     <rect
                       x={waypointX - (waypoint.name.length * (compact ? 1 : 6)) / 2}
-                      y={clampedWaypointY - (compact ? 20 : 25)}
+                      y={labelY - (compact ? 11 : 13)}
                       width={waypoint.name.length * (compact ? 3 : 6)}
                       height={compact ? 11 : 13}
                       fill="white"
@@ -561,7 +542,7 @@ export function RouteElevationProfile({ route, onHoverTrackIndex, highlightedTra
                     />
                     <text
                       x={waypointX}
-                      y={clampedWaypointY - (compact ? 12 : 15)}
+                      y={labelY - (compact ? 3 : 4)}
                       textAnchor="middle"
                       className={`${compact ? 'text-[8px]' : 'text-[10px]'} font-semibold pointer-events-none`}
                       fill={arrowColor}
