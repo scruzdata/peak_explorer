@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ImageData } from '@/types'
-import { X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Hand } from 'lucide-react'
 
 interface RouteGalleryProps {
   images: ImageData[]
@@ -100,12 +100,23 @@ export function RouteGallery({ images, routeTitle }: RouteGalleryProps) {
     <>
       <section className="w-full">
         <h2 className="mb-4 text-2xl font-bold">Galería de Fotos</h2>
-        <div className="flex items-center gap-2">
+        
+        {/* Indicador de deslizamiento para móvil */}
+        <div className="mb-4 flex items-center justify-center gap-2 text-sm text-gray-500 sm:hidden">
+          <Hand className="h-4 w-4 animate-pulse" />
+          <span>Desliza para ver más</span>
+          <div className="flex gap-1 items-center">
+            <ChevronLeft className="h-4 w-4 animate-slide-horizontal" />
+            <ChevronRight className="h-4 w-4 animate-slide-horizontal" style={{ animationDelay: '0.3s' }} />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 sm:gap-2">
           {/* Botón izquierdo */}
           <button
             onClick={scrollLeft}
             disabled={!canScrollLeft}
-            className="flex-shrink-0 rounded-full bg-white p-2 shadow-lg border border-gray-200 transition-all hover:bg-gray-50 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            className="hidden sm:flex flex-shrink-0 rounded-full bg-white p-2 shadow-lg border border-gray-200 transition-all hover:bg-gray-50 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             aria-label="Desplazar izquierda"
           >
             <ChevronLeft className="h-6 w-6 text-gray-700" />
@@ -114,7 +125,7 @@ export function RouteGallery({ images, routeTitle }: RouteGalleryProps) {
           {/* Contenedor del slider */}
           <div
             ref={scrollContainerRef}
-            className="flex-1 flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth"
+            className="flex-1 flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth px-2 sm:px-0"
           >
             {images.map((image, index) => (
               <motion.button
@@ -145,7 +156,7 @@ export function RouteGallery({ images, routeTitle }: RouteGalleryProps) {
           <button
             onClick={scrollRight}
             disabled={!canScrollRight}
-            className="flex-shrink-0 rounded-full bg-white p-2 shadow-lg border border-gray-200 transition-all hover:bg-gray-50 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            className="hidden sm:flex flex-shrink-0 rounded-full bg-white p-2 shadow-lg border border-gray-200 transition-all hover:bg-gray-50 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             aria-label="Desplazar derecha"
           >
             <ChevronRight className="h-6 w-6 text-gray-700" />

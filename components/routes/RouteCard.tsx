@@ -81,7 +81,13 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
           e.stopPropagation()
         }}
       >
-        <div className="relative h-48 overflow-hidden rounded-xl mb-2 group/image">
+        <div 
+          className="relative h-48 overflow-hidden rounded-xl mb-2 group/image"
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+          }}
+        >
           <AnimatePresence mode="wait">
             <motion.div
               key={currentImageIndex}
@@ -95,7 +101,7 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
                 src={allImages[currentImageIndex].url}
                 alt={allImages[currentImageIndex].alt || route.title}
                 fill
-                className="object-cover transition-transform duration-500 group-hover:scale-110"
+                className="object-cover transition-transform duration-500 group-hover:scale-110 pointer-events-none"
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 33vw"
               />
             </motion.div>
@@ -180,28 +186,37 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
           </button>
         </div>
 
-        <div className="space-y-1">
-          <h3 className="text-sm font-semibold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-1">
-            {route.title}
-          </h3>
-          <p className="text-xs text-gray-500 line-clamp-1">
-            {route.location.region}, {route.location.province}
-          </p>
-          <div className="flex items-center gap-3 text-xs text-gray-600 pt-1">
-            <div className="flex items-center gap-1">
-              <MapPin className="h-3 w-3" />
-              <span>{formatDistance(route.distance)}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <TrendingUp className="h-3 w-3" />
-              <span>{formatElevation(route.elevation)}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              <span>{route.duration}</span>
+        <Link 
+          href={`/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          onClick={(e) => {
+            e.stopPropagation()
+          }}
+        >
+          <div className="space-y-1">
+            <h3 className="text-sm font-semibold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-1">
+              {route.title}
+            </h3>
+            <p className="text-xs text-gray-500 line-clamp-1">
+              {route.location.region}, {route.location.province}
+            </p>
+            <div className="flex items-center gap-3 text-xs text-gray-600 pt-1">
+              <div className="flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                <span>{formatDistance(route.distance)}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <TrendingUp className="h-3 w-3" />
+                <span>{formatElevation(route.elevation)}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                <span>{route.duration}</span>
+              </div>
             </div>
           </div>
-        </div>
+        </Link>
       </motion.div>
     )
   }
@@ -226,17 +241,13 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
           onDoubleClick?.()
         }}
       >
-        <Link 
-          href={`/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`} 
-          target="_blank" 
-          rel="noopener noreferrer"
-          onDoubleClick={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            onDoubleClick?.()
-          }}
-        >
-          <div className="relative h-48 overflow-hidden rounded-xl mb-2 group/image">
+          <div 
+            className="relative h-48 overflow-hidden rounded-xl mb-2 group/image"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+            }}
+          >
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentImageIndex}
@@ -250,7 +261,7 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
                   src={allImages[currentImageIndex].url}
                   alt={allImages[currentImageIndex].alt || route.title}
                   fill
-                  className="object-cover transition-transform duration-500 group-hover:scale-110"
+                  className="object-cover transition-transform duration-500 group-hover:scale-110 pointer-events-none"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 33vw"
                 />
               </motion.div>
@@ -320,29 +331,37 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
             </div>
           </div>
 
-          <div className="space-y-1">
-            <h3 className="text-sm font-semibold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-1">
-              {route.title}
-            </h3>
-            <p className="text-xs text-gray-500 line-clamp-1">
-              {route.location.region}, {route.location.province}
-            </p>
-            <div className="flex items-center gap-3 text-xs text-gray-600 pt-1">
-              <div className="flex items-center gap-1">
-                <MapPin className="h-3 w-3" />
-                <span>{formatDistance(route.distance)}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <TrendingUp className="h-3 w-3" />
-                <span>{formatElevation(route.elevation)}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                <span>{route.duration}</span>
+          <Link 
+            href={`/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            onClick={(e) => {
+              e.stopPropagation()
+            }}
+          >
+            <div className="space-y-1">
+              <h3 className="text-sm font-semibold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-1">
+                {route.title}
+              </h3>
+              <p className="text-xs text-gray-500 line-clamp-1">
+                {route.location.region}, {route.location.province}
+              </p>
+              <div className="flex items-center gap-3 text-xs text-gray-600 pt-1">
+                <div className="flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  <span>{formatDistance(route.distance)}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <TrendingUp className="h-3 w-3" />
+                  <span>{formatElevation(route.elevation)}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  <span>{route.duration}</span>
+                </div>
               </div>
             </div>
-          </div>
-        </Link>
+          </Link>
       </motion.div>
     )
   }
@@ -366,17 +385,13 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
         onDoubleClick?.()
       }}
     >
-      <Link 
-        href={`/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`} 
-        target="_blank" 
-        rel="noopener noreferrer"
-        onDoubleClick={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          onDoubleClick?.()
-        }}
-      >
-        <div className="relative h-36 overflow-hidden group/image">
+        <div 
+          className="relative h-40 sm:h-56 overflow-hidden group/image"
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+          }}
+        >
           <AnimatePresence mode="wait">
             <motion.div
               key={currentImageIndex}
@@ -390,7 +405,7 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
                 src={allImages[currentImageIndex].url}
                 alt={allImages[currentImageIndex].alt || route.title}
                 fill
-                className="object-cover transition-transform duration-500 group-hover:scale-110"
+                className="object-cover transition-transform duration-500 group-hover:scale-110 pointer-events-none"
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               />
             </motion.div>
@@ -460,35 +475,43 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
           </div>
         </div>
 
-        <div className="p-4">
-          <h3 className="mb-1.5 text-lg font-bold text-gray-900 group-hover:text-primary-600 transition-colors">
-            {route.title}
-          </h3>
-          <p className="mb-3 line-clamp-2 text-sm text-gray-600">
-            {route.summary}
-          </p>
+        <Link 
+          href={`/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          onClick={(e) => {
+            e.stopPropagation()
+          }}
+        >
+          <div className="p-4">
+            <h3 className="mb-1.5 text-lg font-bold text-gray-900 group-hover:text-primary-600 transition-colors">
+              {route.title}
+            </h3>
+            <p className="mb-3 line-clamp-2 text-sm text-gray-600">
+              {route.summary}
+            </p>
 
-          <div className="flex flex-wrap gap-3 text-xs text-gray-600">
-            <div className="flex items-center">
+            <div className="flex flex-wrap gap-3 text-xs text-gray-600">
+              <div className="flex items-center">
+                <MapPin className="mr-1 h-3.5 w-3.5" />
+                {formatDistance(route.distance)}
+              </div>
+              <div className="flex items-center">
+                <TrendingUp className="mr-1 h-3.5 w-3.5" />
+                {formatElevation(route.elevation)}
+              </div>
+              <div className="flex items-center">
+                <Clock className="mr-1 h-3.5 w-3.5" />
+                {route.duration}
+              </div>
+            </div>
+
+            <div className="mt-3 flex items-center text-xs text-gray-500">
               <MapPin className="mr-1 h-3.5 w-3.5" />
-              {formatDistance(route.distance)}
-            </div>
-            <div className="flex items-center">
-              <TrendingUp className="mr-1 h-3.5 w-3.5" />
-              {formatElevation(route.elevation)}
-            </div>
-            <div className="flex items-center">
-              <Clock className="mr-1 h-3.5 w-3.5" />
-              {route.duration}
+              {route.location.region}, {route.location.province}
             </div>
           </div>
-
-          <div className="mt-3 flex items-center text-xs text-gray-500">
-            <MapPin className="mr-1 h-3.5 w-3.5" />
-            {route.location.region}, {route.location.province}
-          </div>
-        </div>
-      </Link>
+        </Link>
     </motion.div>
   )
 }

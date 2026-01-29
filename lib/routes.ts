@@ -1,5 +1,5 @@
 import { Route } from '@/types'
-import { generateSlug } from '@/lib/utils'
+import { generateSlug, calculateDistance } from '@/lib/utils'
 import { sampleTrekkingRoutes, sampleFerratas } from './data'
 import { getRouteTrack } from './tracks'
 import { getTrackByRouteSlug } from './firebase/tracks'
@@ -311,6 +311,42 @@ export async function getRecentRoutesAsync(
     return routesWithTracks
   } catch (error) {
     console.error(`Error obteniendo rutas recientes de tipo ${type}:`, error)
+    return []
+  }
+}
+
+/**
+ * Obtiene las rutas más cercanas por distancia a una ruta de referencia
+ */
+export async function getClosestRoutesAsync(
+  referenceRoute: Route,
+  limit: number = 6
+): Promise<Route[]> {
+  try {
+    // Obtener todas las rutas del mismo tipo
+    const allRoutes = referenceRoute.type === 'trekking'
+      ? await getTrekkingRoutesAsync()
+      : await getFerratasAsync()
+    
+    // Filtrar la ruta actual y calcular distancias
+    const routesWithDistance = allRoutes
+      .filter(route => route.id !== referenceRoute.id)
+      .map(route => {
+        const distance = calculateDistance(
+          referenceRoute.location.coordinates.lat,
+          referenceRoute.location.coordinates.lng,
+          route.location.coordinates.lat,
+          route.location.coordinates.lng
+        )
+        return { route, distance }
+      })
+      .sort((a, b) => a.distance - b.distance) // Ordenar por distancia ascendente
+      .slice(0, limit) // Limitar al número solicitado
+      .map(item => item.route) // Extraer solo las rutas
+    
+    return routesWithDistance
+  } catch (error) {
+    console.error(`Error obteniendo rutas más cercanas:`, error)
     return []
   }
 }

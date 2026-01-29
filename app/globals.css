@@ -172,3 +172,16 @@ body.hide-footer footer {
   transform: scale(0.95) !important;
 }
 
+/* Animación para indicador de deslizamiento en carrusel móvil */
+@keyframes slide-horizontal {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(8px);
+  }
+}
+
+.animate-slide-horizontal {
+  animation: slide-horizontal 1.5s ease-in-out infinite;
+}

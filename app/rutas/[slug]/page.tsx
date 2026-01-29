@@ -1,7 +1,7 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { RouteDetail } from '@/components/routes/RouteDetail'
-import { getRouteBySlugAsync, getRecentRoutesAsync } from '@/lib/routes'
+import { getRouteBySlugAsync, getClosestRoutesAsync } from '@/lib/routes'
 
 // Forzar recarga dinámica para obtener datos frescos de Firestore
 export const dynamic = 'force-dynamic'
@@ -48,8 +48,8 @@ export default async function RoutePage({ params }: PageProps) {
     notFound()
   }
 
-  // Obtener rutas recientes (excluyendo la actual)
-  const recentRoutes = await getRecentRoutesAsync(route.id, 'trekking', 6)
+  // Obtener rutas más cercanas por distancia (excluyendo la actual)
+  const recentRoutes = await getClosestRoutesAsync(route, 6)
 
   return <RouteDetail route={route} recentRoutes={recentRoutes} />
 }
