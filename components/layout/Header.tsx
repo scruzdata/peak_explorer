@@ -99,7 +99,7 @@ export function Header() {
                 href={item.href}
                 onClick={() => setMobileMenuOpen(false)}
                 className={cn(
-                  'block text-base font-medium transition-colors',
+                  'block text-center text-base font-medium transition-colors',
                   pathname === item.href ? 'text-primary-600' : 'text-gray-700 hover:text-primary-600'
                 )}
               >
@@ -111,14 +111,14 @@ export function Header() {
                 <Link
                   href="/mis-rutas"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block text-base font-medium text-gray-700 hover:text-primary-600"
+                  className="block text-center text-base font-medium text-gray-700 hover:text-primary-600"
                 >
                   Mis Rutas
                 </Link>
                 <Link
                   href="/perfil"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block text-base font-medium text-gray-700 hover:text-primary-600"
+                  className="block text-center text-base font-medium text-gray-700 hover:text-primary-600"
                 >
                   Perfil
                 </Link>
@@ -126,7 +126,7 @@ export function Header() {
                   <Link
                     href="/admin"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="block text-base font-medium text-primary-600"
+                    className="block text-center text-base font-medium text-primary-600"
                   >
                     Admin
                   </Link>
@@ -136,7 +136,7 @@ export function Header() {
                     signOut()
                     setMobileMenuOpen(false)
                   }}
-                  className="block w-full text-left text-base font-medium text-gray-700 hover:text-primary-600"
+                  className="block w-full text-center text-base font-medium text-gray-700 hover:text-primary-600"
                 >
                   Salir
                 </button>
