@@ -204,12 +204,15 @@ export function RoutesMapView({
   // Ruta seleccionada para mostrar track (puede venir del grid o del POI)
   const trackRouteId = selectedRouteId ?? internalSelectedRouteId
   
-  // Efecto para cerrar el popup cuando se selecciona una ruta desde el grid
-  // No cambiamos showDetailPanel para mantener el estado estable
+  // Efecto para cerrar el popup y mostrar el panel de detalle cuando se selecciona una ruta desde el grid
   useEffect(() => {
     if (selectedRouteId) {
+      console.log('Ruta seleccionada desde el grid:', selectedRouteId)
       setClusterPopup(null)
-      // No forzamos showDetailPanel a true, mantenemos el estado actual
+      // Mostrar el panel de detalle automáticamente cuando se selecciona desde el grid
+      setShowDetailPanel(true)
+      // Limpiar la selección interna para que prevalezca la del grid
+      setInternalSelectedRouteId(null)
     }
   }, [selectedRouteId])
   const trackRoute = useMemo(
@@ -227,10 +230,16 @@ export function RoutesMapView({
 
   // Ruta con track cargado para mostrar en la tarjeta y perfil
   const cardRoute = useMemo(() => {
-    if (!cardRouteBase) return null
+    if (!cardRouteBase) {
+      console.log('No hay cardRouteBase, cardRouteId:', cardRouteId)
+      return null
+    }
+    
+    console.log('Calculando cardRoute para:', cardRouteId, 'trackRouteId:', trackRouteId, 'selectedRouteTrack:', !!selectedRouteTrack)
     
     // Si hay un track cargado y coincide con la ruta seleccionada, usarlo
     if (selectedRouteTrack && trackRouteId === cardRouteId) {
+      console.log('Usando selectedRouteTrack para cardRoute')
       return {
         ...cardRouteBase,
         track: selectedRouteTrack
@@ -239,9 +248,11 @@ export function RoutesMapView({
     
     // Si la ruta ya tiene track, usarlo
     if (cardRouteBase.track && cardRouteBase.track.length > 0) {
+      console.log('Usando track de cardRouteBase')
       return cardRouteBase
     }
     
+    console.log('Retornando cardRouteBase sin track')
     return cardRouteBase
   }, [cardRouteBase, selectedRouteTrack, trackRouteId, cardRouteId])
 

@@ -85,7 +85,8 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
       >
         <div 
           className="relative h-48 overflow-hidden rounded-xl mb-2 group/image"
-          onClick={(e) => {
+          onClick={onClick ? undefined : (e: any) => {
+            // Solo prevenir la propagación si no hay onClick personalizado
             e.preventDefault()
             e.stopPropagation()
           }}
@@ -97,7 +98,7 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="absolute inset-0"
+              className="absolute inset-0 pointer-events-none"
             >
               <Image
                 src={allImages[currentImageIndex].url}
@@ -108,11 +109,11 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
               />
             </motion.div>
           </AnimatePresence>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
           
           {/* Rating Badge */}
           {hasRating && (
-            <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-white/95 px-2 py-1 text-xs font-semibold text-gray-900 shadow z-10">
+            <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-white/95 px-2 py-1 text-xs font-semibold text-gray-900 shadow z-10 pointer-events-none">
               <Star className="h-3 w-3 text-amber-500" fill="currentColor" strokeWidth={1.5} />
               {ratingValue}
             </div>
@@ -163,7 +164,7 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
           )}
 
           {/* Difficulty/Grade Badge */}
-          <div className="absolute bottom-2 left-2 z-10">
+          <div className="absolute bottom-2 left-2 z-10 pointer-events-none">
             {type === 'ferrata' && route.ferrataGrade ? (
               <span className={`text-xs px-2 py-1 rounded-md font-medium ${getFerrataGradeColor(route.ferrataGrade)}`}>
                 {route.ferrataGrade}
@@ -191,37 +192,35 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
           </button>
         </div>
 
-        <Link 
-          href={`/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`} 
-          target="_blank" 
-          rel="noopener noreferrer"
+        <div 
+          className="space-y-1"
           onClick={(e) => {
+            // Prevenir que el click se propague cuando hay onClick personalizado
+            e.preventDefault()
             e.stopPropagation()
           }}
         >
-          <div className="space-y-1">
-            <h3 className="text-sm font-semibold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-1">
-              {route.title}
-            </h3>
-            <p className="text-xs text-gray-500 line-clamp-1">
-              {route.location.region}, {route.location.province}
-            </p>
-            <div className="flex items-center gap-3 text-xs text-gray-600 pt-1">
-              <div className="flex items-center gap-1">
-                <MapPin className="h-3 w-3" />
-                <span>{formatDistance(route.distance)}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <TrendingUp className="h-3 w-3" />
-                <span>{formatElevation(route.elevation)}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                <span>{route.duration}</span>
-              </div>
+          <h3 className="text-sm font-semibold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-1">
+            {route.title}
+          </h3>
+          <p className="text-xs text-gray-500 line-clamp-1">
+            {route.location.region}, {route.location.province}
+          </p>
+          <div className="flex items-center gap-3 text-xs text-gray-600 pt-1">
+            <div className="flex items-center gap-1">
+              <MapPin className="h-3 w-3" />
+              <span>{formatDistance(route.distance)}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <TrendingUp className="h-3 w-3" />
+              <span>{formatElevation(route.elevation)}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              <span>{route.duration}</span>
             </div>
           </div>
-        </Link>
+        </div>
       </motion.div>
     )
   }

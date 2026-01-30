@@ -471,7 +471,10 @@ export function RouteList({ routes, type }: RouteListProps) {
                     isSelected={selectedRouteId === route.id}
                     onMouseEnter={() => setHoveredRouteId(route.id)}
                     onMouseLeave={() => setHoveredRouteId(null)}
-                    onClick={() => setSelectedRouteId(route.id)}
+                    onClick={() => {
+                      console.log('Click en card del grid, estableciendo selectedRouteId:', route.id)
+                      setSelectedRouteId(route.id)
+                    }}
                     onDoubleClick={() => {
                       if (zoomToRouteRef.current && route.location?.coordinates) {
                         zoomToRouteRef.current(route.location.coordinates.lat, route.location.coordinates.lng)
