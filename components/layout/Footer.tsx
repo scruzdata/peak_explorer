@@ -26,13 +26,14 @@ export function Footer() {
           <div>
             <h3 className="mb-4 text-sm font-semibold text-white">Rutas</h3>
             <ul className="space-y-2 text-sm">
+              {/* Optimización accesibilidad: text-primary-300 mejora contraste sobre bg-gray-900 (ratio >4.5:1) */}
               <li>
-                <Link href="/rutas" className="hover:text-primary-400 transition-colors">
+                <Link href="/rutas" className="hover:text-primary-300 transition-colors">
                   Rutas de Montaña
                 </Link>
               </li>
               <li>
-                <Link href="/vias-ferratas" className="hover:text-primary-400 transition-colors">
+                <Link href="/vias-ferratas" className="hover:text-primary-300 transition-colors">
                   Vías Ferratas
                 </Link>
               </li>
@@ -43,23 +44,24 @@ export function Footer() {
           <div>
             <h3 className="mb-4 text-sm font-semibold text-white">Legal</h3>
             <ul className="space-y-2 text-sm">
+              {/* Optimización accesibilidad: text-primary-300 mejora contraste sobre bg-gray-900 (ratio >4.5:1) */}
               <li>
-                <Link href="/privacidad" className="hover:text-primary-400 transition-colors">
+                <Link href="/privacidad" className="hover:text-primary-300 transition-colors">
                   Política de Privacidad
                 </Link>
               </li>
               <li>
-                <Link href="/cookies" className="hover:text-primary-400 transition-colors">
+                <Link href="/cookies" className="hover:text-primary-300 transition-colors">
                   Política de Cookies
                 </Link>
               </li>
               <li>
-                <Link href="/afiliados" className="hover:text-primary-400 transition-colors">
+                <Link href="/afiliados" className="hover:text-primary-300 transition-colors">
                   Aviso de Afiliados
                 </Link>
               </li>
               <li>
-                <Link href="/terminos" className="hover:text-primary-400 transition-colors">
+                <Link href="/terminos" className="hover:text-primary-300 transition-colors">
                   Términos y Condiciones
                 </Link>
               </li>
@@ -70,8 +72,9 @@ export function Footer() {
           <div>
             <h3 className="mb-4 text-sm font-semibold text-white">Contacto</h3>
             <ul className="space-y-2 text-sm">
+              {/* Optimización accesibilidad: text-primary-300 mejora contraste sobre bg-gray-900 (ratio >4.5:1) */}
               <li>
-                <a href="mailto:info@peak-explorer.com" className="hover:text-primary-400 transition-colors">
+                <a href="mailto:info@peak-explorer.com" className="hover:text-primary-300 transition-colors">
                   info@peak-explorer.com
                 </a>
               </li>
@@ -85,7 +88,8 @@ export function Footer() {
               <p>
                 © {currentYear} Peak Explorer. Todos los derechos reservados.
               </p>
-              <p className="mt-2 text-xs text-gray-500">
+              {/* Optimización accesibilidad: text-gray-400 mejora contraste sobre bg-gray-900 (ratio >4.5:1) */}
+              <p className="mt-2 text-xs text-gray-400">
                 Algunos enlaces son de afiliados. Esto no afecta el precio que pagas.
               </p>
             </div>

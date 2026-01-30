@@ -1,5 +1,6 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import Image from 'next/image'
 import { getBlogBySlugFromFirestore, incrementBlogViews, getRecentBlogsFromFirestore } from '@/lib/firebase/blogs'
 import { BlogPost } from '@/types'
 import { Calendar, Clock, Tag } from 'lucide-react'
@@ -127,17 +128,41 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         full: 'max-w-full'
       }
       
+      // Optimización: Usar next/image en lugar de <img> para lazy loading automático
+      // y optimización de imágenes (WebP, AVIF). Las imágenes en markdown no son críticas
+      // por lo que se cargan con lazy loading (mejora LCP y reduce carga inicial)
+      const imageUrl = imgProps.src || ''
+      const isExternal = imageUrl.startsWith('http://') || imageUrl.startsWith('https://')
+      const isFirebase = imageUrl.includes('firebasestorage') || imageUrl.includes('firebase')
+      
       return (
         <div 
-          className={`${alignmentClasses[alignment]} ${maxWidthClasses[alignment]}`}
+          className={`relative ${alignmentClasses[alignment]} ${maxWidthClasses[alignment]}`}
           style={{ width: size !== 100 ? `${size}%` : undefined }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img 
-            className="rounded-lg w-full h-auto" 
-            alt={cleanAlt} 
-            {...imgProps} 
-          />
+          {isExternal ? (
+            <Image
+              src={imageUrl}
+              alt={cleanAlt}
+              width={1200}
+              height={800}
+              className="rounded-lg w-full h-auto"
+              loading="lazy" // Lazy loading para imágenes no críticas (mejora LCP)
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              unoptimized={isFirebase} // Firebase Storage no se puede optimizar con Next.js
+            />
+          ) : (
+            // Para imágenes locales, usar next/image con ruta relativa
+            <Image
+              src={imageUrl}
+              alt={cleanAlt}
+              width={1200}
+              height={800}
+              className="rounded-lg w-full h-auto"
+              loading="lazy"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            />
+          )}
         </div>
       )
     },

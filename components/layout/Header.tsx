@@ -35,7 +35,8 @@ export function Header() {
               href={item.href}
               className={cn(
                 'text-sm font-medium transition-colors hover:text-primary-600',
-                pathname === item.href ? 'text-primary-600' : 'text-gray-700'
+                // Optimización accesibilidad: text-primary-700 mejora contraste sobre fondo blanco (ratio >4.5:1)
+                pathname === item.href ? 'text-primary-700' : 'text-gray-700'
               )}
             >
               {item.label}
@@ -64,7 +65,8 @@ export function Header() {
               {user.role === 'admin' && (
                 <Link
                   href="/admin"
-                  className="text-sm font-medium text-primary-600 hover:text-primary-700"
+                  // Optimización accesibilidad: text-primary-700 mejora contraste sobre fondo blanco
+                  className="text-sm font-medium text-primary-700 hover:text-primary-800"
                 >
                   Admin
                 </Link>
@@ -100,7 +102,8 @@ export function Header() {
                 onClick={() => setMobileMenuOpen(false)}
                 className={cn(
                   'block text-center text-base font-medium transition-colors',
-                  pathname === item.href ? 'text-primary-600' : 'text-gray-700 hover:text-primary-600'
+                  // Optimización accesibilidad: text-primary-700 mejora contraste sobre fondo blanco
+                  pathname === item.href ? 'text-primary-700' : 'text-gray-700 hover:text-primary-600'
                 )}
               >
                 {item.label}
@@ -126,7 +129,8 @@ export function Header() {
                   <Link
                     href="/admin"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="block text-center text-base font-medium text-primary-600"
+                    // Optimización accesibilidad: text-primary-700 mejora contraste sobre fondo blanco
+                    className="block text-center text-base font-medium text-primary-700"
                   >
                     Admin
                   </Link>

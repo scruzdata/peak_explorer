@@ -34,11 +34,13 @@ export function CookieBanner() {
                 className="text-sm text-gray-600"
               >
                 Utilizamos cookies para mejorar tu experiencia, analizar el tráfico del sitio y personalizar el contenido.{' '}
+                {/* Optimización accesibilidad: texto descriptivo y aria-label para lectores de pantalla */}
                 <Link
                   href="/cookies"
                   className="text-primary-600 hover:text-primary-700 underline font-medium"
+                  aria-label="Más información sobre nuestra política de cookies"
                 >
-                  Más información
+                  Más información sobre cookies
                 </Link>
               </p>
             </div>

@@ -20,9 +20,11 @@ interface RouteCardProps {
   onClick?: () => void
   /** Doble click personalizado (por ejemplo, para hacer zoom en el mapa) */
   onDoubleClick?: () => void
+  /** Optimización: priority para imágenes en viewport inicial (mejora LCP) */
+  priority?: boolean
 }
 
-export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, isHovered = false, isSelected = false, type = 'trekking', onClick, onDoubleClick }: RouteCardProps) {
+export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, isHovered = false, isSelected = false, type = 'trekking', onClick, onDoubleClick, priority = false }: RouteCardProps) {
   const hasRating = typeof route.rating === 'number'
   const ratingValue = hasRating ? Number(route.rating?.toFixed(1)) : null
   
@@ -257,12 +259,14 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
                 transition={{ duration: 0.3 }}
                 className="absolute inset-0"
               >
+                {/* Optimización: priority para imágenes en viewport inicial, lazy para las demás */}
                 <Image
                   src={allImages[currentImageIndex].url}
                   alt={allImages[currentImageIndex].alt || route.title}
                   fill
                   className="object-cover transition-transform duration-500 group-hover:scale-110 pointer-events-none"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 33vw"
+                  priority={priority} // Priority para imágenes críticas (mejora LCP)
                 />
               </motion.div>
             </AnimatePresence>

@@ -30,12 +30,14 @@ export function BlogCard({ blog, openInNewTab = false }: { blog: BlogPost; openI
       {/* Imagen destacada */}
       {blog.featuredImage?.url ? (
         <div className="relative h-48 w-full overflow-hidden bg-gray-200">
+          {/* Optimización: lazy loading explícito para imágenes de blog (siempre below the fold) */}
           <Image
             src={blog.featuredImage.url}
             alt={blog.featuredImage.alt || blog.title}
             fill
             className="object-cover transition-transform duration-300 group-hover:scale-110"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            loading="lazy" // Lazy loading para mejorar LCP (blogs están below the fold)
             unoptimized={blog.featuredImage.url.includes('firebasestorage') || blog.featuredImage.url.includes('firebase')}
             onError={(e) => {
               console.error('Error cargando imagen del blog:', {

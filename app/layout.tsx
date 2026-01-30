@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import 'leaflet/dist/leaflet.css'
+// Optimización: Removido import de leaflet CSS del layout (render blocking)
+// Se carga dinámicamente solo cuando se necesita (ver componentes que usan mapas)
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { AuthProvider } from '@/components/providers/AuthProvider'
@@ -12,7 +13,15 @@ import { CookieBanner } from '@/components/cookies/CookieBanner'
 import { CookieSettings } from '@/components/cookies/CookieSettings'
 import { ConditionalScripts } from '@/components/cookies/ConditionalScripts'
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
+// Optimización: Fuente con display swap para evitar FOIT (Flash of Invisible Text)
+// preload mejora LCP al cargar la fuente críticamente
+const inter = Inter({ 
+  subsets: ['latin'], 
+  variable: '--font-inter',
+  display: 'swap', // Muestra texto con fuente del sistema mientras carga (mejora CLS)
+  preload: true, // Preload de fuente para mejorar LCP
+  adjustFontFallback: true, // Ajusta métricas de fallback para reducir CLS
+})
 
 export const metadata: Metadata = {
   title: {

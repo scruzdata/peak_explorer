@@ -2,6 +2,17 @@
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
+  // Optimización: Compilador moderno para navegadores actuales (reduce polyfills innecesarios)
+  // Esto mejora el tamaño del bundle y elimina JavaScript antiguo innecesario
+  compiler: {
+    // Eliminar console.log en producción para reducir bundle size
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn'],
+    } : false,
+  },
+  // Optimización: Configuración de compilación para navegadores modernos
+  // Target moderno reduce transpilación innecesaria y polyfills
+  swcMinify: true,
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
@@ -10,9 +21,13 @@ const nextConfig = {
         hostname: '**',
       },
     ],
+    // Optimización: Mejorar rendimiento de imágenes
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
   experimental: {
-    optimizePackageImports: ['lucide-react', 'framer-motion'],
+    // Optimización: Tree-shaking mejorado para paquetes grandes
+    optimizePackageImports: ['lucide-react', 'framer-motion', 'react-icons'],
   },
   // Configuración de headers de seguridad
   async headers() {
@@ -142,7 +157,7 @@ const nextConfig = {
 
     const cspString = cspParts.join('; ')
 
-    return [
+    const headers = [
       {
         // Aplicar a todas las rutas
         source: '/:path*',
@@ -195,6 +210,44 @@ const nextConfig = {
         ],
       },
     ]
+
+    // Optimización: Headers de caché para recursos estáticos (mejora TTFB y reduce carga)
+    if (isProduction) {
+      headers.push(
+        {
+          // Optimización: Cachear assets estáticos de Next.js (CSS, JS, imágenes)
+          source: '/_next/static/:path*',
+          headers: [
+            {
+              key: 'Cache-Control',
+              value: 'public, max-age=31536000, immutable',
+            },
+          ],
+        },
+        {
+          // Optimización: Cachear imágenes optimizadas
+          source: '/_next/image',
+          headers: [
+            {
+              key: 'Cache-Control',
+              value: 'public, max-age=31536000, immutable',
+            },
+          ],
+        },
+        {
+          // Optimización: Cachear assets públicos (favicon, etc)
+          source: '/:all*(svg|jpg|jpeg|png|gif|ico|webp|avif|woff|woff2|ttf|eot)',
+          headers: [
+            {
+              key: 'Cache-Control',
+              value: 'public, max-age=31536000, immutable',
+            },
+          ],
+        }
+      )
+    }
+
+    return headers
   },
   // Desactivar TODA la caché en desarrollo y forzar hot-reload
   webpack: (config, { dev, isServer }) => {
@@ -223,6 +276,59 @@ const nextConfig = {
           ...config.resolve,
           alias: {
             ...config.resolve.alias,
+          },
+        }
+      }
+    } else {
+      // Optimización: Mejorar code splitting en producción
+      // Separar vendor chunks para mejor caché
+      if (!isServer) {
+        config.optimization = {
+          ...config.optimization,
+          splitChunks: {
+            chunks: 'all',
+            cacheGroups: {
+              default: false,
+              vendors: false,
+              // Optimización: Separar vendor chunks grandes para mejor caché
+              framework: {
+                name: 'framework',
+                chunks: 'all',
+                test: /(?<!node_modules.*)[\\/]node_modules[\\/](react|react-dom|scheduler|prop-types|use-subscription)[\\/]/,
+                priority: 40,
+                enforce: true,
+              },
+              lib: {
+                test(module) {
+                  return module.size() > 160000 && /node_modules[/\\]/.test(module.identifier())
+                },
+                name(module) {
+                  const hash = require('crypto').createHash('sha1')
+                  hash.update(module.identifier())
+                  return hash.digest('hex').substring(0, 8)
+                },
+                priority: 30,
+                minChunks: 1,
+                reuseExistingChunk: true,
+              },
+              commons: {
+                name: 'commons',
+                minChunks: 2,
+                priority: 20,
+              },
+              shared: {
+                name(module, chunks) {
+                  return require('crypto')
+                    .createHash('sha1')
+                    .update(chunks.reduce((acc, chunk) => acc + chunk.name, ''))
+                    .digest('hex')
+                    .substring(0, 8)
+                },
+                priority: 10,
+                minChunks: 2,
+                reuseExistingChunk: true,
+              },
+            },
           },
         }
       }

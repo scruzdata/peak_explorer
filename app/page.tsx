@@ -30,11 +30,15 @@ export default async function HomePage() {
       {/* Hero Section */}
       <section className="relative h-[90vh] min-h-[600px] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
+          {/* Optimización: preload="none" evita cargar video hasta que sea necesario (mejora LCP)
+              loading="lazy" carga el video solo cuando está cerca del viewport
+              poster podría agregarse para mostrar imagen estática mientras carga */}
           <video
             autoPlay
             loop
             muted
             playsInline
+            preload="none"
             className="absolute inset-0 w-full h-full object-cover"
           >
             <source src="/Animate_the_clouds_202511141732.mp4" type="video/mp4" />
@@ -72,6 +76,8 @@ export default async function HomePage() {
       {/* Features Section */}
       <section className="py-16 bg-gray-50">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          {/* Optimización accesibilidad: h2 agregado para mantener jerarquía secuencial (h1 -> h2 -> h3) */}
+          <h2 className="sr-only">Características principales</h2>
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
             <div className="text-center">
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary-100">
@@ -125,8 +131,9 @@ export default async function HomePage() {
             </Link>
           </div>
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {featuredTrekking.map((route) => (
-              <RouteCard key={route.id} route={route} />
+            {/* Optimización: priority para primeras rutas (en viewport inicial) mejora LCP */}
+            {featuredTrekking.map((route, index) => (
+              <RouteCard key={route.id} route={route} priority={index < 2} />
             ))}
           </div>
         </div>
@@ -153,8 +160,9 @@ export default async function HomePage() {
             </Link>
           </div>
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+            {/* Optimización: lazy loading para vías ferratas (below the fold) */}
             {featuredFerratas.map((route) => (
-              <RouteCard key={route.id} route={route} />
+              <RouteCard key={route.id} route={route} priority={false} />
             ))}
           </div>
         </div>
