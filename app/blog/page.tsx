@@ -1,4 +1,5 @@
 import { Metadata } from 'next'
+import Image from 'next/image'
 import { getAllBlogsFromFirestore } from '@/lib/firebase/blogs'
 import { BlogPost } from '@/types'
 import { BlogCard } from '@/components/blog/BlogCard'
@@ -15,16 +16,22 @@ export default async function BlogPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div
-        className="relative text-white"
-        style={{
-          backgroundImage: "url('/fondo_blogs.jpg')",
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      >
+      {/* Optimización LCP: next/image con priority y fetchpriority para descubrimiento temprano */}
+      <div className="relative text-white min-h-[400px] flex items-center">
+        {/* Imagen de fondo optimizada para LCP */}
+        <Image
+          src="/fondo_blogs.jpg"
+          alt=""
+          fill
+          priority
+          fetchPriority="high"
+          className="object-cover object-center"
+          sizes="100vw"
+          quality={85}
+          aria-hidden="true"
+        />
         <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/40 to-primary-900/60" />
-        <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 w-full">
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
             Blog de Montaña
           </h1>

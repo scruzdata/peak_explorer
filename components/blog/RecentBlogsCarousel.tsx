@@ -87,9 +87,10 @@ export function RecentBlogsCarousel({ blogs, title = 'Artículos Recientes' }: R
               Descubre más artículos sobre montaña y aventuras
             </p>
           </div>
+          {/* Optimización accesibilidad: text-primary-700 mejora contraste sobre bg-gray-50 (ratio >4.5:1) */}
           <Link
             href="/blog"
-            className="hidden sm:flex items-center text-primary-600 hover:text-primary-700 font-medium"
+            className="hidden sm:flex items-center text-primary-700 hover:text-primary-800 font-medium"
           >
             Ver todas
             <ArrowRight className="ml-2 h-5 w-5" />

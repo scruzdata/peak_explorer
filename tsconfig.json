@@ -3,7 +3,8 @@
     // Optimización: Target moderno para navegadores actuales (reduce polyfills)
     // ES2022 es compatible con >95% de navegadores y reduce JavaScript antiguo
     "target": "ES2022",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    // Optimización: Incluir solo APIs modernas, evitar polyfills innecesarios
+    "lib": ["ES2022", "dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,

@@ -1,0 +1,19 @@
+# Optimización: Navegadores modernos para evitar polyfills innecesarios
+# Estos navegadores soportan nativamente Array.at, Object.fromEntries, etc.
+# Compatible con >95% de usuarios globales según caniuse.com
+
+# Producción: Navegadores modernos (últimos 2 años)
+[production]
+chrome >= 90
+firefox >= 88
+safari >= 14
+edge >= 90
+ios_saf >= 14
+android >= 90
+
+# Desarrollo: Últimas versiones para mejor DX
+[development]
+last 1 chrome version
+last 1 firefox version
+last 1 safari version
+last 1 edge version

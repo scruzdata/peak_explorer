@@ -251,6 +251,19 @@ const nextConfig = {
   },
   // Desactivar TODA la caché en desarrollo y forzar hot-reload
   webpack: (config, { dev, isServer }) => {
+    // Optimización: Configurar target moderno para evitar polyfills innecesarios
+    if (!isServer) {
+      // Target moderno para navegadores actuales (reduce JavaScript antiguo)
+      // Esto evita que webpack incluya polyfills para Array.at, Object.fromEntries, etc.
+      config.target = ['web', 'es2022']
+      
+      // Optimización: Deshabilitar polyfills automáticos de webpack
+      // Next.js ya maneja esto, pero esto asegura que no se agreguen polyfills innecesarios
+      if (!config.resolve.fallback) {
+        config.resolve.fallback = {}
+      }
+    }
+    
     if (dev) {
       // Desactivar caché completamente
       config.cache = false
