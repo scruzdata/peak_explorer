@@ -298,9 +298,11 @@ const nextConfig = {
                 priority: 40,
                 enforce: true,
               },
+              // Optimización: Separar librerías grandes en chunks individuales
               lib: {
                 test(module) {
-                  return module.size() > 160000 && /node_modules[/\\]/.test(module.identifier())
+                  // Reducir umbral a 100KB para separar más librerías
+                  return module.size() > 100000 && /node_modules[/\\]/.test(module.identifier())
                 },
                 name(module) {
                   const hash = require('crypto').createHash('sha1')
@@ -311,10 +313,13 @@ const nextConfig = {
                 minChunks: 1,
                 reuseExistingChunk: true,
               },
+              // Optimización: Reducir tamaño del chunk commons aumentando minChunks
+              // Solo incluir código usado en 3+ páginas para reducir JavaScript no utilizado
               commons: {
                 name: 'commons',
-                minChunks: 2,
+                minChunks: 3, // Aumentado de 2 a 3 para reducir tamaño
                 priority: 20,
+                minSize: 20000, // Mínimo 20KB para crear chunk commons
               },
               shared: {
                 name(module, chunks) {

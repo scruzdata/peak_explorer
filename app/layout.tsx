@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import dynamic from 'next/dynamic'
 import './globals.css'
 // Optimización: Removido import de leaflet CSS del layout (render blocking)
 // Se carga dinámicamente solo cuando se necesita (ver componentes que usan mapas)
@@ -9,9 +10,32 @@ import { AuthProvider } from '@/components/providers/AuthProvider'
 import { UserProgressProvider } from '@/components/providers/UserProgressProvider'
 import { SessionProvider } from '@/components/providers/SessionProvider'
 import { CookieConsentProvider } from '@/components/cookies/CookieConsentProvider'
-import { CookieBanner } from '@/components/cookies/CookieBanner'
-import { CookieSettings } from '@/components/cookies/CookieSettings'
-import { ConditionalScripts } from '@/components/cookies/ConditionalScripts'
+
+// Optimización: Lazy loading de componentes no críticos para reducir JavaScript inicial
+// Estos componentes solo se cargan cuando se necesitan (mejora FCP y reduce bundle size)
+const CookieBanner = dynamic(
+  () => import('@/components/cookies/CookieBanner').then((mod) => ({ default: mod.CookieBanner })),
+  { 
+    ssr: false, // No necesario en SSR, solo se muestra después de verificar consentimiento
+    loading: () => null, // No mostrar nada mientras carga (el componente ya tiene su propia lógica de renderizado)
+  }
+)
+
+const CookieSettings = dynamic(
+  () => import('@/components/cookies/CookieSettings').then((mod) => ({ default: mod.CookieSettings })),
+  { 
+    ssr: false, // Modal que solo se muestra cuando el usuario hace click
+    loading: () => null, // No mostrar nada mientras carga
+  }
+)
+
+const ConditionalScripts = dynamic(
+  () => import('@/components/cookies/ConditionalScripts').then((mod) => ({ default: mod.ConditionalScripts })),
+  { 
+    ssr: false, // Scripts solo se cargan en cliente después de verificar consentimiento
+    loading: () => null, // No mostrar nada mientras carga
+  }
+)
 
 // Optimización: Fuente con display swap para evitar FOIT (Flash of Invisible Text)
 // preload mejora LCP al cargar la fuente críticamente
