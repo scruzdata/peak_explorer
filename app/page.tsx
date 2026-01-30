@@ -5,6 +5,7 @@ import { getTrekkingRoutesAsync, getFerratasAsync } from '@/lib/routes'
 import { getAllBlogsFromFirestore } from '@/lib/firebase/blogs'
 import { BlogCard } from '@/components/blog/BlogCard'
 import { FerrataClimberIcon } from '@/components/routes/RoutesMapView'
+import { VideoHero } from '@/components/VideoHero'
 
 // Forzar recarga dinámica para obtener datos frescos de Firestore
 export const dynamic = 'force-dynamic'
@@ -30,19 +31,12 @@ export default async function HomePage() {
       {/* Hero Section */}
       <section className="relative h-[90vh] min-h-[600px] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
-          {/* Optimización: preload="none" evita cargar video hasta que sea necesario (mejora LCP)
-              loading="lazy" carga el video solo cuando está cerca del viewport
-              poster podría agregarse para mostrar imagen estática mientras carga */}
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            preload="none"
-            className="absolute inset-0 w-full h-full object-cover"
-          >
-            <source src="/Animate_the_clouds_202511141732.mp4" type="video/mp4" />
-          </video>
+          {/* Video optimizado: carga solo cuando está visible, se pausa cuando sale del viewport
+              Usa Intersection Observer para detección eficiente y reduce el uso de recursos */}
+          <VideoHero 
+            src="/Animate_the_clouds_202511141732.webm" 
+            className="absolute inset-0 w-full h-full"
+          />
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/60" />
         </div>
         
