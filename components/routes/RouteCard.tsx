@@ -141,19 +141,22 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
             </>
           )}
 
-          {/* Dots Indicator */}
+          {/* Dots Indicator - Solo visual, no interactivo */}
           {hasMultipleImages && (
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
+            <div 
+              className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-1.5"
+              aria-label={`Imagen ${currentImageIndex + 1} de ${allImages.length}`}
+              role="status"
+            >
               {allImages.map((_, index) => (
-                <button
+                <div
                   key={index}
-                  onClick={(e) => goToImage(index, e)}
-                  className={`h-1.5 rounded-full transition-all ${
+                  className={`h-1.5 rounded-full transition-all pointer-events-none ${
                     index === currentImageIndex 
                       ? 'w-6 bg-white' 
-                      : 'w-1.5 bg-white/60 hover:bg-white/80'
+                      : 'w-1.5 bg-white/60'
                   }`}
-                  aria-label={`Ir a imagen ${index + 1}`}
+                  aria-hidden="true"
                 />
               ))}
             </div>
@@ -303,19 +306,22 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
               </>
             )}
 
-            {/* Dots Indicator */}
+            {/* Dots Indicator - Solo visual, no interactivo */}
             {hasMultipleImages && (
-              <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
+              <div 
+                className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-1.5"
+                aria-label={`Imagen ${currentImageIndex + 1} de ${allImages.length}`}
+                role="status"
+              >
                 {allImages.map((_, index) => (
-                  <button
+                  <div
                     key={index}
-                    onClick={(e) => goToImage(index, e)}
-                    className={`h-1.5 rounded-full transition-all ${
+                    className={`h-1.5 rounded-full transition-all pointer-events-none ${
                       index === currentImageIndex 
                         ? 'w-6 bg-white' 
-                        : 'w-1.5 bg-white/60 hover:bg-white/80'
+                        : 'w-1.5 bg-white/60'
                     }`}
-                    aria-label={`Ir a imagen ${index + 1}`}
+                    aria-hidden="true"
                   />
                 ))}
               </div>
@@ -447,19 +453,22 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
             </>
           )}
 
-          {/* Dots Indicator */}
+          {/* Dots Indicator - Solo visual, no interactivo */}
           {hasMultipleImages && (
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+            <div 
+              className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-2"
+              aria-label={`Imagen ${currentImageIndex + 1} de ${allImages.length}`}
+              role="status"
+            >
               {allImages.map((_, index) => (
-                <button
+                <div
                   key={index}
-                  onClick={(e) => goToImage(index, e)}
-                  className={`h-1.5 rounded-full transition-all ${
+                  className={`h-1.5 rounded-full transition-all pointer-events-none ${
                     index === currentImageIndex 
                       ? 'w-6 bg-white' 
-                      : 'w-1.5 bg-white/60 hover:bg-white/80'
+                      : 'w-1.5 bg-white/60'
                   }`}
-                  aria-label={`Ir a imagen ${index + 1}`}
+                  aria-hidden="true"
                 />
               ))}
             </div>

@@ -58,13 +58,19 @@ export function RouteFilters({
       {/* Difficulty Filter (only for trekking) */}
       {type === 'trekking' && (
         <div className="w-full sm:w-40">
-          <label className="mb-0.5 block text-xs font-medium text-gray-700">
+          {/* Optimización accesibilidad: label asociado con select usando htmlFor e id */}
+          <label 
+            htmlFor="difficulty-filter"
+            className="mb-0.5 block text-xs font-medium text-gray-700"
+          >
             Dificultad
           </label>
           <select
+            id="difficulty-filter"
             value={selectedDifficulty}
             onChange={(e) => onDifficultyChange(e.target.value as Difficulty | 'all')}
             className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            aria-label="Filtrar por dificultad de la ruta"
           >
             <option value="all">Todas</option>
             {difficulties.map((diff) => (
@@ -87,13 +93,19 @@ export function RouteFilters({
 
       {/* Season Filter */}
       <div className="w-full sm:w-40">
-        <label className="mb-0.5 block text-xs font-medium text-gray-700">
+        {/* Optimización accesibilidad: label asociado con select usando htmlFor e id */}
+        <label 
+          htmlFor="season-filter"
+          className="mb-0.5 block text-xs font-medium text-gray-700"
+        >
           Mejor Época
         </label>
         <select
+          id="season-filter"
           value={selectedSeason}
           onChange={(e) => onSeasonChange(e.target.value as Season | 'all')}
           className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          aria-label="Filtrar por mejor época del año para realizar la ruta"
         >
           <option value="all">Todas</option>
           {seasons.map((season) => (
@@ -106,13 +118,19 @@ export function RouteFilters({
 
       {/* Region Filter */}
       <div className="w-full sm:w-40">
-        <label className="mb-0.5 block text-xs font-medium text-gray-700">
+        {/* Optimización accesibilidad: label asociado con select usando htmlFor e id */}
+        <label 
+          htmlFor="region-filter"
+          className="mb-0.5 block text-xs font-medium text-gray-700"
+        >
           Región
         </label>
         <select
+          id="region-filter"
           value={selectedRegion}
           onChange={(e) => onRegionChange(e.target.value)}
           className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          aria-label="Filtrar por región de España"
         >
           <option value="all">Todas</option>
           {regions.map((region) => (
@@ -170,12 +188,20 @@ function GradeFilterDropdown({
 
   return (
     <div className="w-full sm:w-32 relative" ref={dropdownRef}>
-      <label className="mb-0.5 block text-xs font-medium text-gray-700">
+      {/* Optimización accesibilidad: label asociado con button usando htmlFor e id */}
+      <label 
+        htmlFor="grade-filter-button"
+        className="mb-0.5 block text-xs font-medium text-gray-700"
+      >
         Grado K
       </label>
       <button
+        id="grade-filter-button"
         type="button"
         onClick={() => setIsOpen(!isOpen)}
+        aria-label="Filtrar por grado K de vía ferrata"
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
         className={`w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 flex items-center justify-between ${
           selectedGrade !== 'all' ? selectedGradeColor : 'bg-white'
         }`}

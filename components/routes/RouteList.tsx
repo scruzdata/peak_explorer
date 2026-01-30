@@ -363,9 +363,17 @@ export function RouteList({ routes, type }: RouteListProps) {
           </div>
 
           {/* View Mode Toggle */}
-          <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1 lg:flex-shrink-0">
+          {/* Optimización accesibilidad: role="group" y aria-label para grupo de botones de vista */}
+          <div 
+            role="group" 
+            aria-label="Seleccionar modo de visualización"
+            className="flex items-center gap-2 bg-gray-100 rounded-lg p-1 lg:flex-shrink-0"
+          >
+            {/* Optimización accesibilidad: aria-pressed indica estado activo, aria-label descriptivo */}
             <button
               onClick={() => setViewMode('grid')}
+              aria-label="Vista de cuadrícula"
+              aria-pressed={viewMode === 'grid' || viewMode === 'both'}
               className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
                 viewMode === 'grid' || viewMode === 'both'
                   ? 'bg-white text-primary-600 shadow-sm'
@@ -373,11 +381,14 @@ export function RouteList({ routes, type }: RouteListProps) {
               }`}
               title="Vista de cuadrícula"
             >
-              <Grid3x3 className="h-4 w-4" />
+              <Grid3x3 className="h-4 w-4" aria-hidden="true" />
               <span className="hidden sm:inline">Cuadrícula</span>
             </button>
+            {/* Optimización accesibilidad: aria-pressed indica estado activo, aria-label descriptivo */}
             <button
               onClick={() => setViewMode('map')}
+              aria-label="Vista de mapa"
+              aria-pressed={viewMode === 'map' || viewMode === 'both'}
               className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
                 viewMode === 'map' || viewMode === 'both'
                   ? 'bg-white text-primary-600 shadow-sm'
@@ -385,12 +396,15 @@ export function RouteList({ routes, type }: RouteListProps) {
               }`}
               title="Vista de mapa"
             >
-              <Map className="h-4 w-4" />
+              <Map className="h-4 w-4" aria-hidden="true" />
               <span className="hidden sm:inline">Mapa</span>
             </button>
             {/* El modo combinado solo está disponible en escritorio (lg y superior) */}
+            {/* Optimización accesibilidad: aria-pressed indica estado activo, aria-label descriptivo */}
             <button
               onClick={() => setViewMode('both')}
+              aria-label="Vista combinada de cuadrícula y mapa (solo escritorio)"
+              aria-pressed={viewMode === 'both'}
               className={`hidden lg:flex px-3 py-2 rounded-md text-sm font-medium transition-colors items-center gap-2 ${
                 viewMode === 'both'
                   ? 'bg-white text-primary-600 shadow-sm'
@@ -398,7 +412,7 @@ export function RouteList({ routes, type }: RouteListProps) {
               }`}
               title="Vista combinada (solo escritorio)"
             >
-              <LayoutGrid className="h-4 w-4" />
+              <LayoutGrid className="h-4 w-4" aria-hidden="true" />
               <span className="hidden sm:inline">Ambas</span>
             </button>
             {/* Botón de filtros para móvil, situado a la derecha del selector */}
