@@ -85,11 +85,13 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
       >
         <div 
           className="relative h-48 overflow-hidden rounded-xl mb-2 group/image"
-          onClick={onClick ? undefined : (e: any) => {
-            // Solo prevenir la propagación si no hay onClick personalizado
-            e.preventDefault()
-            e.stopPropagation()
-          }}
+          {...(onClick === undefined ? {
+            onClick: (e: any) => {
+              // Solo prevenir la propagación si no hay onClick personalizado
+              e.preventDefault()
+              e.stopPropagation()
+            }
+          } : {})}
         >
           <AnimatePresence mode="wait">
             <motion.div
