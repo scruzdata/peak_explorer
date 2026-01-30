@@ -331,24 +331,27 @@ const nextConfig = {
               },
               // OPTIMIZACIÓN: Separar librerías grandes en chunks individuales
               // Esto mejora el caché y reduce el tamaño del bundle inicial
+              // Nota: Simplificado para compatibilidad con Webpack de Next.js
               lib: {
-                test(module) {
-                  // Separar librerías > 50KB para mejor code splitting
-                  return module.size() > 50000 && /node_modules[/\\]/.test(module.identifier())
-                },
-                name(module) {
-                  // Extraer nombre de la librería del path
-                  const match = module.identifier().match(/node_modules[/\\](@?[^/\\]+)/)
+                test: /[\\/]node_modules[\\/]/,
+                name(module, chunks) {
+                  // Intentar extraer nombre de la librería del path
+                  const identifier = module.identifier()
+                  const match = identifier.match(/node_modules[/\\](@?[^/\\]+)/)
                   if (match) {
-                    return `lib-${match[1].replace('@', '')}`
+                    const libName = match[1].replace('@', '').replace('/', '-')
+                    return `lib-${libName}`
                   }
-                  const hash = require('crypto').createHash('sha1')
-                  hash.update(module.identifier())
-                  return `lib-${hash.digest('hex').substring(0, 8)}`
+                  // Fallback: usar nombre del primer chunk
+                  if (chunks && chunks.length > 0 && chunks[0].name) {
+                    return `lib-${chunks[0].name}`
+                  }
+                  return 'lib-vendor'
                 },
                 priority: 30,
                 minChunks: 1,
                 reuseExistingChunk: true,
+                minSize: 50000, // Mínimo 50KB para crear chunk
               },
               // OPTIMIZACIÓN: Separar código de admin completamente
               // El admin tiene componentes pesados que no deben estar en el bundle público
@@ -367,19 +370,23 @@ const nextConfig = {
                 minChunks: 4, // Aumentado de 3 a 4 para reducir aún más el tamaño
                 priority: 20,
                 minSize: 30000, // Aumentado a 30KB mínimo para crear chunk commons
-                maxSize: 200000, // Limitar tamaño máximo para forzar más splitting
               },
               // OPTIMIZACIÓN: Chunk compartido para código usado en 2-3 páginas
               shared: {
                 name(module, chunks) {
                   // Crear nombre basado en los chunks que lo usan
-                  const chunkNames = chunks.map(c => c.name).sort().join('-')
-                  const hash = require('crypto').createHash('sha1').update(chunkNames).digest('hex')
-                  return `shared-${hash.substring(0, 8)}`
+                  const chunkNames = chunks.map(c => c.name || c.id || 'unknown').sort().join('-')
+                  // Usar un hash simple basado en los nombres
+                  let hash = 0
+                  for (let i = 0; i < chunkNames.length; i++) {
+                    const char = chunkNames.charCodeAt(i)
+                    hash = ((hash << 5) - hash) + char
+                    hash = hash & hash // Convertir a 32bit integer
+                  }
+                  return `shared-${Math.abs(hash).toString(36).substring(0, 8)}`
                 },
                 priority: 10,
                 minChunks: 2,
-                maxChunks: 3, // Solo para código usado en 2-3 páginas
                 reuseExistingChunk: true,
                 minSize: 20000, // Mínimo 20KB
               },
