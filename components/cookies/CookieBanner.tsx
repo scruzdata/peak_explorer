@@ -35,9 +35,10 @@ export function CookieBanner() {
               >
                 Utilizamos cookies para mejorar tu experiencia, analizar el tráfico del sitio y personalizar el contenido.{' '}
                 {/* Optimización accesibilidad: texto descriptivo y aria-label para lectores de pantalla */}
+                {/* Optimización accesibilidad: text-primary-700 mejora contraste sobre fondo blanco */}
                 <Link
                   href="/cookies"
-                  className="text-primary-600 hover:text-primary-700 underline font-medium"
+                  className="text-primary-700 hover:text-primary-800 underline font-medium"
                   aria-label="Más información sobre nuestra política de cookies"
                 >
                   Más información sobre cookies
@@ -64,7 +65,8 @@ export function CookieBanner() {
             </button>
             <button
               onClick={acceptAll}
-              className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors"
+              // Optimización accesibilidad: bg-primary-700 mejora contraste con text-white (ratio >4.5:1)
+              className="px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors"
               aria-label="Aceptar todas las cookies"
             >
               Aceptar todas

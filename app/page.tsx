@@ -122,9 +122,10 @@ export default async function HomePage() {
                 Las mejores rutas de trekking en España
               </p>
             </div>
+            {/* Optimización accesibilidad: text-primary-700 mejora contraste sobre fondo blanco (ratio >4.5:1) */}
             <Link
               href="/rutas"
-              className="hidden sm:flex items-center text-primary-600 hover:text-primary-700 font-medium"
+              className="hidden sm:flex items-center text-primary-700 hover:text-primary-800 font-medium"
             >
               Ver todas
               <ArrowRight className="ml-2 h-5 w-5" />
@@ -151,9 +152,10 @@ export default async function HomePage() {
                 Experiencias verticales de K2 a K6
               </p>
             </div>
+            {/* Optimización accesibilidad: text-primary-700 mejora contraste sobre bg-gray-50 (ratio >4.5:1) */}
             <Link
               href="/vias-ferratas"
-              className="hidden sm:flex items-center text-primary-600 hover:text-primary-700 font-medium"
+              className="hidden sm:flex items-center text-primary-700 hover:text-primary-800 font-medium"
             >
               Ver todas
               <ArrowRight className="ml-2 h-5 w-5" />
@@ -181,9 +183,10 @@ export default async function HomePage() {
                   Últimos artículos sobre montaña, rutas y aventuras
                 </p>
               </div>
+              {/* Optimización accesibilidad: text-primary-700 mejora contraste sobre fondo blanco (ratio >4.5:1) */}
               <Link
                 href="/blog"
-                className="hidden sm:flex items-center text-primary-600 hover:text-primary-700 font-medium"
+                className="hidden sm:flex items-center text-primary-700 hover:text-primary-800 font-medium"
               >
                 Ver todos
                 <ArrowRight className="ml-2 h-5 w-5" />

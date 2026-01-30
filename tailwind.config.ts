@@ -1,6 +1,8 @@
 import type { Config } from 'tailwindcss'
 
 const config: Config = {
+  // Optimización: Content paths para purging agresivo de CSS no utilizado
+  // Tailwind v3+ usa 'content' en lugar de 'purge'
   content: [
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
