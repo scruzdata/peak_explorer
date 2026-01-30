@@ -1,7 +1,24 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { RouteDetail } from '@/components/routes/RouteDetail'
+import dynamicImport from 'next/dynamic'
 import { getRouteBySlugAsync, getClosestRoutesAsync } from '@/lib/routes'
+
+// OPTIMIZACIÓN: Lazy loading de RouteDetail que contiene mapas pesados (Mapbox ~200KB)
+// Solo cargar cuando el usuario visita una página de detalle
+const RouteDetail = dynamicImport(
+  () => import('@/components/routes/RouteDetail').then((mod) => ({ default: mod.RouteDetail })),
+  { 
+    ssr: true, // Mantener SSR para SEO
+    loading: () => (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando vía ferrata...</p>
+        </div>
+      </div>
+    )
+  }
+)
 
 // Forzar recarga dinámica para obtener datos frescos de Firestore
 export const dynamic = 'force-dynamic'

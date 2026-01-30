@@ -2,7 +2,17 @@ import { Route } from '@/types'
 import { generateSlug, calculateDistance } from '@/lib/utils'
 import { sampleTrekkingRoutes, sampleFerratas } from './data'
 import { getRouteTrack } from './tracks'
-import { getTrackByRouteSlug } from './firebase/tracks'
+
+// OPTIMIZACIÓN: Lazy loading de getTrackByRouteSlug - Firebase solo se carga cuando se necesita
+async function getTrackByRouteSlugLazy(slug: string) {
+  try {
+    const { getTrackByRouteSlug } = await import('./firebase/tracks')
+    return await getTrackByRouteSlug(slug)
+  } catch (error) {
+    console.error('Error cargando track desde Firebase:', error)
+    return null
+  }
+}
 
 // Función helper para verificar si Firestore está disponible
 async function getFirestoreRoutes() {
@@ -78,10 +88,10 @@ async function getTrekkingRoutesFromFirestore(): Promise<Route[]> {
   
   const routes = await firestoreRoutes.getRoutesByTypeFromFirestore('trekking')
   
-  // Obtener tracks desde Firestore para cada ruta
+  // OPTIMIZACIÓN: Lazy loading de tracks desde Firebase
   const routesWithTracks = await Promise.all(
     routes.map(async (route) => {
-      const track = await getTrackByRouteSlug(route.slug)
+      const track = await getTrackByRouteSlugLazy(route.slug)
       return {
         ...route,
         track: track || undefined,
@@ -104,10 +114,10 @@ async function getFerratasFromFirestore(): Promise<Route[]> {
   
   const routes = await firestoreRoutes.getRoutesByTypeFromFirestore('ferrata')
   
-  // Obtener tracks desde Firestore para cada ruta
+  // OPTIMIZACIÓN: Lazy loading de tracks desde Firebase
   const routesWithTracks = await Promise.all(
     routes.map(async (route) => {
-      const track = await getTrackByRouteSlug(route.slug)
+      const track = await getTrackByRouteSlugLazy(route.slug)
       return {
         ...route,
         track: track || undefined,
@@ -126,10 +136,10 @@ async function getAllRoutesFromFirestore(): Promise<Route[]> {
   
   const routes = await firestoreRoutes.getAllRoutesFromFirestore()
   
-  // Obtener tracks desde Firestore para cada ruta
+  // OPTIMIZACIÓN: Lazy loading de tracks desde Firebase
   const routesWithTracks = await Promise.all(
     routes.map(async (route) => {
-      const track = await getTrackByRouteSlug(route.slug)
+      const track = await getTrackByRouteSlugLazy(route.slug)
       return {
         ...route,
         track: track || undefined,
@@ -228,8 +238,8 @@ export async function getRouteBySlugAsync(
     
     const route = await firestoreRoutes.getRouteBySlugFromFirestore(slug, type)
     if (route) {
-      // Obtener track desde Firestore
-      const track = await getTrackByRouteSlug(route.slug)
+      // OPTIMIZACIÓN: Lazy loading de track desde Firebase
+      const track = await getTrackByRouteSlugLazy(route.slug)
       return {
         ...route,
         track: track || undefined,
@@ -258,10 +268,10 @@ export async function getAllRoutesForAdmin(): Promise<Route[]> {
     
     const routes = await firestoreRoutes.getAllRoutesFromFirestore()
     
-    // Obtener tracks desde Firestore para cada ruta
+    // OPTIMIZACIÓN: Lazy loading de tracks desde Firebase
     const routesWithTracks = await Promise.all(
       routes.map(async (route) => {
-        const track = await getTrackByRouteSlug(route.slug)
+        const track = await getTrackByRouteSlugLazy(route.slug)
         return {
           ...route,
           track: track || undefined,
@@ -297,10 +307,10 @@ export async function getRecentRoutesAsync(
     
     const routes = await firestoreRoutes.getRecentRoutesFromFirestore(excludeRouteId, type, limit)
     
-    // Obtener tracks desde Firestore para cada ruta
+    // OPTIMIZACIÓN: Lazy loading de tracks desde Firebase
     const routesWithTracks = await Promise.all(
       routes.map(async (route) => {
-        const track = await getTrackByRouteSlug(route.slug)
+        const track = await getTrackByRouteSlugLazy(route.slug)
         return {
           ...route,
           track: track || undefined,

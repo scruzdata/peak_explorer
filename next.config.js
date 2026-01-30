@@ -293,8 +293,8 @@ const nextConfig = {
         }
       }
     } else {
-      // Optimización: Mejorar code splitting en producción
-      // Separar vendor chunks para mejor caché
+      // OPTIMIZACIÓN: Mejorar code splitting en producción
+      // Separar vendor chunks para mejor caché y reducir JavaScript no utilizado
       if (!isServer) {
         config.optimization = {
           ...config.optimization,
@@ -303,48 +303,85 @@ const nextConfig = {
             cacheGroups: {
               default: false,
               vendors: false,
-              // Optimización: Separar vendor chunks grandes para mejor caché
+              // OPTIMIZACIÓN: Separar React y framework en chunk propio (alta prioridad de caché)
               framework: {
                 name: 'framework',
                 chunks: 'all',
                 test: /(?<!node_modules.*)[\\/]node_modules[\\/](react|react-dom|scheduler|prop-types|use-subscription)[\\/]/,
-                priority: 40,
+                priority: 50,
                 enforce: true,
               },
-              // Optimización: Separar librerías grandes en chunks individuales
+              // OPTIMIZACIÓN: Separar Firebase completamente del bundle público
+              // Solo se carga cuando se necesita (admin, rutas con Firebase, etc.)
+              firebase: {
+                name: 'firebase',
+                chunks: 'all',
+                test: /[\\/]node_modules[\\/](firebase|@firebase)[\\/]/,
+                priority: 45,
+                enforce: true,
+              },
+              // OPTIMIZACIÓN: Separar Mapbox (mapas pesados ~200KB) en chunk propio
+              // Solo se carga en páginas de detalle de rutas
+              mapbox: {
+                name: 'mapbox',
+                chunks: 'all',
+                test: /[\\/]node_modules[\\/](mapbox-gl|react-map-gl)[\\/]/,
+                priority: 44,
+                enforce: true,
+              },
+              // OPTIMIZACIÓN: Separar librerías grandes en chunks individuales
+              // Esto mejora el caché y reduce el tamaño del bundle inicial
               lib: {
                 test(module) {
-                  // Reducir umbral a 100KB para separar más librerías
-                  return module.size() > 100000 && /node_modules[/\\]/.test(module.identifier())
+                  // Separar librerías > 50KB para mejor code splitting
+                  return module.size() > 50000 && /node_modules[/\\]/.test(module.identifier())
                 },
                 name(module) {
+                  // Extraer nombre de la librería del path
+                  const match = module.identifier().match(/node_modules[/\\](@?[^/\\]+)/)
+                  if (match) {
+                    return `lib-${match[1].replace('@', '')}`
+                  }
                   const hash = require('crypto').createHash('sha1')
                   hash.update(module.identifier())
-                  return hash.digest('hex').substring(0, 8)
+                  return `lib-${hash.digest('hex').substring(0, 8)}`
                 },
                 priority: 30,
                 minChunks: 1,
                 reuseExistingChunk: true,
               },
-              // Optimización: Reducir tamaño del chunk commons aumentando minChunks
-              // Solo incluir código usado en 3+ páginas para reducir JavaScript no utilizado
+              // OPTIMIZACIÓN: Separar código de admin completamente
+              // El admin tiene componentes pesados que no deben estar en el bundle público
+              admin: {
+                name: 'admin',
+                chunks: 'all',
+                test: /[\\/](app[\\/]admin|components[\\/]admin)[\\/]/,
+                priority: 35,
+                enforce: true,
+              },
+              // OPTIMIZACIÓN: Reducir drásticamente el tamaño del chunk commons
+              // Solo incluir código usado en 4+ páginas para reducir JavaScript no utilizado
+              // Aumentar minSize para evitar chunks pequeños innecesarios
               commons: {
                 name: 'commons',
-                minChunks: 3, // Aumentado de 2 a 3 para reducir tamaño
+                minChunks: 4, // Aumentado de 3 a 4 para reducir aún más el tamaño
                 priority: 20,
-                minSize: 20000, // Mínimo 20KB para crear chunk commons
+                minSize: 30000, // Aumentado a 30KB mínimo para crear chunk commons
+                maxSize: 200000, // Limitar tamaño máximo para forzar más splitting
               },
+              // OPTIMIZACIÓN: Chunk compartido para código usado en 2-3 páginas
               shared: {
                 name(module, chunks) {
-                  return require('crypto')
-                    .createHash('sha1')
-                    .update(chunks.reduce((acc, chunk) => acc + chunk.name, ''))
-                    .digest('hex')
-                    .substring(0, 8)
+                  // Crear nombre basado en los chunks que lo usan
+                  const chunkNames = chunks.map(c => c.name).sort().join('-')
+                  const hash = require('crypto').createHash('sha1').update(chunkNames).digest('hex')
+                  return `shared-${hash.substring(0, 8)}`
                 },
                 priority: 10,
                 minChunks: 2,
+                maxChunks: 3, // Solo para código usado en 2-3 páginas
                 reuseExistingChunk: true,
+                minSize: 20000, // Mínimo 20KB
               },
             },
           },

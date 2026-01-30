@@ -1,17 +1,38 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
+import dynamicImport from 'next/dynamic'
 import { getBlogBySlugFromFirestore, incrementBlogViews, getRecentBlogsFromFirestore } from '@/lib/firebase/blogs'
 import { BlogPost } from '@/types'
 import { Calendar, Clock, Tag } from 'lucide-react'
 import { calculateReadingTime } from '@/lib/utils'
-import ReactMarkdown from 'react-markdown'
+
+// OPTIMIZACIÓN: Lazy loading de react-markdown (~30KB) - solo cargar cuando se visita un blog
+// Los plugins son pequeños y se importan normalmente
+const ReactMarkdown = dynamicImport(
+  () => import('react-markdown'),
+  { 
+    ssr: true, // Mantener SSR para SEO del contenido
+    loading: () => <div className="animate-pulse space-y-4"><div className="h-4 bg-gray-200 rounded w-3/4"></div><div className="h-4 bg-gray-200 rounded"></div></div>
+  }
+)
+
+// Plugins de markdown (pequeños, se importan normalmente)
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import rehypeRaw from 'rehype-raw'
+
 import type { Components } from 'react-markdown'
 import { BlogFeaturedImage } from '@/components/blog/BlogFeaturedImage'
-import { RecentBlogsCarousel } from '@/components/blog/RecentBlogsCarousel'
+
+// OPTIMIZACIÓN: Lazy loading de RecentBlogsCarousel (usa componentes pesados)
+const RecentBlogsCarousel = dynamicImport(
+  () => import('@/components/blog/RecentBlogsCarousel').then((mod) => ({ default: mod.RecentBlogsCarousel })),
+  { 
+    ssr: true,
+    loading: () => null // No mostrar nada mientras carga (está al final de la página)
+  }
+)
 
 interface BlogPostPageProps {
   params: {

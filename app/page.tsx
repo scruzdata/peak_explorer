@@ -1,22 +1,67 @@
 import Link from 'next/link'
 import { ArrowRight, Mountain, Zap, MapPin } from 'lucide-react'
-import { RouteCard } from '@/components/routes/RouteCard'
+import dynamicImport from 'next/dynamic'
 import { getTrekkingRoutesAsync, getFerratasAsync } from '@/lib/routes'
-import { getAllBlogsFromFirestore } from '@/lib/firebase/blogs'
-import { BlogCard } from '@/components/blog/BlogCard'
-import { FerrataClimberIcon } from '@/components/routes/RoutesMapView'
+
+// OPTIMIZACIÓN: Lazy loading de componentes pesados para reducir JavaScript inicial en la landing
+// RouteCard usa framer-motion que es pesado (~50KB), solo cargar cuando sea necesario
+const RouteCard = dynamicImport(
+  () => import('@/components/routes/RouteCard').then((mod) => ({ default: mod.RouteCard })),
+  { 
+    ssr: true, // Mantener SSR para SEO de las primeras rutas
+    loading: () => <div className="h-64 bg-gray-100 animate-pulse rounded-lg" /> // Placeholder mientras carga
+  }
+)
+
+// OPTIMIZACIÓN: BlogCard es más ligero pero aún así lazy load para reducir bundle inicial
+const BlogCard = dynamicImport(
+  () => import('@/components/blog/BlogCard').then((mod) => ({ default: mod.BlogCard })),
+  { 
+    ssr: true, // Mantener SSR para SEO
+    loading: () => <div className="h-64 bg-gray-100 animate-pulse rounded-lg" />
+  }
+)
+
+// OPTIMIZACIÓN: VideoHero solo se necesita en la landing, pero puede ser lazy si está below the fold
+// Como está en el hero (above the fold), lo mantenemos normal pero optimizado
 import { VideoHero } from '@/components/VideoHero'
+
+// OPTIMIZACIÓN: FerrataClimberIcon es un SVG, pero lazy load para reducir imports
+const FerrataClimberIcon = dynamicImport(
+  () => import('@/components/routes/RoutesMapView').then((mod) => ({ default: mod.FerrataClimberIcon })),
+  { ssr: false } // SVG, no crítico para SEO
+)
+
+// OPTIMIZACIÓN: Lazy loading de Firebase - solo cargar cuando se necesite
+// Esto evita cargar ~100KB de Firebase en la landing si no se usa
+async function getAllBlogsLazy() {
+  try {
+    // Dynamic import de Firebase solo cuando se necesita
+    const { getAllBlogsFromFirestore } = await import('@/lib/firebase/blogs')
+    const blogs = await getAllBlogsFromFirestore(false) // Solo blogs publicados
+    console.log(`✅ Blogs cargados desde Firebase: ${blogs.length}`)
+    return blogs
+  } catch (error) {
+    console.error('❌ Error cargando blogs desde Firebase:', error)
+    if (error instanceof Error) {
+      console.error('Mensaje de error:', error.message)
+      console.error('Stack:', error.stack)
+    }
+    return [] // Fallback a array vacío si Firebase no está disponible
+  }
+}
 
 // Forzar recarga dinámica para obtener datos frescos de Firestore
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export default async function HomePage() {
+  // OPTIMIZACIÓN: Lazy loading de blogs - Firebase solo se carga si se necesita
   // Obtener rutas desde Firestore (solo datos estáticos si Firestore no está configurado)
   const [allTrekkingRoutes, allFerratas, allBlogs] = await Promise.all([
     getTrekkingRoutesAsync(),
     getFerratasAsync(),
-    getAllBlogsFromFirestore(false), // Solo blogs publicados
+    getAllBlogsLazy(), // Lazy loading de Firebase
   ])
   
   // Obtener rutas destacadas (primeras 3 de cada tipo)
