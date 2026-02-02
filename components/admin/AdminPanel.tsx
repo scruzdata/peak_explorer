@@ -501,6 +501,9 @@ export function AdminPanel() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    ID Firebase
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     Título
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
@@ -520,6 +523,9 @@ export function AdminPanel() {
               <tbody className="divide-y divide-gray-200 bg-white">
                 {filteredRoutes.map((route: Route) => (
                   <tr key={route.slug || route.id} className="hover:bg-gray-50">
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <div className="text-xs font-mono text-gray-600">{route.id}</div>
+                    </td>
                     <td className="whitespace-nowrap px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">{route.title}</div>
                     </td>

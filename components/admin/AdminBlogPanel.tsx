@@ -295,6 +295,9 @@ export function AdminBlogPanel() {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      ID Firebase
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                       Título
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
@@ -314,6 +317,9 @@ export function AdminBlogPanel() {
                 <tbody className="divide-y divide-gray-200 bg-white">
                   {filteredBlogs.map((blog) => (
                     <tr key={blog.id} className="hover:bg-gray-50">
+                      <td className="whitespace-nowrap px-6 py-4">
+                        <div className="text-xs font-mono text-gray-600">{blog.id}</div>
+                      </td>
                       <td className="px-6 py-4">
                         <div className="text-sm font-medium text-gray-900">{blog.title}</div>
                         <div className="text-xs text-gray-500 line-clamp-1">{blog.excerpt}</div>
