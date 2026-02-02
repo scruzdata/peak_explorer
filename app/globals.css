@@ -180,8 +180,6 @@ body.hide-footer footer {
   50% {
     transform: translateX(8px);
   }
-}
-
-.animate-slide-horizontal {
+}.animate-slide-horizontal {
   animation: slide-horizontal 1.5s ease-in-out infinite;
 }

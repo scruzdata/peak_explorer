@@ -26,6 +26,12 @@ export interface ImageData {
   height: number
   lqip?: string // Low Quality Image Placeholder
   source?: string // Fuente o atribución de la imagen
+  aspectRatio?: number // width / height
+  optimizedSources?: {
+    w400?: string
+    w800?: string
+    w1600?: string
+  }
 }
 
 export interface AffiliateLink {

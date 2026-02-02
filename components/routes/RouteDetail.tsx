@@ -278,14 +278,25 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
       <article className="min-h-screen bg-white">
         {/* Hero Section */}
         <section className="relative h-[60vh] min-h-[500px] overflow-hidden">
-          <Image
-            src={route.heroImage.url}
-            alt={route.heroImage.alt}
-            fill
-            priority
-            className="object-cover"
-            sizes="100vw"
-          />
+          {(() => {
+            const optimized = route.heroImage.optimizedSources
+            const heroSrc =
+              optimized?.w1600 ||
+              optimized?.w800 ||
+              optimized?.w400 ||
+              route.heroImage.url
+
+            return (
+              <Image
+                src={heroSrc}
+                alt={route.heroImage.alt}
+                fill
+                priority
+                className="object-cover"
+                sizes="100vw"
+              />
+            )
+          })()}
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80" />
           
           <div className="relative z-10 mx-auto flex h-full max-w-7xl flex-col justify-end px-4 pb-12 sm:px-6 lg:px-8">

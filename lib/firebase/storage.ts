@@ -1,5 +1,6 @@
 // Funciones para gestionar archivos en Firebase Storage
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, StorageReference } from 'firebase/storage'
+import { getStorage, ref, uploadBytes, uploadBytesResumable, getDownloadURL, deleteObject, StorageReference, UploadTask } from 'firebase/storage'
+import { generateOptimizedImagesInBrowser } from '@/lib/imageOptimizer'
 import { initializeApp, getApps } from 'firebase/app'
 
 // Inicializar Firebase Storage
@@ -12,6 +13,85 @@ function getFirebaseStorage() {
   
   const storage = getStorage(apps[0])
   return storage
+}
+
+export interface UploadProgressState {
+  bytesTransferred: number
+  totalBytes: number
+  progress: number // 0-100
+}
+
+export interface OptimizedStorageImage {
+  url: string
+  path: string
+  width: number
+  height: number
+}
+
+export interface OptimizedStorageImageSet {
+  base: OptimizedStorageImage
+  variants: OptimizedStorageImage[]
+  aspectRatio: number
+}
+
+async function uploadBlobWithProgress(
+  storagePath: string,
+  blob: Blob,
+  onProgress?: (progress: UploadProgressState) => void,
+  baseOffsetBytes: number = 0,
+  totalBytesGlobal?: number
+): Promise<{ url: string; path: string; bytes: number }> {
+  const storage = getFirebaseStorage()
+  const storageRef = ref(storage, storagePath)
+
+  // Si no necesitamos progreso detallado, usar uploadBytes directo
+  if (!onProgress || typeof window === 'undefined') {
+    const snapshot = await uploadBytes(storageRef, blob)
+    const publicURL = getPublicStorageURL(snapshot.ref.fullPath)
+    return {
+      url: publicURL,
+      path: snapshot.ref.fullPath,
+      bytes: blob.size,
+    }
+  }
+
+  const uploadTask = uploadBytesResumable(storageRef, blob)
+
+  return new Promise((resolve, reject) => {
+    uploadTask.on(
+      'state_changed',
+      (snapshot) => {
+        if (!totalBytesGlobal) {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+          onProgress({
+            bytesTransferred: snapshot.bytesTransferred,
+            totalBytes: snapshot.totalBytes,
+            progress,
+          })
+        } else {
+          const globalTransferred = baseOffsetBytes + snapshot.bytesTransferred
+          const progress = (globalTransferred / totalBytesGlobal) * 100
+          onProgress({
+            bytesTransferred: globalTransferred,
+            totalBytes: totalBytesGlobal,
+            progress,
+          })
+        }
+      },
+      (error) => {
+        reject(error)
+      },
+      async () => {
+        const snapshot = uploadTask.snapshot
+        const publicURL = getPublicStorageURL(snapshot.ref.fullPath)
+        resolve({
+          url: publicURL,
+          path: snapshot.ref.fullPath,
+          bytes: blob.size,
+        })
+      }
+    )
+  })
 }
 
 /**
@@ -190,6 +270,75 @@ export async function uploadRouteImage(
   } catch (error) {
     console.error('Error subiendo imagen de ruta:', error)
     throw error
+  }
+}
+
+/**
+ * Sube una imagen de ruta generando versiones optimizadas WebP en:
+ *  - hero-400.webp
+ *  - hero-800.webp
+ *  - hero-1600.webp
+ *
+ * Todo se hace en el navegador usando <canvas>. No se sube la imagen original.
+ */
+export async function uploadOptimizedRouteImageSet(
+  file: File,
+  routeFolderName: string | undefined,
+  baseName: 'hero' | 'gallery' = 'hero',
+  onProgress?: (progress: UploadProgressState) => void,
+  baseFolder: string = 'Rutas'
+): Promise<OptimizedStorageImageSet> {
+  const optimization = await generateOptimizedImagesInBrowser(file, [400, 800, 1600], 0.8)
+
+  // Obtener nombre base del archivo original (sin extensión) para reutilizar en los nombres optimizados
+  const originalName = file.name || 'image'
+  const dotIndex = originalName.lastIndexOf('.')
+  const baseOriginalName =
+    dotIndex > 0 ? originalName.substring(0, dotIndex) : originalName
+
+  const totalBytes = optimization.variants.reduce((sum, v) => sum + v.blob.size, 0)
+  let accumulatedBytes = 0
+
+  const uploadedVariants: OptimizedStorageImage[] = []
+
+  for (let i = 0; i < optimization.variants.length; i++) {
+    const variant = optimization.variants[i]
+    const suffix = variant.filenameSuffix
+
+    // Formato de nombre: {nombreOriginal}-{tipo}-{ancho}.webp
+    const optimizedFilename = `${baseOriginalName}-${baseName}-${suffix}.webp`
+
+    const storagePath = routeFolderName
+      ? `${baseFolder}/${routeFolderName}/${optimizedFilename}`
+      : `${baseFolder}/${optimizedFilename}`
+
+    const result = await uploadBlobWithProgress(
+      storagePath,
+      variant.blob,
+      onProgress,
+      accumulatedBytes,
+      totalBytes
+    )
+
+    accumulatedBytes += variant.blob.size
+
+    uploadedVariants.push({
+      url: result.url,
+      path: result.path,
+      width: variant.width,
+      height: variant.height,
+    })
+  }
+
+  // Elegimos como "base" la variante de mayor ancho
+  const baseVariant = uploadedVariants.reduce((max, curr) => {
+    return curr.width > max.width ? curr : max
+  }, uploadedVariants[0])
+
+  return {
+    base: baseVariant,
+    variants: uploadedVariants,
+    aspectRatio: optimization.aspectRatio,
   }
 }
 

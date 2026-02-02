@@ -4,6 +4,7 @@ import { useAuth } from '@/components/providers/AuthProvider'
 import { useState, useEffect, useMemo } from 'react'
 import { Plus, Edit, Trash2, Eye, Loader2, Filter, FileText, Route as RouteIcon, Search } from 'lucide-react'
 import { getAllRoutesForAdmin, deleteRouteFromFirestore } from '@/lib/routes'
+import { deleteStorageFileByUrl } from '@/lib/firebase/storage'
 import { Route, RouteType, Difficulty } from '@/types'
 import { RouteForm } from './RouteForm'
 import { GPXUploader } from './GPXUploader'
@@ -68,11 +69,41 @@ export function AdminPanel() {
     console.log('✅ Formulario abierto para edición')
   }
   
-  const handleDeleteRoute = async (id: string) => {
-    console.log('🗑️  Intentando eliminar ruta con ID:', id)
+  const deleteRouteImages = async (route: Route) => {
+    try {
+      const urls = new Set<string>()
+
+      // Imagen principal
+      if (route.heroImage?.url) urls.add(route.heroImage.url)
+      if (route.heroImage?.optimizedSources?.w400) urls.add(route.heroImage.optimizedSources.w400)
+      if (route.heroImage?.optimizedSources?.w800) urls.add(route.heroImage.optimizedSources.w800)
+      if (route.heroImage?.optimizedSources?.w1600) urls.add(route.heroImage.optimizedSources.w1600)
+
+      // Galería
+      for (const img of route.gallery || []) {
+        if (img.url) urls.add(img.url)
+        if (img.optimizedSources?.w400) urls.add(img.optimizedSources.w400)
+        if (img.optimizedSources?.w800) urls.add(img.optimizedSources.w800)
+        if (img.optimizedSources?.w1600) urls.add(img.optimizedSources.w1600)
+      }
+
+      for (const url of urls) {
+        try {
+          await deleteStorageFileByUrl(url)
+        } catch (error) {
+          console.error('Error eliminando imagen asociada a la ruta:', route.id, url, error)
+        }
+      }
+    } catch (error) {
+      console.error('Error recopilando o eliminando imágenes de la ruta:', route.id, error)
+    }
+  }
+
+  const handleDeleteRoute = async (route: Route) => {
+    console.log('🗑️  Intentando eliminar ruta con ID:', route.id)
     
     // Verificar si es un ID de datos estáticos
-    if (id.startsWith('route-') && /^route-\d+$/.test(id)) {
+    if (route.id.startsWith('route-') && /^route-\d+$/.test(route.id)) {
       alert('Esta ruta es de datos estáticos y no puede ser eliminada desde Firestore.\n\nSi quieres eliminarla, debes hacerlo desde el código fuente (lib/data.ts).')
       console.warn('⚠️  Intento de eliminar ruta de datos estáticos:', id)
       return
@@ -83,10 +114,13 @@ export function AdminPanel() {
       return
     }
     
-    setDeletingId(id)
+    setDeletingId(route.id)
     try {
-      console.log('🔄 Llamando a deleteRouteFromFirestore con ID:', id)
-      const success = await deleteRouteFromFirestore(id)
+      // Primero intentar eliminar las imágenes asociadas en Storage (no bloqueante)
+      await deleteRouteImages(route)
+
+      console.log('🔄 Llamando a deleteRouteFromFirestore con ID:', route.id)
+      const success = await deleteRouteFromFirestore(route.id)
       console.log('📊 Resultado de deleteRouteFromFirestore:', success)
       
       if (success) {
@@ -532,7 +566,7 @@ export function AdminPanel() {
                             e.preventDefault()
                             e.stopPropagation()
                             console.log('🖱️  Click en botón eliminar para ruta:', route.id)
-                            handleDeleteRoute(route.id)
+                            handleDeleteRoute(route)
                           }}
                           className="text-red-600 hover:text-red-900 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Eliminar"

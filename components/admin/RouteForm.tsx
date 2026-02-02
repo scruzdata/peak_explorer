@@ -13,7 +13,7 @@ import { Route, RouteType, Difficulty, FerrataGrade, Season, RouteStatus, RouteT
 import { createRouteInFirestore, updateRouteInFirestore } from '@/lib/routes'
 import { saveTrackInFirestore } from '@/lib/firebase/tracks'
 import { generateSlug } from '@/lib/utils'
-import { uploadRouteImage, uploadFerrataImage, deleteStorageFileByUrl } from '@/lib/firebase/storage'
+import { uploadRouteImage, uploadFerrataImage, deleteStorageFileByUrl, uploadOptimizedRouteImageSet, UploadProgressState } from '@/lib/firebase/storage'
 import { 
   X, 
   Save, 
@@ -61,6 +61,7 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
   const isEditing = !!route && isFirestoreRoute
   const [loading, setLoading] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null)
   
   /**
    * Convierte webcams antiguas (string[]) al nuevo formato (WebcamData[])
@@ -549,10 +550,16 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
     const image = formData.gallery?.[index]
     if (!image) return
 
-    // Intentar borrar también del Storage si la URL pertenece a nuestro bucket
-    if (image.url) {
+    // Intentar borrar también del Storage si las URLs pertenecen a nuestro bucket
+    const urlsToDelete = new Set<string>()
+    if (image.url) urlsToDelete.add(image.url)
+    if (image.optimizedSources?.w400) urlsToDelete.add(image.optimizedSources.w400)
+    if (image.optimizedSources?.w800) urlsToDelete.add(image.optimizedSources.w800)
+    if (image.optimizedSources?.w1600) urlsToDelete.add(image.optimizedSources.w1600)
+
+    for (const url of urlsToDelete) {
       try {
-        await deleteStorageFileByUrl(image.url)
+        await deleteStorageFileByUrl(url)
       } catch (error) {
         console.error('Error eliminando imagen de Storage:', error)
         // No bloqueamos la eliminación en el formulario si falla Storage
@@ -569,31 +576,44 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
     }
 
     setUploadingImage(true)
+    setUploadProgress(0)
     try {
       // Generar el nombre de la carpeta: usar slug si existe, o generar uno del título
       const routeFolderName = route?.slug || route?.id || (formData.title?.trim() ? generateSlug(formData.title.trim()) : undefined)
-      
-      // Subir según el tipo de ruta
-      const { url } = formData.type === 'ferrata'
-        ? await uploadFerrataImage(file, routeFolderName)
-        : await uploadRouteImage(file, routeFolderName)
-      
-      // Obtener dimensiones de la imagen usando HTMLImageElement
-      const img = document.createElement('img') as HTMLImageElement
-      img.src = url
-      
-      await new Promise<void>((resolve, reject) => {
-        img.onload = () => resolve()
-        img.onerror = () => reject(new Error('Error al cargar la imagen'))
-        // Timeout de seguridad
-        setTimeout(() => reject(new Error('Timeout al cargar la imagen')), 10000)
-      })
+      if (!routeFolderName) {
+        throw new Error('No se pudo determinar la carpeta de la ruta para subir la imagen')
+      }
+
+      // Subir versiones optimizadas en función del tipo de ruta
+      const onProgress = (state: UploadProgressState) => {
+        setUploadProgress(Math.round(state.progress))
+      }
+
+      const isFerrata = formData.type === 'ferrata'
+      const optimizedSet = await uploadOptimizedRouteImageSet(
+        file,
+        routeFolderName,
+        type === 'hero' ? 'hero' : 'gallery',
+        onProgress,
+        isFerrata ? 'Vias_ferratas' : 'Rutas'
+      )
+
+      const sortedVariants = [...optimizedSet.variants].sort((a, b) => a.width - b.width)
+      const w400 = sortedVariants.find((v) => v.width <= 450)
+      const w800 = sortedVariants.find((v) => v.width > 450 && v.width <= 1000) || sortedVariants[0]
+      const w1600 = sortedVariants[sortedVariants.length - 1]
 
       const imageData = {
-        url,
+        url: w800?.url || optimizedSet.base.url,
         alt: file.name,
-        width: img.naturalWidth || img.width || 1200,
-        height: img.naturalHeight || img.height || 800,
+        width: optimizedSet.base.width,
+        height: optimizedSet.base.height,
+        aspectRatio: optimizedSet.aspectRatio,
+        optimizedSources: {
+          w400: w400?.url,
+          w800: w800?.url,
+          w1600: w1600?.url,
+        },
       }
 
       if (type === 'hero') {
@@ -602,7 +622,7 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
           ...prev,
           heroImage: imageData,
         }))
-        alert('✅ Imagen principal subida correctamente')
+        alert('✅ Imagen principal optimizada y subida correctamente')
       } else {
         // Añadir la imagen a la galería
         setFormData(prev => ({
@@ -612,13 +632,14 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
             imageData,
           ],
         }))
-        alert('✅ Imagen subida correctamente y añadida a la galería')
+        alert('✅ Imagen optimizada subida correctamente y añadida a la galería')
       }
     } catch (error) {
       console.error('Error subiendo imagen:', error)
       alert('Error al subir la imagen. Inténtalo de nuevo.')
     } finally {
       setUploadingImage(false)
+      setUploadProgress(null)
     }
   }
 
@@ -1165,7 +1186,10 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
                   {uploadingImage ? (
                     <>
                       <Loader2 className="h-5 w-5 animate-spin" />
-                      <span>Subiendo imagen principal...</span>
+                      <span>
+                        Subiendo imagen principal
+                        {uploadProgress !== null ? ` (${uploadProgress}%)` : '...'}
+                      </span>
                     </>
                   ) : (
                     <>
@@ -1224,7 +1248,10 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
                 {uploadingImage ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Subiendo...</span>
+                    <span>
+                      Subiendo
+                      {uploadProgress !== null ? ` (${uploadProgress}%)` : '...'}
+                    </span>
                   </>
                 ) : (
                   <>

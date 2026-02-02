@@ -102,13 +102,24 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
               transition={{ duration: 0.3 }}
               className="absolute inset-0 pointer-events-none"
             >
-              <Image
-                src={allImages[currentImageIndex].url}
-                alt={allImages[currentImageIndex].alt || route.title}
-                fill
-                className="object-cover transition-transform duration-500 group-hover:scale-110 pointer-events-none"
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 33vw"
-              />
+              {(() => {
+                const img = allImages[currentImageIndex]
+                const optimized = img.optimizedSources
+                const src =
+                  optimized?.w400 ||
+                  optimized?.w800 ||
+                  optimized?.w1600 ||
+                  img.url
+                return (
+                  <Image
+                    src={src}
+                    alt={img.alt || route.title}
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-110 pointer-events-none"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 33vw"
+                  />
+                )
+              })()}
             </motion.div>
           </AnimatePresence>
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
@@ -264,14 +275,6 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
                 className="absolute inset-0"
               >
                 {/* Optimización: priority para imágenes en viewport inicial, lazy para las demás */}
-                <Image
-                  src={allImages[currentImageIndex].url}
-                  alt={allImages[currentImageIndex].alt || route.title}
-                  fill
-                  className="object-cover transition-transform duration-500 group-hover:scale-110 pointer-events-none"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 33vw"
-                  priority={priority} // Priority para imágenes críticas (mejora LCP)
-                />
               </motion.div>
             </AnimatePresence>
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -412,13 +415,24 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
               transition={{ duration: 0.3 }}
               className="absolute inset-0"
             >
-              <Image
-                src={allImages[currentImageIndex].url}
-                alt={allImages[currentImageIndex].alt || route.title}
-                fill
-                className="object-cover transition-transform duration-500 group-hover:scale-110 pointer-events-none"
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              />
+              {(() => {
+                const img = allImages[currentImageIndex]
+                const optimized = img.optimizedSources
+                const src =
+                  optimized?.w400 ||
+                  optimized?.w800 ||
+                  optimized?.w1600 ||
+                  img.url
+                return (
+                  <Image
+                    src={src}
+                    alt={img.alt || route.title}
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-110 pointer-events-none"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  />
+                )
+              })()}
             </motion.div>
           </AnimatePresence>
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />

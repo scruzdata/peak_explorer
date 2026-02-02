@@ -135,13 +135,23 @@ export function RouteGallery({ images, routeTitle }: RouteGalleryProps) {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                <Image
-                  src={image.url}
-                  alt={image.alt || `${routeTitle} - Foto ${index + 1}`}
-                  fill
-                  className="object-cover transition-transform duration-300 group-hover:scale-110"
-                  sizes="224px"
-                />
+                {(() => {
+                  const optimized = image.optimizedSources
+                  const src =
+                    optimized?.w400 ||
+                    optimized?.w800 ||
+                    optimized?.w1600 ||
+                    image.url
+                  return (
+                    <Image
+                      src={src}
+                      alt={image.alt || `${routeTitle} - Foto ${index + 1}`}
+                      fill
+                      className="object-cover transition-transform duration-300 group-hover:scale-110"
+                      sizes="224px"
+                    />
+                  )
+                })()}
                 <div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/10" />
                 {image.source && (
                   <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/60 backdrop-blur-sm rounded text-white text-[10px] font-medium">
@@ -206,14 +216,26 @@ export function RouteGallery({ images, routeTitle }: RouteGalleryProps) {
                 exit={{ scale: 0.9, opacity: 0 }}
                 className="relative max-h-[90vh] max-w-[90vw]"
               >
-                <Image
-                  src={images[selectedIndex].url}
-                  alt={images[selectedIndex].alt || `${routeTitle} - Foto ${selectedIndex + 1}`}
-                  width={images[selectedIndex].width}
-                  height={images[selectedIndex].height}
-                  className="max-h-[90vh] w-auto rounded-lg object-contain"
-                  sizes="90vw"
-                />
+                {(() => {
+                  const img = images[selectedIndex]
+                  const optimized = img.optimizedSources
+                  // Para la imagen grande del lightbox priorizamos la mayor resolución disponible
+                  const src =
+                    optimized?.w1600 ||
+                    optimized?.w800 ||
+                    optimized?.w400 ||
+                    img.url
+                  return (
+                    <Image
+                      src={src}
+                      alt={img.alt || `${routeTitle} - Foto ${selectedIndex + 1}`}
+                      width={img.width}
+                      height={img.height}
+                      className="max-h-[90vh] w-auto rounded-lg object-contain"
+                      sizes="90vw"
+                    />
+                  )
+                })()}
                 {images[selectedIndex].source && (
                   <div className="absolute bottom-4 right-4 px-3 py-2 bg-black/60 backdrop-blur-sm rounded text-white text-xs font-medium">
                     {images[selectedIndex].source}

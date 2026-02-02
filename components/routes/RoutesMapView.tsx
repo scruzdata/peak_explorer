@@ -1109,13 +1109,23 @@ export function RoutesMapView({
 
             {/* Imagen */}
             <div className="relative h-24 w-full overflow-hidden">
-              <Image
-                src={cardRoute.heroImage.url}
-                alt={cardRoute.heroImage.alt}
-                fill
-                className="object-cover"
-                sizes="288px"
-              />
+              {(() => {
+                const optimized = cardRoute.heroImage.optimizedSources
+                const src =
+                  optimized?.w400 ||
+                  optimized?.w800 ||
+                  optimized?.w1600 ||
+                  cardRoute.heroImage.url
+                return (
+                  <Image
+                    src={src}
+                    alt={cardRoute.heroImage.alt}
+                    fill
+                    className="object-cover"
+                    sizes="288px"
+                  />
+                )
+              })()}
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
 
               {/* Rating (más hacia la izquierda) */}
