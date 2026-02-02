@@ -24,7 +24,7 @@ export function Footer() {
 
           {/* Links */}
           <div>
-            <h3 className="mb-4 text-sm font-semibold text-white">Rutas</h3>
+            <h3 className="mb-4 text-sm font-semibold text-white">Inicio</h3>
             <ul className="space-y-2 text-sm">
               {/* Optimización accesibilidad: text-primary-300 mejora contraste sobre bg-gray-900 (ratio >4.5:1) */}
               <li>
@@ -35,6 +35,11 @@ export function Footer() {
               <li>
                 <Link href="/vias-ferratas" className="hover:text-primary-300 transition-colors">
                   Vías Ferratas
+                </Link>
+              </li>
+              <li>
+                <Link href="/blog" className="hover:text-primary-300 transition-colors">
+                  Blog
                 </Link>
               </li>
             </ul>

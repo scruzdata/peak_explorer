@@ -233,18 +233,12 @@ export function RouteGallery({ images, routeTitle }: RouteGalleryProps) {
                     </div>
                   )
                 })()}
-                {/* Texto alternativo en desktop (esquina inferior derecha) */}
-                {images[selectedIndex].alt && (
-                  <div className="hidden md:block absolute bottom-4 right-4 px-3 py-2 bg-black/60 backdrop-blur-sm rounded text-white text-xs font-medium max-w-[80%] z-10">
-                    {images[selectedIndex].alt}
-                  </div>
-                )}
               </motion.div>
               
-              {/* Texto alternativo en móvil (debajo de la imagen) */}
+              {/* Texto alternativo (debajo de la imagen, centrado) */}
               {images[selectedIndex].alt && (
-                <div className="md:hidden text-center px-4 py-2 max-w-[95vw]">
-                  <p className="text-white text-sm">
+                <div className="text-center px-4 py-2 max-w-[95vw] md:max-w-[80vw]">
+                  <p className="text-white text-sm md:text-base">
                     {images[selectedIndex].alt}
                   </p>
                 </div>
