@@ -152,7 +152,7 @@ export default async function HomePage() {
       {/* Featured Trekking Routes */}
       <section className="py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-12 flex items-center justify-between">
+          <div className="mb-4 sm:mb-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
                 Rutas de Montaña Destacadas
@@ -164,7 +164,7 @@ export default async function HomePage() {
             {/* Optimización accesibilidad: text-primary-700 mejora contraste sobre fondo blanco (ratio >4.5:1) */}
             <Link
               href="/rutas"
-              className="hidden sm:flex items-center text-primary-700 hover:text-primary-800 font-medium"
+              className="flex items-center text-primary-700 hover:text-primary-800 font-medium self-start sm:self-auto"
             >
               Ver todas
               <ArrowRight className="ml-2 h-5 w-5" />
@@ -182,7 +182,7 @@ export default async function HomePage() {
       {/* Featured Ferratas */}
       <section className="py-16 bg-gray-50">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-12 flex items-center justify-between">
+          <div className="mb-6 sm:mb-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
                 Vías Ferratas Destacadas
@@ -194,7 +194,7 @@ export default async function HomePage() {
             {/* Optimización accesibilidad: text-primary-700 mejora contraste sobre bg-gray-50 (ratio >4.5:1) */}
             <Link
               href="/vias-ferratas"
-              className="hidden sm:flex items-center text-primary-700 hover:text-primary-800 font-medium"
+              className="flex items-center text-primary-700 hover:text-primary-800 font-medium self-start sm:self-auto"
             >
               Ver todas
               <ArrowRight className="ml-2 h-5 w-5" />
