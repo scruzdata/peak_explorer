@@ -613,7 +613,11 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
     }))
   }
 
-  const handleImageUpload = async (file: File, type: 'gallery' | 'hero' = 'gallery') => {
+  const handleImageUpload = async (
+    file: File,
+    type: 'gallery' | 'hero' = 'gallery',
+    options?: { showAlert?: boolean }
+  ) => {
     if (!file.type.startsWith('image/')) {
       alert('Por favor selecciona un archivo de imagen')
       return
@@ -660,13 +664,17 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
         },
       }
 
+      const showAlert = options?.showAlert !== false
+
       if (type === 'hero') {
         // Actualizar la imagen principal
         setFormData(prev => ({
           ...prev,
           heroImage: imageData,
         }))
-        alert('✅ Imagen principal optimizada y subida correctamente')
+        if (showAlert) {
+          alert('✅ Imagen principal optimizada y subida correctamente')
+        }
       } else {
         // Añadir la imagen a la galería
         setFormData(prev => ({
@@ -676,7 +684,9 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
             imageData,
           ],
         }))
-        alert('✅ Imagen optimizada subida correctamente y añadida a la galería')
+        if (showAlert) {
+          alert('✅ Imagen optimizada subida correctamente y añadida a la galería')
+        }
       }
     } catch (error) {
       console.error('Error subiendo imagen:', error)
@@ -685,6 +695,24 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
       setUploadingImage(false)
       setUploadProgress(null)
     }
+  }
+
+  const handleGalleryFilesUpload = async (files: FileList) => {
+    const fileArray = Array.from(files)
+    if (fileArray.length === 0) return
+
+    // Si es solo una imagen, mantenemos el comportamiento actual (alert por imagen)
+    if (fileArray.length === 1) {
+      await handleImageUpload(fileArray[0], 'gallery')
+      return
+    }
+
+    // Para múltiples imágenes, subimos una a una sin spamear alerts
+    for (const file of fileArray) {
+      await handleImageUpload(file, 'gallery', { showAlert: false })
+    }
+
+    alert(`✅ ${fileArray.length} imágenes optimizadas y añadidas a la galería`)
   }
 
   type MarkdownAction = 'bold' | 'italic' | 'heading' | 'list' | 'quote' | 'code' | 'break' | 'link' | 'center' | 'imageLeft' | 'imageRight'
@@ -1317,9 +1345,12 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
                 <input
                   type="file"
                   accept="image/*"
+                  multiple
                   onChange={(e) => {
-                    const file = e.target.files?.[0]
-                    if (file) handleImageUpload(file, 'gallery')
+                    const files = e.target.files
+                    if (files && files.length > 0) {
+                      handleGalleryFilesUpload(files)
+                    }
                     // Resetear el input para permitir subir la misma imagen de nuevo
                     e.target.value = ''
                   }}
