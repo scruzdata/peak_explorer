@@ -176,16 +176,16 @@ export function RouteGallery({ images, routeTitle }: RouteGalleryProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-4"
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/95"
             onClick={closeLightbox}
           >
             {/* Botón cerrar */}
             <button
               onClick={closeLightbox}
-              className="absolute top-4 right-4 z-10 rounded-full bg-white/10 p-2 text-white backdrop-blur transition-colors hover:bg-white/20"
+              className="absolute top-2 right-2 md:top-4 md:right-4 z-10 rounded-full bg-white/10 p-2 text-white backdrop-blur transition-colors hover:bg-white/20"
               aria-label="Cerrar galería"
             >
-              <X className="h-6 w-6" />
+              <X className="h-5 w-5 md:h-6 md:w-6" />
             </button>
 
             {/* Botón anterior */}
@@ -195,21 +195,21 @@ export function RouteGallery({ images, routeTitle }: RouteGalleryProps) {
                   e.stopPropagation()
                   goToPrevious()
                 }}
-                className="absolute left-4 z-10 rounded-full bg-white/10 p-2 text-white backdrop-blur transition-colors hover:bg-white/20"
+                className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 z-10 rounded-full bg-white/10 p-2 text-white backdrop-blur transition-colors hover:bg-white/20"
                 aria-label="Imagen anterior"
               >
-                <ChevronLeft className="h-6 w-6" />
+                <ChevronLeft className="h-5 w-5 md:h-6 md:w-6" />
               </button>
             )}
 
             {/* Contenedor de imagen, numeración y pie de foto */}
-            <div className="flex flex-col items-center gap-4 max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex flex-col items-center justify-center gap-2 md:gap-4 w-full h-full px-2 md:px-4 py-16 md:py-4" onClick={(e) => e.stopPropagation()}>
               {/* Imagen */}
               <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
-                className="relative max-h-[90vh] max-w-[90vw]"
+                className="relative w-full h-[calc(100vh-180px)] md:h-[85vh] flex items-center justify-center"
               >
                 {(() => {
                   const img = images[selectedIndex]
@@ -221,22 +221,34 @@ export function RouteGallery({ images, routeTitle }: RouteGalleryProps) {
                     optimized?.w400 ||
                     img.url
                   return (
-                    <Image
-                      src={src}
-                      alt={img.alt || `${routeTitle} - Foto ${selectedIndex + 1}`}
-                      width={img.width}
-                      height={img.height}
-                      className="max-h-[90vh] w-auto rounded-lg object-contain"
-                      sizes="90vw"
-                    />
+                    <div className="relative w-full h-full flex items-center justify-center">
+                      <Image
+                        src={src}
+                        alt={img.alt || `${routeTitle} - Foto ${selectedIndex + 1}`}
+                        fill
+                        className="object-contain rounded-lg"
+                        sizes="100vw"
+                        priority
+                      />
+                    </div>
                   )
                 })()}
+                {/* Texto alternativo en desktop (esquina inferior derecha) */}
                 {images[selectedIndex].alt && (
-                  <div className="absolute bottom-4 right-4 px-3 py-2 bg-black/60 backdrop-blur-sm rounded text-white text-xs font-medium max-w-[80%]">
+                  <div className="hidden md:block absolute bottom-4 right-4 px-3 py-2 bg-black/60 backdrop-blur-sm rounded text-white text-xs font-medium max-w-[80%] z-10">
                     {images[selectedIndex].alt}
                   </div>
                 )}
               </motion.div>
+              
+              {/* Texto alternativo en móvil (debajo de la imagen) */}
+              {images[selectedIndex].alt && (
+                <div className="md:hidden text-center px-4 py-2 max-w-[95vw]">
+                  <p className="text-white text-sm">
+                    {images[selectedIndex].alt}
+                  </p>
+                </div>
+              )}
               
               {/* Numeración debajo de la imagen */}
               {images.length > 1 && (
@@ -253,10 +265,10 @@ export function RouteGallery({ images, routeTitle }: RouteGalleryProps) {
                   e.stopPropagation()
                   goToNext()
                 }}
-                className="absolute right-4 z-10 rounded-full bg-white/10 p-2 text-white backdrop-blur transition-colors hover:bg-white/20"
+                className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 z-10 rounded-full bg-white/10 p-2 text-white backdrop-blur transition-colors hover:bg-white/20"
                 aria-label="Imagen siguiente"
               >
-                <ChevronRight className="h-6 w-6" />
+                <ChevronRight className="h-5 w-5 md:h-6 md:w-6" />
               </button>
             )}
           </motion.div>
