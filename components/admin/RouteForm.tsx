@@ -569,6 +569,50 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
     removeGalleryImage(index)
   }
 
+  const handleRemoveHeroImage = async () => {
+    const image = formData.heroImage
+    if (!image) {
+      // Reset local heroImage aunque no haya URL
+      setFormData(prev => ({
+        ...prev,
+        heroImage: {
+          url: '',
+          alt: '',
+          width: 1200,
+          height: 800,
+        },
+      }))
+      return
+    }
+
+    // Intentar borrar también del Storage si las URLs pertenecen a nuestro bucket
+    const urlsToDelete = new Set<string>()
+    if (image.url) urlsToDelete.add(image.url)
+    if (image.optimizedSources?.w400) urlsToDelete.add(image.optimizedSources.w400)
+    if (image.optimizedSources?.w800) urlsToDelete.add(image.optimizedSources.w800)
+    if (image.optimizedSources?.w1600) urlsToDelete.add(image.optimizedSources.w1600)
+
+    for (const url of urlsToDelete) {
+      try {
+        await deleteStorageFileByUrl(url)
+      } catch (error) {
+        console.error('Error eliminando imagen principal de Storage:', error)
+        // No bloqueamos la actualización del formulario si falla Storage
+      }
+    }
+
+    // Limpiar heroImage en el formulario
+    setFormData(prev => ({
+      ...prev,
+      heroImage: {
+        url: '',
+        alt: '',
+        width: 1200,
+        height: 800,
+      },
+    }))
+  }
+
   const handleImageUpload = async (file: File, type: 'gallery' | 'hero' = 'gallery') => {
     if (!file.type.startsWith('image/')) {
       alert('Por favor selecciona un archivo de imagen')
@@ -1213,6 +1257,17 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
                 <p className="mt-2 text-xs text-gray-500">
                   O introduce manualmente la URL de la imagen
                 </p>
+                {formData.heroImage?.url && (
+                  <div className="mt-2">
+                    <button
+                      type="button"
+                      onClick={handleRemoveHeroImage}
+                      className="text-xs text-red-600 hover:text-red-800"
+                    >
+                      Eliminar imagen principal (también de Firebase Storage)
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div>

@@ -153,11 +153,6 @@ export function RouteGallery({ images, routeTitle }: RouteGalleryProps) {
                   )
                 })()}
                 <div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/10" />
-                {image.source && (
-                  <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/60 backdrop-blur-sm rounded text-white text-[10px] font-medium">
-                    {image.source}
-                  </div>
-                )}
               </motion.button>
             ))}
           </div>
@@ -207,8 +202,8 @@ export function RouteGallery({ images, routeTitle }: RouteGalleryProps) {
               </button>
             )}
 
-            {/* Contenedor de imagen y contador */}
-            <div className="flex flex-col items-center gap-4" onClick={(e) => e.stopPropagation()}>
+            {/* Contenedor de imagen, numeración y pie de foto */}
+            <div className="flex flex-col items-center gap-4 max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
               {/* Imagen */}
               <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
@@ -236,21 +231,16 @@ export function RouteGallery({ images, routeTitle }: RouteGalleryProps) {
                     />
                   )
                 })()}
-                {images[selectedIndex].source && (
-                  <div className="absolute bottom-4 right-4 px-3 py-2 bg-black/60 backdrop-blur-sm rounded text-white text-xs font-medium">
-                    {images[selectedIndex].source}
-                  </div>
-                )}
-                {/* Contador en desktop (dentro de la imagen) */}
-                {images.length > 1 && (
-                  <div className="hidden md:block absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-4 py-2 text-sm text-white backdrop-blur">
-                    {selectedIndex + 1} / {images.length}
+                {images[selectedIndex].alt && (
+                  <div className="absolute bottom-4 right-4 px-3 py-2 bg-black/60 backdrop-blur-sm rounded text-white text-xs font-medium max-w-[80%]">
+                    {images[selectedIndex].alt}
                   </div>
                 )}
               </motion.div>
-              {/* Contador en móvil (fuera de la imagen) */}
+              
+              {/* Numeración debajo de la imagen */}
               {images.length > 1 && (
-                <div className="md:hidden rounded-full bg-black/50 px-4 py-2 text-sm text-white backdrop-blur">
+                <div className="rounded-full bg-black/50 px-4 py-2 text-sm text-white backdrop-blur">
                   {selectedIndex + 1} / {images.length}
                 </div>
               )}
