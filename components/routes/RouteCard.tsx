@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Clock, MapPin, TrendingUp, Star, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react'
+import { Clock, MapPin, TrendingUp, Star, ChevronLeft, ChevronRight, ExternalLink, Hand } from 'lucide-react'
 import { Route } from '@/types'
 import { formatDistance, formatElevation, getDifficultyColor, getFerrataGradeColor } from '@/lib/utils'
 
@@ -32,6 +32,60 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
   const allImages = [route.heroImage, ...(route.gallery || []) ]
   const hasMultipleImages = allImages.length > 1
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [isMobile, setIsMobile] = useState(false)
+  const [isCentered, setIsCentered] = useState(false)
+  const cardRef = useRef<HTMLDivElement>(null)
+  const touchStartX = useRef<number | null>(null)
+  const touchStartY = useRef<number | null>(null)
+
+  // Detectar si estamos en móvil
+  useEffect(() => {
+    const checkMobile = () => {
+      if (typeof window !== 'undefined') {
+        setIsMobile(window.innerWidth < 1024) // lg breakpoint
+      }
+    }
+    // Verificar inmediatamente
+    checkMobile()
+    // También verificar después de un pequeño delay para asegurar que el DOM está listo
+    const timeoutId = setTimeout(checkMobile, 100)
+    window.addEventListener('resize', checkMobile)
+    return () => {
+      clearTimeout(timeoutId)
+      window.removeEventListener('resize', checkMobile)
+    }
+  }, [])
+
+  // Detectar si la card está centrada en el viewport (solo en móvil)
+  useEffect(() => {
+    if (!isMobile || !cardRef.current) return
+
+    const checkIfCentered = () => {
+      const element = cardRef.current
+      if (!element) return
+
+      const rect = element.getBoundingClientRect()
+      const viewportHeight = window.innerHeight
+      const viewportCenter = viewportHeight / 2
+      const elementCenter = rect.top + rect.height / 2
+      
+      // Considerar centrada si está dentro de un rango de ±150px del centro del viewport
+      const distanceFromCenter = Math.abs(elementCenter - viewportCenter)
+      setIsCentered(distanceFromCenter < 150)
+    }
+
+    // Verificar inicialmente
+    checkIfCentered()
+
+    // Verificar en scroll y resize
+    window.addEventListener('scroll', checkIfCentered, { passive: true })
+    window.addEventListener('resize', checkIfCentered)
+
+    return () => {
+      window.removeEventListener('scroll', checkIfCentered)
+      window.removeEventListener('resize', checkIfCentered)
+    }
+  }, [isMobile])
 
   // Resetear índice cuando cambie la ruta
   useEffect(() => {
@@ -56,15 +110,66 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
     setCurrentImageIndex(index)
   }
 
+  // Handlers para swipe en móvil
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!isMobile || !hasMultipleImages) return
+    const touch = e.touches[0]
+    touchStartX.current = touch.clientX
+    touchStartY.current = touch.clientY
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isMobile || !hasMultipleImages || touchStartX.current === null) return
+    // Prevenir scroll si estamos deslizando horizontalmente
+    const touch = e.touches[0]
+    const deltaX = Math.abs(touch.clientX - touchStartX.current)
+    const deltaY = Math.abs(touch.clientY - (touchStartY.current || 0))
+    
+    if (deltaX > deltaY && deltaX > 10) {
+      e.preventDefault()
+    }
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!isMobile || !hasMultipleImages || touchStartX.current === null || touchStartY.current === null) {
+      touchStartX.current = null
+      touchStartY.current = null
+      return
+    }
+
+    const touch = e.changedTouches[0]
+    const deltaX = touch.clientX - touchStartX.current
+    const deltaY = Math.abs(touch.clientY - touchStartY.current)
+    const minSwipeDistance = 50
+
+    // Solo procesar si el movimiento horizontal es mayor que el vertical
+    if (Math.abs(deltaX) > deltaY && Math.abs(deltaX) > minSwipeDistance) {
+      e.preventDefault()
+      e.stopPropagation()
+      
+      if (deltaX > 0) {
+        // Swipe hacia la derecha - imagen anterior
+        setCurrentImageIndex((prev) => (prev === 0 ? allImages.length - 1 : prev - 1))
+      } else {
+        // Swipe hacia la izquierda - siguiente imagen
+        setCurrentImageIndex((prev) => (prev === allImages.length - 1 ? 0 : prev + 1))
+      }
+    }
+
+    touchStartX.current = null
+    touchStartY.current = null
+  }
+
   // Modo compacto con click personalizado (por ejemplo, en vista "Ambas" para centrar el mapa)
   if (compact && onClick) {
     return (
       <motion.div
+        ref={cardRef}
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.5 }}
-        className={`group cursor-pointer transition-all duration-300 ${
+        className={`relative group cursor-pointer transition-all duration-300 ${isMobile && hasMultipleImages ? 'pt-4' : ''} ${
           isSelected ? 'ring-2 ring-primary-600 ring-offset-2 rounded-xl shadow-lg' : ''
         } ${
           isHovered && !isSelected ? 'ring-2 ring-primary-500 ring-offset-2 rounded-xl scale-105 shadow-lg' : ''
@@ -83,8 +188,38 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
           e.stopPropagation()
         }}
       >
+        {/* Indicador animado "Desliza para ver más" - Solo en móvil cuando hay múltiples imágenes y está centrada */}
+        {isMobile && hasMultipleImages && isCentered && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="absolute top-1 left-0 right-0 z-50 flex items-center justify-center gap-1.5 pointer-events-none"
+          >
+            <Hand className="h-4 w-4 text-gray-700 animate-pulse" />
+            <span className="text-xs font-semibold text-gray-700 whitespace-nowrap">Desliza para ver más imágenes</span>
+            <div className="flex gap-0.5 items-center">
+              <motion.div
+                animate={{ x: [0, 4, 0] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <ChevronLeft className="h-3.5 w-3.5 text-gray-700" />
+              </motion.div>
+              <motion.div
+                animate={{ x: [0, -4, 0] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
+              >
+                <ChevronRight className="h-3.5 w-3.5 text-gray-700" />
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+        
         <div 
           className="relative h-48 overflow-hidden rounded-xl mb-2 group/image"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
           {...(onClick === undefined ? {
             onClick: (e: any) => {
               // Solo prevenir la propagación si no hay onClick personalizado
@@ -241,11 +376,12 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
   if (compact) {
     return (
       <motion.div
+        ref={cardRef}
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.5 }}
-        className={`group cursor-pointer transition-all duration-300 ${
+        className={`relative group cursor-pointer transition-all duration-300 ${isMobile && hasMultipleImages ? 'pt-4' : ''} ${
           isSelected ? 'ring-2 ring-primary-600 ring-offset-2 rounded-xl shadow-lg' : ''
         } ${
           isHovered && !isSelected ? 'ring-2 ring-primary-500 ring-offset-2 rounded-xl scale-105 shadow-lg' : ''
@@ -258,8 +394,38 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
           onDoubleClick?.()
         }}
       >
+          {/* Indicador animado "Desliza para ver más" - Solo en móvil cuando hay múltiples imágenes y está centrada */}
+          {isMobile && hasMultipleImages && isCentered && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="absolute top-1 left-0 right-0 z-50 flex items-center justify-center gap-1.5 pointer-events-none"
+            >
+              <Hand className="h-4 w-4 text-gray-700 animate-pulse" />
+              <span className="text-xs font-semibold text-gray-700 whitespace-nowrap">Desliza para ver más imágenes</span>
+              <div className="flex gap-0.5 items-center">
+                <motion.div
+                  animate={{ x: [0, 4, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <ChevronLeft className="h-3.5 w-3.5 text-gray-700" />
+                </motion.div>
+                <motion.div
+                  animate={{ x: [0, -4, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
+                >
+                  <ChevronRight className="h-3.5 w-3.5 text-gray-700" />
+                </motion.div>
+              </div>
+            </motion.div>
+          )}
+          
           <div 
             className="relative h-48 overflow-hidden rounded-xl mb-2 group/image"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
             onClick={(e) => {
               e.preventDefault()
               e.stopPropagation()
@@ -382,11 +548,12 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
 
   return (
     <motion.div
+      ref={cardRef}
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.5 }}
-      className={`card card-hover group transition-all duration-300 ${
+      className={`relative card card-hover group transition-all duration-300 ${isMobile && hasMultipleImages ? 'pt-10' : ''} ${
         isSelected ? 'ring-2 ring-primary-600 ring-offset-2 shadow-xl' : ''
       } ${
         isHovered && !isSelected ? 'ring-2 ring-primary-500 ring-offset-2 scale-105 shadow-xl' : ''
@@ -399,8 +566,38 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
         onDoubleClick?.()
       }}
     >
+        {/* Indicador animado "Desliza para ver más" - Solo en móvil cuando hay múltiples imágenes y está centrada */}
+        {isMobile && hasMultipleImages && isCentered && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="absolute top-1 left-0 right-0 z-50 flex items-center justify-center gap-1.5 pointer-events-none"
+          >
+            <Hand className="h-4 w-4 text-gray-700 animate-pulse" />
+            <span className="text-xs font-semibold text-gray-700 whitespace-nowrap">Desliza para ver más imágenes</span>
+            <div className="flex gap-0.5 items-center">
+              <motion.div
+                animate={{ x: [0, 4, 0] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <ChevronLeft className="h-3.5 w-3.5 text-gray-700" />
+              </motion.div>
+              <motion.div
+                animate={{ x: [0, -4, 0] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
+              >
+                <ChevronRight className="h-3.5 w-3.5 text-gray-700" />
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+        
         <div 
           className="relative h-40 sm:h-56 overflow-hidden group/image"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
           onClick={(e) => {
             e.preventDefault()
             e.stopPropagation()

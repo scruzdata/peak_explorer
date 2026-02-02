@@ -1230,20 +1230,20 @@ export function RoutesMapView({
       )}
 
       {/* Controles del mapa */}
-      <div className="absolute top-4 right-4 flex flex-col gap-2">
+      <div className="absolute top-4 right-4 flex flex-col gap-2 lg:gap-2">
         <button
           onClick={() => setMapStyle(mapStyle === 'outdoors-v12' ? 'satellite-streets-v12' : 'outdoors-v12')}
-          className="px-3 py-2 bg-white rounded-lg shadow-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          className="px-1 py-1.5 lg:px-3 lg:py-2 bg-white rounded-lg shadow-md text-xs lg:text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
           title="Cambiar estilo de mapa"
         >
           {mapStyle === 'outdoors-v12' ? 'Satélite' : 'Mapa'}
         </button>
         <button
           onClick={handleResetView}
-          className="px-3 py-2 bg-white rounded-lg shadow-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
+          className="px-1 py-1.5 lg:px-3 lg:py-2 bg-white rounded-lg shadow-md text-xs lg:text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-1.5 lg:gap-2"
           title="Resetear vista del mapa"
         >
-          <RotateCcw className="h-4 w-4" />
+          <RotateCcw className="h-3 w-3 lg:h-4 lg:w-4" />
           <span>Resetear</span>
         </button>
       </div>
