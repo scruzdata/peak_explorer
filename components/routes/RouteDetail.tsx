@@ -528,7 +528,10 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
                       {route.approachInfo && (
                         <div 
                           className="relative inline-block"
-                          onMouseEnter={() => setShowApproachInfo(true)}
+                          onMouseEnter={() => {
+                            calculateTooltipPosition(approachInfoButtonRef, 'approach')
+                            setShowApproachInfo(true)
+                          }}
                           onMouseLeave={() => setShowApproachInfo(false)}
                         >
                           <button
@@ -546,8 +549,10 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
                             <>
                               <div className="fixed inset-0 z-40 bg-black/20 sm:hidden" onClick={() => setShowApproachInfo(false)} />
                               <div 
-                                className="fixed z-50 mx-auto max-w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl sm:absolute sm:left-0 sm:right-auto sm:top-5 sm:mx-0 sm:w-64 sm:translate-y-0"
-                                style={typeof window !== 'undefined' && window.innerWidth < 640 && tooltipPositions.approach ? {
+                                className={`z-50 mx-auto max-w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl ${
+                                  tooltipPositions.approach ? 'fixed' : 'fixed sm:absolute sm:left-0 sm:right-auto sm:top-5 sm:mx-0 sm:w-64 sm:translate-y-0'
+                                }`}
+                                style={tooltipPositions.approach ? {
                                   top: `${tooltipPositions.approach.top}px`,
                                   left: `${tooltipPositions.approach.left}px`,
                                   transform: 'translateX(-50%)'
@@ -555,8 +560,10 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
                               >
                                 <p>{route.approachInfo}</p>
                                 <div 
-                                  className="absolute -top-1 w-2 h-2 rotate-45 bg-gray-900 sm:left-4 sm:translate-x-0"
-                                  style={typeof window !== 'undefined' && window.innerWidth < 640 && tooltipPositions.approach?.arrowLeft !== undefined ? {
+                                  className={`absolute -top-1 w-2 h-2 rotate-45 bg-gray-900 ${
+                                    !tooltipPositions.approach ? 'sm:left-4 sm:translate-x-0' : ''
+                                  }`}
+                                  style={tooltipPositions.approach?.arrowLeft !== undefined ? {
                                     left: `calc(50% + ${tooltipPositions.approach.arrowLeft}px)`,
                                     transform: 'translateX(-50%) rotate(45deg)'
                                   } : undefined}
@@ -575,7 +582,10 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
                       {route.returnInfo && (
                         <div 
                           className="relative inline-block"
-                          onMouseEnter={() => setShowReturnInfo(true)}
+                          onMouseEnter={() => {
+                            calculateTooltipPosition(returnInfoButtonRef, 'return')
+                            setShowReturnInfo(true)
+                          }}
                           onMouseLeave={() => setShowReturnInfo(false)}
                         >
                           <button
@@ -593,8 +603,10 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
                             <>
                               <div className="fixed inset-0 z-40 bg-black/20 sm:hidden" onClick={() => setShowReturnInfo(false)} />
                               <div 
-                                className="fixed z-50 mx-auto max-w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl sm:absolute sm:left-0 sm:right-auto sm:top-5 sm:mx-0 sm:w-64 sm:translate-y-0"
-                                style={typeof window !== 'undefined' && window.innerWidth < 640 && tooltipPositions.return ? {
+                                className={`z-50 mx-auto max-w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl ${
+                                  tooltipPositions.return ? 'fixed' : 'fixed sm:absolute sm:left-0 sm:right-auto sm:top-5 sm:mx-0 sm:w-64 sm:translate-y-0'
+                                }`}
+                                style={tooltipPositions.return ? {
                                   top: `${tooltipPositions.return.top}px`,
                                   left: `${tooltipPositions.return.left}px`,
                                   transform: 'translateX(-50%)'
@@ -602,8 +614,10 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
                               >
                                 <p>{route.returnInfo}</p>
                                 <div 
-                                  className="absolute -top-1 w-2 h-2 rotate-45 bg-gray-900 sm:left-4 sm:translate-x-0"
-                                  style={typeof window !== 'undefined' && window.innerWidth < 640 && tooltipPositions.return?.arrowLeft !== undefined ? {
+                                  className={`absolute -top-1 w-2 h-2 rotate-45 bg-gray-900 ${
+                                    !tooltipPositions.return ? 'sm:left-4 sm:translate-x-0' : ''
+                                  }`}
+                                  style={tooltipPositions.return?.arrowLeft !== undefined ? {
                                     left: `calc(50% + ${tooltipPositions.return.arrowLeft}px)`,
                                     transform: 'translateX(-50%) rotate(45deg)'
                                   } : undefined}
@@ -622,7 +636,10 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
                       {route.bestSeasonInfo && (
                         <div 
                           className="relative inline-block"
-                          onMouseEnter={() => setShowBestSeasonInfo(true)}
+                          onMouseEnter={() => {
+                            calculateTooltipPosition(bestSeasonInfoButtonRef, 'bestSeason')
+                            setShowBestSeasonInfo(true)
+                          }}
                           onMouseLeave={() => setShowBestSeasonInfo(false)}
                         >
                           <button
@@ -640,8 +657,10 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
                             <>
                               <div className="fixed inset-0 z-40 bg-black/20 sm:hidden" onClick={() => setShowBestSeasonInfo(false)} />
                               <div 
-                                className="fixed z-50 mx-auto max-w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl sm:absolute sm:left-0 sm:right-auto sm:top-5 sm:mx-0 sm:w-64 sm:translate-y-0"
-                                style={typeof window !== 'undefined' && window.innerWidth < 640 && tooltipPositions.bestSeason ? {
+                                className={`z-50 mx-auto max-w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl ${
+                                  tooltipPositions.bestSeason ? 'fixed' : 'fixed sm:absolute sm:left-0 sm:right-auto sm:top-5 sm:mx-0 sm:w-64 sm:translate-y-0'
+                                }`}
+                                style={tooltipPositions.bestSeason ? {
                                   top: `${tooltipPositions.bestSeason.top}px`,
                                   left: `${tooltipPositions.bestSeason.left}px`,
                                   transform: 'translateX(-50%)'
@@ -649,8 +668,10 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
                               >
                                 <p>{route.bestSeasonInfo}</p>
                                 <div 
-                                  className="absolute -top-1 w-2 h-2 rotate-45 bg-gray-900 sm:left-4 sm:translate-x-0"
-                                  style={typeof window !== 'undefined' && window.innerWidth < 640 && tooltipPositions.bestSeason?.arrowLeft !== undefined ? {
+                                  className={`absolute -top-1 w-2 h-2 rotate-45 bg-gray-900 ${
+                                    !tooltipPositions.bestSeason ? 'sm:left-4 sm:translate-x-0' : ''
+                                  }`}
+                                  style={tooltipPositions.bestSeason?.arrowLeft !== undefined ? {
                                     left: `calc(50% + ${tooltipPositions.bestSeason.arrowLeft}px)`,
                                     transform: 'translateX(-50%) rotate(45deg)'
                                   } : undefined}
@@ -669,7 +690,10 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
                       {route.orientationInfo && (
                         <div 
                           className="relative inline-block"
-                          onMouseEnter={() => setShowOrientationInfo(true)}
+                          onMouseEnter={() => {
+                            calculateTooltipPosition(orientationInfoButtonRef, 'orientation')
+                            setShowOrientationInfo(true)
+                          }}
                           onMouseLeave={() => setShowOrientationInfo(false)}
                         >
                           <button
@@ -687,8 +711,10 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
                             <>
                               <div className="fixed inset-0 z-40 bg-black/20 sm:hidden" onClick={() => setShowOrientationInfo(false)} />
                               <div 
-                                className="fixed z-50 mx-auto max-w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl sm:absolute sm:left-0 sm:right-auto sm:top-5 sm:mx-0 sm:w-64 sm:translate-y-0"
-                                style={typeof window !== 'undefined' && window.innerWidth < 640 && tooltipPositions.orientation ? {
+                                className={`z-50 mx-auto max-w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl ${
+                                  tooltipPositions.orientation ? 'fixed' : 'fixed sm:absolute sm:left-0 sm:right-auto sm:top-5 sm:mx-0 sm:w-64 sm:translate-y-0'
+                                }`}
+                                style={tooltipPositions.orientation ? {
                                   top: `${tooltipPositions.orientation.top}px`,
                                   left: `${tooltipPositions.orientation.left}px`,
                                   transform: 'translateX(-50%)'
@@ -696,8 +722,10 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
                               >
                                 <p>{route.orientationInfo}</p>
                                 <div 
-                                  className="absolute -top-1 w-2 h-2 rotate-45 bg-gray-900 sm:left-4 sm:translate-x-0"
-                                  style={typeof window !== 'undefined' && window.innerWidth < 640 && tooltipPositions.orientation?.arrowLeft !== undefined ? {
+                                  className={`absolute -top-1 w-2 h-2 rotate-45 bg-gray-900 ${
+                                    !tooltipPositions.orientation ? 'sm:left-4 sm:translate-x-0' : ''
+                                  }`}
+                                  style={tooltipPositions.orientation?.arrowLeft !== undefined ? {
                                     left: `calc(50% + ${tooltipPositions.orientation.arrowLeft}px)`,
                                     transform: 'translateX(-50%) rotate(45deg)'
                                   } : undefined}
@@ -717,7 +745,10 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
                         {route.foodInfo && (
                           <div 
                             className="relative inline-block"
-                            onMouseEnter={() => setShowFoodInfo(true)}
+                            onMouseEnter={() => {
+                              calculateTooltipPosition(foodInfoButtonRef, 'food')
+                              setShowFoodInfo(true)
+                            }}
                             onMouseLeave={() => setShowFoodInfo(false)}
                           >
                             <button
@@ -735,8 +766,10 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
                               <>
                                 <div className="fixed inset-0 z-40 bg-black/20 sm:hidden" onClick={() => setShowFoodInfo(false)} />
                                 <div 
-                                  className="fixed z-50 mx-auto max-w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl sm:absolute sm:left-0 sm:right-auto sm:top-5 sm:mx-0 sm:w-64 sm:translate-y-0"
-                                  style={typeof window !== 'undefined' && window.innerWidth < 640 && tooltipPositions.food ? {
+                                  className={`z-50 mx-auto max-w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl ${
+                                    tooltipPositions.food ? 'fixed' : 'fixed sm:absolute sm:left-0 sm:right-auto sm:top-5 sm:mx-0 sm:w-64 sm:translate-y-0'
+                                  }`}
+                                  style={tooltipPositions.food ? {
                                     top: `${tooltipPositions.food.top}px`,
                                     left: `${tooltipPositions.food.left}px`,
                                     transform: 'translateX(-50%)'
@@ -744,8 +777,10 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
                                 >
                                   <p>{route.foodInfo}</p>
                                   <div 
-                                    className="absolute -top-1 w-2 h-2 rotate-45 bg-gray-900 sm:left-4 sm:translate-x-0"
-                                    style={typeof window !== 'undefined' && window.innerWidth < 640 && tooltipPositions.food?.arrowLeft !== undefined ? {
+                                    className={`absolute -top-1 w-2 h-2 rotate-45 bg-gray-900 ${
+                                      !tooltipPositions.food ? 'sm:left-4 sm:translate-x-0' : ''
+                                    }`}
+                                    style={tooltipPositions.food?.arrowLeft !== undefined ? {
                                       left: `calc(50% + ${tooltipPositions.food.arrowLeft}px)`,
                                       transform: 'translateX(-50%) rotate(45deg)'
                                     } : undefined}

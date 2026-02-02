@@ -264,83 +264,103 @@ export function RouteWeather({ lat, lng, useIframe = false }: RouteWeatherProps)
   if (!weather) return null
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6">
-      <h3 className="mb-4 text-lg font-semibold">Meteorología</h3>
+    <div className="rounded-lg border border-gray-200 bg-white p-4 sm:p-6">
+      <h3 className="mb-4 text-base sm:text-lg font-semibold">Meteorología</h3>
       
       <div className="space-y-4">
         {/* Temperatura actual */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {getWeatherIcon(weather.current.icon, 'lg')}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 min-w-0">
+            {getWeatherIcon(weather.current.icon, 'md')}
             <div>
-              <div className="text-3xl font-bold text-gray-900">{weather.current.temp}°C</div>
-              <div className="text-sm text-gray-600 capitalize">{weather.current.description}</div>
+              <div className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">
+                {weather.current.temp}°C
+              </div>
+              <div className="text-[11px] sm:text-xs text-gray-600 capitalize line-clamp-2">
+                {weather.current.description}
+              </div>
             </div>
           </div>
-          <div className="text-right text-sm text-gray-500">
-            <div>Sensación térmica</div>
-            <div className="font-medium text-gray-700">{weather.current.feelsLike}°C</div>
+          <div className="text-left sm:text-right text-[11px] sm:text-xs text-gray-500">
+            <div className="leading-snug">Sensación térmica</div>
+            <div className="font-medium text-gray-700 text-xs sm:text-sm leading-snug">
+              {weather.current.feelsLike}°C
+            </div>
           </div>
         </div>
 
         {/* Detalles actuales */}
-        <div className="grid grid-cols-3 gap-3 border-t border-gray-100 pt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 border-t border-gray-100 pt-4">
           <div className="flex items-center gap-2">
             <Droplets className="h-4 w-4 text-blue-500" />
             <div>
-              <div className="text-xs text-gray-500">Humedad</div>
-              <div className="text-sm font-medium text-gray-900">{weather.current.humidity}%</div>
+              <div className="text-[11px] text-gray-500 leading-snug">Humedad</div>
+              <div className="text-xs sm:text-sm font-medium text-gray-900 leading-snug">
+                {weather.current.humidity}%
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Wind className="h-4 w-4 text-gray-500" />
             <div>
-              <div className="text-xs text-gray-500">Viento</div>
-              <div className="text-sm font-medium text-gray-900">{weather.current.windSpeed} km/h</div>
+              <div className="text-[11px] text-gray-500 leading-snug">Viento</div>
+              <div className="text-xs sm:text-sm font-medium text-gray-900 leading-snug">
+                {weather.current.windSpeed} km/h
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Thermometer className="h-4 w-4 text-red-500" />
             <div>
-              <div className="text-xs text-gray-500">Presión</div>
-              <div className="text-sm font-medium text-gray-900">{weather.current.pressure} hPa</div>
+              <div className="text-[11px] text-gray-500 leading-snug">Presión</div>
+              <div className="text-xs sm:text-sm font-medium text-gray-900 leading-snug">
+                {weather.current.pressure} hPa
+              </div>
             </div>
           </div>
         </div>
 
         {/* Pronóstico de 7 días */}
         <div className="border-t border-gray-100 pt-4">
-          <h4 className="mb-3 text-sm font-semibold text-gray-700">Pronóstico 7 días</h4>
-          <div className="space-y-2">
+          <h4 className="mb-3 text-xs sm:text-sm font-semibold text-gray-700">
+            Pronóstico 7 días
+          </h4>
+          <div className="space-y-1.5">
             {weather.forecast.map((day, index) => (
               <div
                 key={index}
-                className="flex items-center justify-between rounded-lg border border-gray-100 p-2 hover:bg-gray-50"
+                className="flex items-center gap-1 rounded-lg border border-gray-100 p-1.5 hover:bg-gray-50"
               >
-                <div className="flex items-center gap-3 flex-1">
-                  <div className="w-16 text-xs font-medium text-gray-600">
-                    {formatDate(day.date)}
-                  </div>
+                <div className="w-12 sm:w-13 text-[10px] font-medium text-gray-600 shrink-0">
+                  {formatDate(day.date)}
+                </div>
+                <div className="shrink-0">
                   {getWeatherIcon(day.icon, 'sm')}
-                  <div className="flex-1">
-                    <div className="text-xs text-gray-600 capitalize">{day.description}</div>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                      {day.precipitation > 0 && (
-                        <span className="flex items-center gap-1">
-                          <Droplets className="h-3 w-3" />
-                          {day.precipitation}mm
-                        </span>
-                      )}
-                      <span className="flex items-center gap-1">
-                        <Wind className="h-3 w-3" />
-                        {day.windSpeed} km/h
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] text-gray-600 capitalize truncate leading-tight">
+                    {day.description}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[10px] text-gray-500 mt-0.5">
+                    {day.precipitation > 0 && (
+                      <span className="flex items-center gap-0.5">
+                        <Droplets className="h-2.5 w-2.5" />
+                        {day.precipitation}mm
                       </span>
-                    </div>
+                    )}
+                    <span className="flex items-center gap-0.5">
+                      <Wind className="h-2.5 w-2.5" />
+                      {day.windSpeed} km/h
+                    </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-900">{day.maxTemp}°</span>
-                  <span className="text-sm text-gray-400">{day.minTemp}°</span>
+                <div className="flex items-center gap-1 text-[11px] shrink-0">
+                  <span className="font-medium text-gray-900">
+                    {day.maxTemp}°
+                  </span>
+                  <span className="text-gray-400">
+                    {day.minTemp}°
+                  </span>
                 </div>
               </div>
             ))}
