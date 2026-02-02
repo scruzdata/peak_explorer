@@ -105,7 +105,7 @@ export function AdminPanel() {
     // Verificar si es un ID de datos estáticos
     if (route.id.startsWith('route-') && /^route-\d+$/.test(route.id)) {
       alert('Esta ruta es de datos estáticos y no puede ser eliminada desde Firestore.\n\nSi quieres eliminarla, debes hacerlo desde el código fuente (lib/data.ts).')
-      console.warn('⚠️  Intento de eliminar ruta de datos estáticos:', id)
+      console.warn('⚠️  Intento de eliminar ruta de datos estáticos:', route.id)
       return
     }
     
