@@ -297,7 +297,7 @@ export function RouteList({ routes, type }: RouteListProps) {
   }, [viewMode, hasScrolledToBottom])
 
   return (
-    <div className={viewMode === 'both' ? 'w-full' : 'mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8'}>
+    <div className={`${viewMode === 'both' ? 'w-full' : 'mx-auto max-w-7xl px-4 pt-4 pb-12 sm:px-6 lg:px-8 lg:pt-6'} ${isMobile && viewMode === 'map' ? 'flex flex-col h-[calc(100vh-80px)]' : ''}`}>
       {/* Panel de filtros superpuesto en móvil */}
       {isMobile && showMobileFilters && (
         <div className="fixed inset-0 z-40 lg:hidden bg-black/40">
@@ -328,7 +328,7 @@ export function RouteList({ routes, type }: RouteListProps) {
         </div>
       )}
       {/* Search and Filters */}
-      <div className={`${viewMode === 'both' ? 'px-4 sm:px-6 lg:px-8 pt-4' : ''} mb-4`}>
+      <div className={`${viewMode === 'both' ? 'px-4 sm:px-6 lg:px-8 pt-2' : ''} ${isMobile && viewMode === 'map' ? 'flex-shrink-0' : ''} mb-4`}>
         <div className="flex flex-col lg:flex-row gap-3 items-start lg:items-end justify-between">
           <div className="flex flex-col lg:flex-row gap-3 items-start lg:items-end flex-1">
             {/* Search Bar */}
@@ -429,7 +429,7 @@ export function RouteList({ routes, type }: RouteListProps) {
       </div>
 
       {/* Results Count */}
-      <div className={`${viewMode === 'both' ? 'px-4 sm:px-6 lg:px-8' : ''} mb-6 text-sm text-gray-600`}>
+      <div className={`${viewMode === 'both' ? 'px-4 sm:px-6 lg:px-8' : ''} ${isMobile && viewMode === 'map' ? 'flex-shrink-0' : ''} mb-6 text-sm text-gray-600`}>
         {viewMode === 'both' ? (
           <>
             {filteredRoutes.length > 0 ? (
@@ -525,7 +525,9 @@ export function RouteList({ routes, type }: RouteListProps) {
         <>
           {/* Map View Only */}
           {viewMode === 'map' && (
-            <RoutesMapView routes={filteredRoutes} type={type} zoomToRouteRef={zoomToRouteRef} />
+            <div className={isMobile ? 'flex-1 min-h-0' : ''}>
+              <RoutesMapView routes={filteredRoutes} type={type} zoomToRouteRef={zoomToRouteRef} fullHeight={isMobile} />
+            </div>
           )}
           {/* Grid View Only */}
           {viewMode === 'grid' && (
