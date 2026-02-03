@@ -17,6 +17,7 @@ import {
   FaFaucet,              // Fuente - fuente de beber agua (Font Awesome)
   FaLeaf,                // Árbol (Font Awesome - alternativa)
   FaTint,                // Laguna/Lago (Font Awesome - gota de agua)
+  FaWater,                // Cascada (Font Awesome - gota de agua)
   FaHome                 // Refugio/Albergue/Casa (Font Awesome)
 } from 'react-icons/fa'
 import { RouteElevationProfile } from './RouteElevationProfile'
@@ -68,6 +69,8 @@ function getWaypointIconComponent(type?: WaypointType | string) {
     case 'pass':
     case 'collet':
       return Mountain
+    case 'cascada':
+      return FaWater
     case 'unknown':
     default:
       return GiHelp

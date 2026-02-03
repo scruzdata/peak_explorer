@@ -9,7 +9,7 @@ function detectWaypointType(name?: string, description?: string): WaypointType {
   const text = `${name || ''} ${description || ''}`.toLowerCase()
   
   // Mirador
-  if (/\b(mirador|viewpoint|viewpoint|miradouro|belvedere)\b/i.test(text)) {
+  if (/\b(mirador|viewpoint|viewpoint|miradouro|belvedere|vista|vistas)\b/i.test(text)) {
     return 'mirador'
   }
   
@@ -24,7 +24,7 @@ function detectWaypointType(name?: string, description?: string): WaypointType {
   }
   
   // Enlace
-  if (/\b(enlace|link|gr[0-9]+|sendero|trail|path)\b/i.test(text)) {
+  if (/\b(enlace|link|gr[0-9]+|sendero|trail|path|camino|paso|canal)\b/i.test(text)) {
     return 'enlace'
   }
   
@@ -49,13 +49,17 @@ function detectWaypointType(name?: string, description?: string): WaypointType {
   }
   
   // Refugio/Albergue/Casa
-  if (/\b(refugio|albergue|casa|refuge|shelter|hut|cabana|cabaña|hutte|bivouac|bivac|hostal|hostel|alberg|gîte)\b/i.test(text)) {
+  if (/\b(refugio|albergue|casa|refuge|camping|shelter|hut|cabana|cabaña|hutte|bivouac|bivac|hostal|hostel|alberg|gîte)\b/i.test(text)) {
     return 'refugio'
   }
   
   // Pico/Montaña/Collado
-  if (/\b(pico|peak|summit|cima|montaña|montana|mountain|monte|collado|col|pass|collet|port|portillo|portella|brecha|breche|garganta|gorge)\b/i.test(text)) {
+  if (/\b(pico|peak|summit|cima|montaña|montana|mountain|jou|monte|collado|col|peña|pass|collet|port|portillo|portella|brecha|breche|garganta|gorge)\b/i.test(text)) {
     return 'pico'
+  }
+  
+  if (/\b(cascada|cascadas)\b/i.test(text)) {
+    return 'cascada'
   }
   
   // Por defecto, unknown
