@@ -194,6 +194,7 @@ export function AdminPanel() {
       parking: routeData.parking || [],
       restaurants: routeData.restaurants || [],
       track: routeData.track,
+      waypoints: routeData.waypoints || [],
       heroImage: routeData.heroImage || {
         url: '',
         alt: '',
