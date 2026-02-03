@@ -13,6 +13,16 @@ export default async function BlogPage() {
   // Obtener solo blogs publicados
   const blogs = await getAllBlogsFromFirestore(false)
 
+  // Ordenar por fecha de publicación (publishedAt) de más reciente a menos
+  // publishedAt viene como string ISO desde firestoreToBlogPost
+  const sortedBlogs = [...blogs].sort((a, b) => {
+    const aDateStr = a.publishedAt || a.createdAt
+    const bDateStr = b.publishedAt || b.createdAt
+    const aTime = aDateStr ? new Date(aDateStr).getTime() : 0
+    const bTime = bDateStr ? new Date(bDateStr).getTime() : 0
+    return bTime - aTime // Más reciente primero
+  })
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
@@ -43,14 +53,14 @@ export default async function BlogPage() {
 
       {/* Blog List */}
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        {blogs.length === 0 ? (
+        {sortedBlogs.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-600 text-lg">Aún no hay artículos publicados.</p>
             <p className="text-gray-500 mt-2">Vuelve pronto para descubrir contenido sobre montaña.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {blogs.map((blog) => (
+            {sortedBlogs.map((blog) => (
               <BlogCard key={blog.id} blog={blog} />
             ))}
           </div>

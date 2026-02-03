@@ -16,10 +16,17 @@ export default async function ViasFerratasPage() {
   // Obtener rutas desde Firestore (solo datos estáticos si Firestore no está configurado)
   const allFerratas = await getFerratasAsync()
   
+  // Ordenar rutas por createdAt (más recientes primero)
+  const sortedRoutes = [...allFerratas].sort((a, b) => {
+    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0
+    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0
+    return bTime - aTime // Más reciente primero
+  })
+  
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Routes List */}
-      <RouteList routes={allFerratas} type="ferrata" />
+      <RouteList routes={sortedRoutes} type="ferrata" />
     </div>
   )
 }

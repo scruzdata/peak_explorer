@@ -64,9 +64,21 @@ export default async function HomePage() {
     getAllBlogsLazy(), // Lazy loading de Firebase
   ])
   
-  // Obtener rutas destacadas (primeras 3 de cada tipo)
-  const featuredTrekking = allTrekkingRoutes.slice(0, 3)
-  const featuredFerratas = allFerratas.slice(0, 2)
+  // Ordenar rutas por createdAt (más recientes primero) y obtener destacadas
+  const sortedTrekking = [...allTrekkingRoutes].sort((a, b) => {
+    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0
+    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0
+    return bTime - aTime // Más reciente primero
+  })
+  const sortedFerratas = [...allFerratas].sort((a, b) => {
+    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0
+    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0
+    return bTime - aTime // Más reciente primero
+  })
+  
+  // Obtener rutas destacadas (primeras 3 de trekking, primeras 2 de ferratas)
+  const featuredTrekking = sortedTrekking.slice(0, 3)
+  const featuredFerratas = sortedFerratas.slice(0, 2)
   
   // Obtener blogs recientes (primeros 3)
   const recentBlogs = allBlogs.slice(0, 3)

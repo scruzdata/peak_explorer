@@ -233,9 +233,9 @@ export function AdminPanel() {
     return Array.from(difficulties).sort()
   }, [routes])
 
-  // Filtrar rutas según los filtros seleccionados
+  // Filtrar y ordenar rutas según los filtros seleccionados
   const filteredRoutes = useMemo(() => {
-    return routes.filter((route: Route) => {
+    const filtered = routes.filter((route: Route) => {
       // Filtro por tipo
       if (filterType !== 'all' && route.type !== filterType) {
         return false
@@ -262,6 +262,13 @@ export function AdminPanel() {
       }
 
       return true
+    })
+    
+    // Ordenar por createdAt (más recientes primero)
+    return filtered.sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0
+      return bTime - aTime // Más reciente primero
     })
   }, [routes, filterType, filterRegion, filterDifficulty, searchText])
 
@@ -500,22 +507,25 @@ export function AdminPanel() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     ID Firebase
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     Título
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     Tipo
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     Dificultad
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     Región
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Fecha Creación
+                  </th>
+                  <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
                     Acciones
                   </th>
                 </tr>
@@ -523,14 +533,18 @@ export function AdminPanel() {
               <tbody className="divide-y divide-gray-200 bg-white">
                 {filteredRoutes.map((route: Route) => (
                   <tr key={route.slug || route.id} className="hover:bg-gray-50">
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <div className="text-xs font-mono text-gray-600">{route.id}</div>
+                    <td className="whitespace-nowrap px-3 py-2">
+                      <div className="text-xs font-mono text-gray-600 truncate max-w-[150px]" title={route.id}>
+                        {route.id}
+                      </div>
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{route.title}</div>
+                    <td className="whitespace-nowrap px-3 py-2">
+                      <div className="text-xs font-medium text-gray-900 truncate max-w-[200px]" title={route.title}>
+                        {route.title}
+                      </div>
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
+                    <td className="whitespace-nowrap px-3 py-2">
+                      <span className={`inline-flex rounded-full px-1.5 py-0.5 text-xs font-semibold leading-4 ${
                         route.type === 'ferrata' 
                           ? 'bg-red-100 text-red-800' 
                           : 'bg-primary-100 text-primary-800'
@@ -538,21 +552,32 @@ export function AdminPanel() {
                         {route.type === 'trekking' ? 'Trekking' : 'Ferrata'}
                       </span>
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+                    <td className="whitespace-nowrap px-3 py-2 text-xs text-gray-500">
                       {route.difficulty}
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+                    <td className="whitespace-nowrap px-3 py-2 text-xs text-gray-500">
                       {route.location.region}
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-                      <div className="flex items-center justify-end space-x-2">
+                    <td className="whitespace-nowrap px-3 py-2 text-xs text-gray-500">
+                      {route.createdAt
+                        ? new Date(route.createdAt).toLocaleDateString('es-ES', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })
+                        : '-'}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-medium">
+                      <div className="flex items-center justify-end space-x-1">
                         <Link
                           href={`/rutas/${route.slug}`}
                           className="text-primary-600 hover:text-primary-900"
                           title="Ver"
                           target="_blank"
                         >
-                          <Eye className="h-5 w-5" />
+                          <Eye className="h-4 w-4" />
                         </Link>
                         <button
                           onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
@@ -565,7 +590,7 @@ export function AdminPanel() {
                           title="Editar"
                           type="button"
                         >
-                          <Edit className="h-5 w-5" />
+                          <Edit className="h-4 w-4" />
                         </button>
                         <button
                           onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
@@ -580,9 +605,9 @@ export function AdminPanel() {
                           type="button"
                         >
                           {deletingId === route.id ? (
-                            <Loader2 className="h-5 w-5 animate-spin" />
+                            <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
-                            <Trash2 className="h-5 w-5" />
+                            <Trash2 className="h-4 w-4" />
                           )}
                         </button>
                       </div>

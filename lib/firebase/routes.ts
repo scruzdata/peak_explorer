@@ -20,6 +20,30 @@ import { generateSlug } from '@/lib/utils'
 const ROUTES_COLLECTION = 'routes'
 
 /**
+ * Convierte un timestamp de Firestore (Timestamp o objeto con seconds/nanoseconds) a string ISO
+ */
+function convertFirestoreTimestamp(timestamp: any): string | undefined {
+  if (!timestamp) return undefined
+  
+  // Si es un Timestamp de Firestore con método toDate()
+  if (typeof timestamp.toDate === 'function') {
+    return timestamp.toDate().toISOString()
+  }
+  
+  // Si es un objeto con seconds y nanoseconds
+  if (typeof timestamp === 'object' && typeof timestamp.seconds === 'number') {
+    return new Date(timestamp.seconds * 1000).toISOString()
+  }
+  
+  // Si ya es un string ISO
+  if (typeof timestamp === 'string') {
+    return timestamp
+  }
+  
+  return undefined
+}
+
+/**
  * Convierte un documento de Firestore a Route
  */
 function firestoreToRoute(docData: any, id: string): Route {
@@ -28,8 +52,8 @@ function firestoreToRoute(docData: any, id: string): Route {
     id,
     slug: data.slug || generateSlug(data.title),
     ...data,
-    createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
-    updatedAt: data.updatedAt?.toDate?.()?.toISOString() || data.updatedAt,
+    createdAt: convertFirestoreTimestamp(data.createdAt) || new Date().toISOString(),
+    updatedAt: convertFirestoreTimestamp(data.updatedAt) || new Date().toISOString(),
   } as Route
 }
 

@@ -22,18 +22,37 @@ const BLOGS_COLLECTION = 'blogs'
 /**
  * Convierte un documento de Firestore a BlogPost
  */
+/**
+ * Convierte un timestamp de Firestore (Timestamp o objeto con seconds/nanoseconds) a string ISO
+ */
+function convertFirestoreTimestamp(timestamp: any): string | undefined {
+  if (!timestamp) return undefined
+  
+  // Si es un Timestamp de Firestore con método toDate()
+  if (typeof timestamp.toDate === 'function') {
+    return timestamp.toDate().toISOString()
+  }
+  
+  // Si es un objeto con seconds y nanoseconds
+  if (typeof timestamp === 'object' && typeof timestamp.seconds === 'number') {
+    return new Date(timestamp.seconds * 1000).toISOString()
+  }
+  
+  // Si ya es un string ISO
+  if (typeof timestamp === 'string') {
+    return timestamp
+  }
+  
+  return undefined
+}
+
 function firestoreToBlogPost(docData: any, id: string): BlogPost {
   const data = docData.data()
   
   // Convertir timestamps de Firestore a strings ISO
-  const createdAt = data.createdAt?.toDate?.()?.toISOString() || 
-                    (typeof data.createdAt === 'string' ? data.createdAt : new Date().toISOString())
-  const updatedAt = data.updatedAt?.toDate?.()?.toISOString() || 
-                    (typeof data.updatedAt === 'string' ? data.updatedAt : new Date().toISOString())
-  const publishedAt = data.publishedAt?.toDate?.()?.toISOString() || 
-                      (typeof data.publishedAt === 'string' ? data.publishedAt : undefined)
-  
-  // Asegurar que todos los campos requeridos estén presentes
+  const createdAt = convertFirestoreTimestamp(data.createdAt) || new Date().toISOString()
+  const updatedAt = convertFirestoreTimestamp(data.updatedAt) || new Date().toISOString()
+  const publishedAt = convertFirestoreTimestamp(data.publishedAt)
   const blogPost: BlogPost = {
     id,
     slug: data.slug || generateSlug(data.title || 'sin-titulo'),
@@ -175,7 +194,7 @@ export async function getAllBlogsFromFirestore(includeDrafts = false): Promise<B
       if (!includeDrafts) {
         // Para blogs publicados, intentar ordenar por publishedAt
         try {
-          const q = query(blogsRef, ...constraints, orderBy('publishedAt', 'desc'))
+          const q = query(blogsRef, ...constraints, orderBy('publishedAt.seconds', 'desc'))
           querySnapshot = await getDocs(q)
         } catch (orderError: any) {
           // Si falla por falta de índice compuesto, intentar sin ordenar o por createdAt
@@ -315,7 +334,7 @@ export async function getRecentBlogsFromFirestore(
       const q = query(
         blogsRef,
         where('status', '==', 'published'),
-        orderBy('publishedAt', 'desc')
+        orderBy('publishedAt.seconds', 'desc')
       )
       querySnapshot = await getDocs(q)
     } catch (orderError: any) {
