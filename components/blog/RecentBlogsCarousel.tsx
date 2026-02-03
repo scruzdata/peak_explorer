@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ArrowRight, Hand } from 'lucide-react'
 import { BlogPost } from '@/types'
 import { BlogCard } from './BlogCard'
 
@@ -97,13 +97,23 @@ export function RecentBlogsCarousel({ blogs, title = 'Artículos Recientes' }: R
           </Link>
         </div>
 
+        {/* Indicador de deslizamiento para móvil */}
+        <div className="mb-4 flex items-center justify-center gap-2 text-sm text-gray-500 sm:hidden">
+          <Hand className="h-4 w-4 animate-pulse" />
+          <span>Desliza para ver más</span>
+          <div className="flex gap-1 items-center">
+            <ChevronLeft className="h-4 w-4 animate-slide-horizontal" />
+            <ChevronRight className="h-4 w-4 animate-slide-horizontal" style={{ animationDelay: '0.3s' }} />
+          </div>
+        </div>
+
         {/* Carrusel */}
-        <div className="relative flex items-center gap-4">
+        <div className="relative flex items-center gap-2 sm:gap-4">
           {/* Botón izquierdo */}
           <button
             onClick={scrollLeft}
             disabled={!canScrollLeft}
-            className="flex-shrink-0 rounded-full bg-white p-3 shadow-lg border border-gray-200 transition-all hover:bg-gray-50 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 z-10"
+            className="hidden sm:flex flex-shrink-0 rounded-full bg-white p-3 shadow-lg border border-gray-200 transition-all hover:bg-gray-50 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 z-10"
             aria-label="Desplazar izquierda"
           >
             <ChevronLeft className="h-6 w-6 text-gray-700" />
@@ -112,12 +122,12 @@ export function RecentBlogsCarousel({ blogs, title = 'Artículos Recientes' }: R
           {/* Contenedor del carrusel */}
           <div
             ref={scrollContainerRef}
-            className="flex-1 flex gap-8 overflow-x-auto scrollbar-hide scroll-smooth pb-4"
+            className="flex-1 flex gap-4 sm:gap-6 overflow-x-auto scrollbar-hide scroll-smooth pb-4 px-2 sm:px-0"
           >
             {blogs.map((blog) => (
               <div
                 key={blog.id}
-                className="flex-shrink-0 w-full sm:w-80 lg:w-96"
+                className="flex-shrink-0 w-[280px] sm:w-80 lg:w-96"
               >
                 <BlogCard blog={blog} />
               </div>
@@ -128,7 +138,7 @@ export function RecentBlogsCarousel({ blogs, title = 'Artículos Recientes' }: R
           <button
             onClick={scrollRight}
             disabled={!canScrollRight}
-            className="flex-shrink-0 rounded-full bg-white p-3 shadow-lg border border-gray-200 transition-all hover:bg-gray-50 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 z-10"
+            className="hidden sm:flex flex-shrink-0 rounded-full bg-white p-3 shadow-lg border border-gray-200 transition-all hover:bg-gray-50 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 z-10"
             aria-label="Desplazar derecha"
           >
             <ChevronRight className="h-6 w-6 text-gray-700" />

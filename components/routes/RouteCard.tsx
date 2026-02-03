@@ -340,17 +340,20 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
           </button>
         </div>
 
-        <div 
-          className="space-y-1"
-          onClick={(e) => {
-            // Prevenir que el click se propague cuando hay onClick personalizado
-            e.preventDefault()
-            e.stopPropagation()
-          }}
-        >
-          <h3 className="text-sm font-semibold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-1">
-            {route.title}
-          </h3>
+        <div className="space-y-1">
+          <Link 
+            href={`/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => {
+              e.stopPropagation()
+            }}
+            className="block"
+          >
+            <h3 className="text-sm font-semibold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-1 cursor-pointer hover:underline">
+              {route.title}
+            </h3>
+          </Link>
           <p className="text-xs text-gray-500 line-clamp-1">
             {route.location.region}, {route.location.province}
           </p>
@@ -511,37 +514,36 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
             </div>
           </div>
 
-          <Link 
-            href={`/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            onClick={(e) => {
-              e.stopPropagation()
-            }}
-          >
-            <div className="space-y-1">
-              <h3 className="text-sm font-semibold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-1">
+          <div className="space-y-1">
+            <Link 
+              href={`/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`}
+              onClick={(e) => {
+                e.stopPropagation()
+              }}
+              className="block"
+            >
+              <h3 className="text-sm font-semibold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-1 cursor-pointer hover:underline">
                 {route.title}
               </h3>
-              <p className="text-xs text-gray-500 line-clamp-1">
-                {route.location.region}, {route.location.province}
-              </p>
-              <div className="flex items-center gap-3 text-xs text-gray-600 pt-1">
-                <div className="flex items-center gap-1">
-                  <MapPin className="h-3 w-3" />
-                  <span>{formatDistance(route.distance)}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <TrendingUp className="h-3 w-3" />
-                  <span>{formatElevation(route.elevation)}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  <span>{route.duration}</span>
-                </div>
+            </Link>
+            <p className="text-xs text-gray-500 line-clamp-1">
+              {route.location.region}, {route.location.province}
+            </p>
+            <div className="flex items-center gap-3 text-xs text-gray-600 pt-1">
+              <div className="flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                <span>{formatDistance(route.distance)}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <TrendingUp className="h-3 w-3" />
+                <span>{formatElevation(route.elevation)}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                <span>{route.duration}</span>
               </div>
             </div>
-          </Link>
+          </div>
       </motion.div>
     )
   }
@@ -700,43 +702,44 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
           </div>
         </div>
 
-        <Link 
-          href={`/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`} 
-          target="_blank" 
-          rel="noopener noreferrer"
-          onClick={(e) => {
-            e.stopPropagation()
-          }}
-        >
-          <div className="p-4">
-            <h3 className="mb-1.5 text-lg font-bold text-gray-900 group-hover:text-primary-600 transition-colors">
+        <div className="p-4">
+          <Link 
+            href={`/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => {
+              e.stopPropagation()
+            }}
+            className="block"
+          >
+            <h3 className="mb-1.5 text-lg font-bold text-gray-900 group-hover:text-primary-600 transition-colors cursor-pointer hover:underline">
               {route.title}
             </h3>
-            <p className="mb-3 line-clamp-2 text-sm text-gray-600">
-              {route.summary}
-            </p>
+          </Link>
+          <p className="mb-3 line-clamp-2 text-sm text-gray-600">
+            {route.summary}
+          </p>
 
-            <div className="flex flex-wrap gap-3 text-xs text-gray-600">
-              <div className="flex items-center">
-                <MapPin className="mr-1 h-3.5 w-3.5" />
-                {formatDistance(route.distance)}
-              </div>
-              <div className="flex items-center">
-                <TrendingUp className="mr-1 h-3.5 w-3.5" />
-                {formatElevation(route.elevation)}
-              </div>
-              <div className="flex items-center">
-                <Clock className="mr-1 h-3.5 w-3.5" />
-                {route.duration}
-              </div>
-            </div>
-
-            <div className="mt-3 flex items-center text-xs text-gray-500">
+          <div className="flex flex-wrap gap-3 text-xs text-gray-600">
+            <div className="flex items-center">
               <MapPin className="mr-1 h-3.5 w-3.5" />
-              {route.location.region}, {route.location.province}
+              {formatDistance(route.distance)}
+            </div>
+            <div className="flex items-center">
+              <TrendingUp className="mr-1 h-3.5 w-3.5" />
+              {formatElevation(route.elevation)}
+            </div>
+            <div className="flex items-center">
+              <Clock className="mr-1 h-3.5 w-3.5" />
+              {route.duration}
             </div>
           </div>
-        </Link>
+
+          <div className="mt-3 flex items-center text-xs text-gray-500">
+            <MapPin className="mr-1 h-3.5 w-3.5" />
+            {route.location.region}, {route.location.province}
+          </div>
+        </div>
     </motion.div>
   )
 }
