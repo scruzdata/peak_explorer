@@ -627,9 +627,26 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
     setUploadProgress(0)
     try {
       // Generar el nombre de la carpeta: usar slug si existe, o generar uno del título
-      const routeFolderName = route?.slug || route?.id || (formData.title?.trim() ? generateSlug(formData.title.trim()) : undefined)
+      // Si la ruta es temporal (temp-gpx-...), no usar su ID, sino generar slug del título
+      const isTempRoute = route?.id?.startsWith('temp-gpx-')
+      let routeFolderName: string | undefined
+      
+      if (route?.slug) {
+        // Si hay slug, usarlo (ruta ya guardada)
+        routeFolderName = route.slug
+      } else if (isTempRoute && formData.title?.trim()) {
+        // Si es ruta temporal, generar slug del título
+        routeFolderName = generateSlug(formData.title.trim())
+      } else if (route?.id && !isTempRoute) {
+        // Si no es temporal y tiene ID, usar el ID
+        routeFolderName = route.id
+      } else if (formData.title?.trim()) {
+        // Como último recurso, generar slug del título
+        routeFolderName = generateSlug(formData.title.trim())
+      }
+      
       if (!routeFolderName) {
-        throw new Error('No se pudo determinar la carpeta de la ruta para subir la imagen')
+        throw new Error('No se pudo determinar la carpeta de la ruta para subir la imagen. Por favor, asegúrate de que la ruta tenga un título.')
       }
 
       // Subir versiones optimizadas en función del tipo de ruta

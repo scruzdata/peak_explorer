@@ -47,7 +47,7 @@ export interface WebcamData {
   html?: string // Código HTML opcional para renderizar directamente (ej: enlaces con imágenes embebidas)
 }
 
-export type WaypointType = 'mirador' | 'puente' | 'fuente' | 'enlace' | 'iglesia' | 'hermita' | 'arbol' | 'laguna' | 'lago' | 'refugio' | 'albergue' | 'casa' | 'pico' | 'montaña' | 'collado' | 'unknown'
+export type WaypointType = 'mirador' | 'puente' | 'fuente' | 'enlace' | 'iglesia' | 'hermita' | 'arbol' | 'laguna' | 'lago' | 'refugio' | 'albergue' | 'casa' | 'pico' | 'montaña' | 'collado' | 'cascada' | 'unknown'
 
 export interface Waypoint {
   lat: number
