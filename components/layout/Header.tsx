@@ -33,6 +33,11 @@ export function Header() {
             <Link
               key={item.href}
               href={item.href}
+              // OPTIMIZACIÓN DE PERFORMANCE:
+              // Desactivar el prefetch automático de Next.js para que SOLO la landing (`/`)
+              // se cargue de forma eager. El resto de rutas se cargan on‑demand al hacer click,
+              // evitando descargar JavaScript de páginas no visitadas en el primer paint.
+              prefetch={false}
               className={cn(
                 'text-sm font-medium transition-colors hover:text-primary-600',
                 // Optimización accesibilidad: text-primary-700 mejora contraste sobre fondo blanco (ratio >4.5:1)
@@ -50,6 +55,7 @@ export function Header() {
             <>
               <Link
                 href="/mis-rutas"
+                prefetch={false}
                 className="flex items-center space-x-1 text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
               >
                 <Bookmark className="h-4 w-4" />
@@ -57,6 +63,7 @@ export function Header() {
               </Link>
               <Link
                 href="/perfil"
+                prefetch={false}
                 className="flex items-center space-x-1 text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
               >
                 <Trophy className="h-4 w-4" />
@@ -65,6 +72,7 @@ export function Header() {
               {user.role === 'admin' && (
                 <Link
                   href="/admin"
+                  prefetch={false}
                   // Optimización accesibilidad: text-primary-700 mejora contraste sobre fondo blanco
                   className="text-sm font-medium text-primary-700 hover:text-primary-800"
                 >
@@ -99,6 +107,7 @@ export function Header() {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 onClick={() => setMobileMenuOpen(false)}
                 className={cn(
                   'block text-center text-base font-medium transition-colors',
@@ -113,6 +122,7 @@ export function Header() {
               <div className="pt-4 border-t border-gray-200 space-y-3">
                 <Link
                   href="/mis-rutas"
+                  prefetch={false}
                   onClick={() => setMobileMenuOpen(false)}
                   className="block text-center text-base font-medium text-gray-700 hover:text-primary-600"
                 >
@@ -120,6 +130,7 @@ export function Header() {
                 </Link>
                 <Link
                   href="/perfil"
+                  prefetch={false}
                   onClick={() => setMobileMenuOpen(false)}
                   className="block text-center text-base font-medium text-gray-700 hover:text-primary-600"
                 >
@@ -128,6 +139,7 @@ export function Header() {
                 {user.role === 'admin' && (
                   <Link
                     href="/admin"
+                    prefetch={false}
                     onClick={() => setMobileMenuOpen(false)}
                     // Optimización accesibilidad: text-primary-700 mejora contraste sobre fondo blanco
                     className="block text-center text-base font-medium text-primary-700"
