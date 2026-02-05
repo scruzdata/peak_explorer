@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { Route } from '@/types'
 import dynamic from 'next/dynamic'
 import { Car, RotateCcw, Play, Pause, Square, Download, Eye, EyeOff, Menu, X, Maximize2, Minimize2, UtensilsCrossed, Search, ExternalLink, MapPin, Mountain } from 'lucide-react'
@@ -413,6 +413,43 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
   }, [onMapHoverTrackIndex])
 
   /**
+   * Maneja el clic en el mapa para cerrar popups
+   */
+  const handleMapClick = useCallback((e: any) => {
+    // Si el clic fue en un waypoint, marker o popup, no hacer nada
+    // (el evento ya fue manejado por el componente correspondiente)
+    const target = e.originalEvent?.target || e.target
+    if (target) {
+      // Verificar si el clic fue en un marker, popup o elemento relacionado
+      const isMarker = target.closest?.('.mapboxgl-marker') || 
+                      target.closest?.('.waypoint-marker') ||
+                      target.closest?.('.mapboxgl-popup') ||
+                      target.closest?.('.parking-marker') ||
+                      target.closest?.('.restaurant-marker') ||
+                      target.classList?.contains('mapboxgl-marker') ||
+                      target.classList?.contains('waypoint-marker') ||
+                      target.classList?.contains('mapboxgl-popup') ||
+                      target.classList?.contains('parking-marker') ||
+                      target.classList?.contains('restaurant-marker')
+      
+      if (isMarker) {
+        return // No cerrar si el clic fue en un marker o popup
+      }
+    }
+    
+    // Cerrar los popups si están abiertos
+    if (selectedWaypoint !== null) {
+      setSelectedWaypoint(null)
+    }
+    if (selectedParking !== null) {
+      setSelectedParking(null)
+    }
+    if (selectedRestaurant !== null) {
+      setSelectedRestaurant(null)
+    }
+  }, [selectedWaypoint, setSelectedWaypoint, selectedParking, setSelectedParking, selectedRestaurant, setSelectedRestaurant])
+
+  /**
    * Alterna entre estilos de mapa satélite y outdoors
    */
   const toggleMapStyle = useCallback(() => {
@@ -706,6 +743,7 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
         }}
         onMouseMove={handleMapMouseMove}
         onMouseLeave={handleMapMouseLeave}
+        onClick={handleMapClick}
         // Cuando el usuario empieza a mover el mapa, activamos el modo interactivo
         onMoveStart={() => setIsInteractive(true)}
         style={{ width: '100%', height: '100%', pointerEvents: isFullscreen || isInteractive ? 'auto' : 'none' }}
@@ -816,7 +854,10 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
           >
             <div
               className="cursor-pointer"
-              onClick={() => setSelectedParking(selectedParking === index ? null : index)}
+              onClick={(e: React.MouseEvent) => {
+                e.stopPropagation()
+                setSelectedParking(selectedParking === index ? null : index)
+              }}
             >
               <div className="relative">
                 {/* Forma de gota/pin clásica */}
@@ -859,7 +900,7 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
                 latitude={parking.lat}
                 anchor="bottom"
                 onClose={() => setSelectedParking(null)}
-                closeButton={true}
+                closeButton={false}
                 closeOnClick={false}
                 className="parking-popup"
               >
@@ -900,7 +941,10 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
           >
             <div
               className="cursor-pointer"
-              onClick={() => setSelectedRestaurant(selectedRestaurant === index ? null : index)}
+              onClick={(e: React.MouseEvent) => {
+                e.stopPropagation()
+                setSelectedRestaurant(selectedRestaurant === index ? null : index)
+              }}
             >
               <div className="relative">
                 {/* Forma de gota/pin clásica */}
@@ -943,7 +987,7 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
                 latitude={restaurant.lat}
                 anchor="bottom"
                 onClose={() => setSelectedRestaurant(null)}
-                closeButton={true}
+                closeButton={false}
                 closeOnClick={false}
                 className="restaurant-popup"
               >
@@ -987,7 +1031,10 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
             >
               <div
                 className="cursor-pointer"
-                onClick={() => setSelectedWaypoint(selectedWaypoint === index ? null : index)}
+                onClick={(e: React.MouseEvent) => {
+                  e.stopPropagation()
+                  setSelectedWaypoint(selectedWaypoint === index ? null : index)
+                }}
               >
                 <div className="relative">
                   {/* Forma de gota de agua más pequeña y color amarillento oscuro */}
@@ -1032,7 +1079,7 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
                   latitude={waypoint.lat}
                   anchor="bottom"
                   onClose={() => setSelectedWaypoint(null)}
-                  closeButton={true}
+                  closeButton={false}
                   closeOnClick={false}
                   className="waypoint-popup"
                 >
@@ -1258,6 +1305,7 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
                 onMove={onMove}
                 onMouseMove={handleMapMouseMove}
                 onMouseLeave={handleMapMouseLeave}
+                onClick={handleMapClick}
                 style={{ width: '100%', height: '100%' }}
                 mapStyle={`mapbox://styles/mapbox/${mapStyle}`}
                 mapboxAccessToken={mapboxToken}
@@ -1361,7 +1409,10 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
                   >
                     <div
                       className="cursor-pointer"
-                      onClick={() => setSelectedParking(selectedParking === index ? null : index)}
+                      onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation()
+                        setSelectedParking(selectedParking === index ? null : index)
+                      }}
                     >
                       <div className="relative">
                         <div 
@@ -1401,7 +1452,7 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
                         latitude={parking.lat}
                         anchor="bottom"
                         onClose={() => setSelectedParking(null)}
-                        closeButton={true}
+                        closeButton={false}
                         closeOnClick={false}
                         className="parking-popup"
                       >
@@ -1442,7 +1493,10 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
                   >
                     <div
                       className="cursor-pointer"
-                      onClick={() => setSelectedRestaurant(selectedRestaurant === index ? null : index)}
+                      onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation()
+                        setSelectedRestaurant(selectedRestaurant === index ? null : index)
+                      }}
                     >
                       <div className="relative">
                         <div 
@@ -1482,7 +1536,7 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
                         latitude={restaurant.lat}
                         anchor="bottom"
                         onClose={() => setSelectedRestaurant(null)}
-                        closeButton={true}
+                        closeButton={false}
                         closeOnClick={false}
                         className="restaurant-popup"
                       >
@@ -1526,7 +1580,10 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
                     >
                       <div
                         className="cursor-pointer"
-                        onClick={() => setSelectedWaypoint(selectedWaypoint === index ? null : index)}
+                        onClick={(e: React.MouseEvent) => {
+                          e.stopPropagation()
+                          setSelectedWaypoint(selectedWaypoint === index ? null : index)
+                        }}
                       >
                         <div className="relative">
                           {/* Forma de gota de agua más pequeña y color amarillento oscuro */}
@@ -1571,7 +1628,7 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
                           latitude={waypoint.lat}
                           anchor="bottom"
                           onClose={() => setSelectedWaypoint(null)}
-                          closeButton={true}
+                          closeButton={false}
                           closeOnClick={false}
                           className="waypoint-popup"
                         >

@@ -17,24 +17,8 @@ const markdownComponents: Components = {
   li: ({ ...props }) => (
     <li className="mb-1" {...props} />
   ),
-  div: ({ className, style, ...props }: any) => {
-    // Si el div tiene estilos inline que sugieren que contiene un iframe (como display:flex, justify-content:center)
-    const isVideoContainer = 
-      (style?.display === 'flex' || className?.includes('flex')) &&
-      (style?.justifyContent === 'center' || className?.includes('justify-center'))
-    
-    if (isVideoContainer) {
-      return (
-        <div className="my-6 flex w-full justify-center" {...props}>
-          <div className="w-full max-w-4xl">
-            {props.children}
-          </div>
-        </div>
-      )
-    }
-    
-    return <div {...props} />
-  },
+  // No definir componentes personalizados para div, img, small - dejar que rehypeRaw los maneje directamente
+  // Esto permite que el HTML crudo con estilos inline funcione correctamente
   iframe: ({ width, height, style, ...props }: any) => {
     // Hacer el iframe responsive usando aspect-ratio
     return (

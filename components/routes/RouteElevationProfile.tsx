@@ -444,116 +444,129 @@ export function RouteElevationProfile({ route, onHoverTrackIndex, highlightedTra
           ))}
 
           {/* Waypoints (puntos de interés) */}
-          {route.waypoints && route.waypoints.length > 0 && route.waypoints.map((waypoint, index) => {
-            if (waypoint.distance === undefined) return null
+          {route.waypoints && route.waypoints.length > 0 && (() => {
+            // Ordenar waypoints para que los hovered se rendericen al final (y aparezcan encima)
+            const waypointsWithIndex = route.waypoints
+              .map((waypoint, index) => ({ waypoint, index }))
+              .filter(({ waypoint }) => waypoint.distance !== undefined)
             
-            // Calcular posición X basada en la distancia
-            const waypointX = padding.left + waypoint.distance * scaleX
+            // Separar waypoints hovered y no hovered
+            const notHovered = waypointsWithIndex.filter(({ index }) => hoveredWaypointIndex !== index)
+            const hovered = waypointsWithIndex.filter(({ index }) => hoveredWaypointIndex === index)
             
-            // Calcular la posición Y en el track (línea de elevación) - esta es la posición real del waypoint
-            let trackY = padding.top + chartHeight
-            for (let i = 0; i < distances.length - 1; i++) {
-              if (waypoint.distance >= distances[i] && waypoint.distance <= distances[i + 1]) {
-                const ratio = (waypoint.distance - distances[i]) / (distances[i + 1] - distances[i])
-                const trackElevation = elevations[i] + (elevations[i + 1] - elevations[i]) * ratio
-                trackY = padding.top + chartHeight - (trackElevation - minElevation) * scaleY
-                break
+            // Renderizar primero los no hovered, luego los hovered (para que aparezcan encima)
+            const sortedWaypoints = [...notHovered, ...hovered]
+            
+            return sortedWaypoints.map(({ waypoint, index }) => {
+              // Calcular posición X basada en la distancia
+              const waypointX = padding.left + waypoint.distance! * scaleX
+              
+              // Calcular la posición Y en el track (línea de elevación) - esta es la posición real del waypoint
+              let trackY = padding.top + chartHeight
+              for (let i = 0; i < distances.length - 1; i++) {
+                if (waypoint.distance! >= distances[i] && waypoint.distance! <= distances[i + 1]) {
+                  const ratio = (waypoint.distance! - distances[i]) / (distances[i + 1] - distances[i])
+                  const trackElevation = elevations[i] + (elevations[i + 1] - elevations[i]) * ratio
+                  trackY = padding.top + chartHeight - (trackElevation - minElevation) * scaleY
+                  break
+                }
               }
-            }
-            
-            const isHovered = hoveredWaypointIndex === index
-            const arrowColor = '#b8860b' // DarkGoldenrod - amarillento oscuro
-            const arrowHeadSize = compact ? 5 : 7
-            
-            // Verificar si el waypoint debe mostrarse por defecto (contiene "pico", "Pico" o "Monte" en nombre o tipo)
-            const nameMatches = waypoint.name && (
-              waypoint.name.toLowerCase().includes('pico') || 
-              waypoint.name.includes('Monte')
-            )
-            const typeMatches = waypoint.type && (
-              waypoint.type.toLowerCase().includes('pico') || 
-              waypoint.type.includes('Monte')
-            )
-            const shouldShowByDefault = nameMatches || typeMatches
-            
-            // Mostrar etiqueta si está hovered o si debe mostrarse por defecto
-            const shouldShowLabel = isHovered || shouldShowByDefault
-            
-            // Calcular posición Y de la etiqueta (arriba del waypoint)
-            const labelY = trackY - (compact ? 20 : 25)
-            
-            return (
-              <g 
-                key={`waypoint-${index}`} 
-                className="waypoint-marker"
-                style={{ cursor: onWaypointClick ? 'pointer' : 'default' }}
-                onClick={() => onWaypointClick?.(index)}
-                onMouseEnter={() => setHoveredWaypointIndex(index)}
-                onMouseLeave={() => setHoveredWaypointIndex(null)}
-              >
-                {/* Área invisible más grande para facilitar el hover y click en el punto */}
-                <circle
-                  cx={waypointX}
-                  cy={trackY}
-                  r="15"
-                  fill="transparent"
-                  pointerEvents="all"
-                />
-                
-                {/* Punto del waypoint en su posición real en el track */}
-                <circle
-                  cx={waypointX}
-                  cy={trackY}
-                  r={compact ? "4" : "5"}
-                  fill={arrowColor}
-                  stroke="white"
-                  strokeWidth={compact ? "1.5" : "2"}
-                  opacity="0.95"
-                />
-                
-                {/* Línea vertical desde la etiqueta hasta el track (cuando debe mostrarse) */}
-                {shouldShowLabel && (
-                  <line
-                    x1={waypointX}
-                    y1={labelY - (compact ? 6 : 8)}
-                    x2={waypointX}
-                    y2={trackY}
-                    stroke={arrowColor}
-                    strokeWidth={compact ? "2" : "2.5"}
-                    strokeDasharray="4 3"
-                    opacity="0.8"
+              
+              const isHovered = hoveredWaypointIndex === index
+              const arrowColor = '#b8860b' // DarkGoldenrod - amarillento oscuro
+              const arrowHeadSize = compact ? 5 : 7
+              
+              // Verificar si el waypoint debe mostrarse por defecto (contiene "pico", "Pico" o "Monte" en nombre o tipo)
+              const nameMatches = waypoint.name && (
+                waypoint.name.toLowerCase().includes('pico') || 
+                waypoint.name.includes('Monte')
+              )
+              const typeMatches = waypoint.type && (
+                waypoint.type.toLowerCase().includes('pico') || 
+                waypoint.type.includes('Monte')
+              )
+              const shouldShowByDefault = nameMatches || typeMatches
+              
+              // Mostrar etiqueta si está hovered o si debe mostrarse por defecto
+              const shouldShowLabel = isHovered || shouldShowByDefault
+              
+              // Calcular posición Y de la etiqueta (arriba del waypoint)
+              const labelY = trackY - (compact ? 20 : 25)
+              
+              return (
+                <g 
+                  key={`waypoint-${index}`} 
+                  className="waypoint-marker"
+                  style={{ cursor: onWaypointClick ? 'pointer' : 'default' }}
+                  onClick={() => onWaypointClick?.(index)}
+                  onMouseEnter={() => setHoveredWaypointIndex(index)}
+                  onMouseLeave={() => setHoveredWaypointIndex(null)}
+                >
+                  {/* Área invisible más grande para facilitar el hover y click en el punto */}
+                  <circle
+                    cx={waypointX}
+                    cy={trackY}
+                    r="15"
+                    fill="transparent"
+                    pointerEvents="all"
                   />
-                )}
-                
-                {/* Nombre del waypoint (cuando debe mostrarse) */}
-                {shouldShowLabel && waypoint.name && (
-                  <g>
-                    {/* Fondo del texto */}
-                    <rect
-                      x={waypointX - (waypoint.name.length * (compact ? 1 : 6)) / 2}
-                      y={labelY - (compact ? 11 : 13)}
-                      width={waypoint.name.length * (compact ? 3 : 6)}
-                      height={compact ? 11 : 13}
-                      fill="white"
-                      fillOpacity="0.95"
+                  
+                  {/* Punto del waypoint en su posición real en el track */}
+                  <circle
+                    cx={waypointX}
+                    cy={trackY}
+                    r={compact ? "4" : "5"}
+                    fill={arrowColor}
+                    stroke="white"
+                    strokeWidth={compact ? "1.5" : "2"}
+                    opacity="0.95"
+                  />
+                  
+                  {/* Línea vertical desde la etiqueta hasta el track (cuando debe mostrarse) */}
+                  {shouldShowLabel && (
+                    <line
+                      x1={waypointX}
+                      y1={labelY - (compact ? 6 : 8)}
+                      x2={waypointX}
+                      y2={trackY}
                       stroke={arrowColor}
-                      strokeWidth="0.8"
-                      rx="3"
+                      strokeWidth={compact ? "2" : "2.5"}
+                      strokeDasharray="4 3"
+                      opacity="0.8"
                     />
-                    <text
-                      x={waypointX}
-                      y={labelY - (compact ? 3 : 4)}
-                      textAnchor="middle"
-                      className={`${compact ? 'text-[8px]' : 'text-[10px]'} font-semibold pointer-events-none`}
-                      fill={arrowColor}
-                    >
-                      {waypoint.name}
-                    </text>
-                  </g>
-                )}
-              </g>
-            )
-          })}
+                  )}
+                  
+                  {/* Nombre del waypoint (cuando debe mostrarse) */}
+                  {shouldShowLabel && waypoint.name && (
+                    <g>
+                      {/* Fondo del texto */}
+                      <rect
+                        x={waypointX - (waypoint.name.length * (compact ? 1 : 6)) / 2}
+                        y={labelY - (compact ? 11 : 13)}
+                        width={waypoint.name.length * (compact ? 3 : 6)}
+                        height={compact ? 11 : 13}
+                        fill="white"
+                        fillOpacity={isHovered ? "1" : "0.95"}
+                        stroke={arrowColor}
+                        strokeWidth={isHovered ? "1.2" : "0.8"}
+                        rx="3"
+                      />
+                      <text
+                        x={waypointX}
+                        y={labelY - (compact ? 3 : 4)}
+                        textAnchor="middle"
+                        className={`${compact ? 'text-[8px]' : 'text-[10px]'} font-semibold pointer-events-none`}
+                        fill={arrowColor}
+                        style={{ fontWeight: isHovered ? '700' : '600' }}
+                      >
+                        {waypoint.name}
+                      </text>
+                    </g>
+                  )}
+                </g>
+              )
+            })
+          })()}
 
         </svg>
       </div>

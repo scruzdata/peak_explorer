@@ -820,6 +820,8 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
     li: ({ ...props }) => (
       <li className="mb-1" {...props} />
     ),
+    // No definir componentes personalizados para div, img, small - dejar que rehypeRaw los maneje directamente
+    // Esto permite que el HTML crudo con estilos inline funcione correctamente (igual que en BlogForm)
   }
 
   // Helper para renderizar secciones con o sin acordeón
