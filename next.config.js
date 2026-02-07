@@ -73,6 +73,8 @@ const nextConfig = {
         'http://openweathermap.org', // Iconos de OpenWeatherMap (algunos pueden usar http)
         'https://meteosierra.com', // Meteosierra.com (imágenes/iconos)
         'http://meteosierra.com', // Meteosierra.com (algunos recursos pueden usar http)
+        'https://meteocercedilla.com', // Meteocercedilla.com (imágenes/iconos)
+        'http://meteocercedilla.com', // Meteocercedilla.com (algunos recursos pueden usar http)
         'https://*.googleapis.com', // Google APIs (imágenes)
         'https://*.gstatic.com', // Google static content
         'https://infocar.dgt.es',
@@ -104,6 +106,8 @@ const nextConfig = {
         'https://api.openweathermap.org', // OpenWeatherMap API (meteorología)
         'https://meteosierra.com', // Meteosierra.com (API meteorológica)
         'http://meteosierra.com', // Meteosierra.com (algunos recursos pueden usar http)
+        'https://meteocercedilla.com', // Meteocercedilla.com (imágenes/iconos)
+        'http://meteocercedilla.com', // Meteocercedilla.com (algunos recursos pueden usar http)
         'https://infocar.dgt.es',
         'https://www.alberguesyrefugios.com',
         'https://camareando.com',
@@ -119,6 +123,8 @@ const nextConfig = {
         'https://*.firebaseapp.com',
         'https://meteosierra.com', // Meteosierra.com (widgets/iframes)
         'http://meteosierra.com', // Meteosierra.com (algunos recursos pueden usar http)
+        'https://meteocercedilla.com', // Meteocercedilla.com (imágenes/iconos)
+        'http://meteocercedilla.com', // Meteocercedilla.com (algunos recursos pueden usar http)
         'https://infocar.dgt.es',
         'https://www.alberguesyrefugios.com',
         'https://camareando.com',
