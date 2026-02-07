@@ -4,10 +4,72 @@ import { useMemo, useState, useCallback, useEffect, useRef } from 'react'
 import { Route, FerrataGrade } from '@/types'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
-import { Mountain, Star, X, RotateCcw, Eye, EyeOff, MapPin, ZoomIn, Clock, TrendingUp } from 'lucide-react'
+import { Mountain, Star, X, RotateCcw, Eye, EyeOff, MapPin, ZoomIn, Clock, TrendingUp, ExternalLink } from 'lucide-react'
 import { getDifficultyColor, getFerrataGradeColor, formatDistance, formatElevation } from '@/lib/utils'
 import type { MapRef } from 'react-map-gl'
 import { RouteElevationProfile } from './RouteElevationProfile'
+
+/**
+ * Icono de triángulo de exclamación personalizado
+ */
+const ExclamationTriangleIcon = ({
+  size = undefined,
+  color = '#dc2626',
+  strokeWidth = 2,
+  background = 'transparent',
+  opacity = 1,
+  rotation = 0,
+  shadow = 0,
+  flipHorizontal = false,
+  flipVertical = false,
+  padding = 0,
+  className = ''
+}: {
+  size?: number | string
+  color?: string
+  strokeWidth?: number
+  background?: string
+  opacity?: number
+  rotation?: number
+  shadow?: number
+  flipHorizontal?: boolean
+  flipVertical?: boolean
+  padding?: number
+  className?: string
+}) => {
+  const transforms = []
+  if (rotation !== 0) transforms.push(`rotate(${rotation}deg)`)
+  if (flipHorizontal) transforms.push('scaleX(-1)')
+  if (flipVertical) transforms.push('scaleY(-1)')
+
+  const viewBoxSize = 24 + (padding * 2)
+  const viewBoxOffset = -padding
+  const viewBox = `${viewBoxOffset} ${viewBoxOffset} ${viewBoxSize} ${viewBoxSize}`
+
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox={viewBox}
+      width={size}
+      height={size}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      style={{
+        color,
+        opacity,
+        transform: transforms.join(' ') || undefined,
+        filter: shadow > 0 ? `drop-shadow(0 ${shadow}px ${shadow * 2}px rgba(0,0,0,0.3))` : undefined,
+        backgroundColor: background !== 'transparent' ? background : undefined
+      }}
+    >
+      <path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth} d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0zM12 15.75h.007v.008H12z"/>
+    </svg>
+  )
+}
 
 // Dynamic import para evitar problemas de SSR con Mapbox
 const Map = dynamic(
@@ -48,6 +110,79 @@ interface RoutesMapViewProps {
   /** Ref para exponer la función de zoom a una ruta (para uso externo desde tarjetas del grid) */
   zoomToRouteRef?: { current: ((lat: number, lng: number) => void) | null }
 }
+
+/**
+ * POIs de boletines de peligro de aludes
+ */
+interface AvalancheBulletinPOI {
+  name: string
+  url: string
+  lat: number
+  lng: number
+}
+
+const AVALANCHE_BULLETIN_POIS: AvalancheBulletinPOI[] = [
+  {
+    name: 'AEMET-BPA PICOS DE EUROPA',
+    url: 'https://www.aemet.es/documentos/es/eltiempo/prediccion/montana/boletin_peligro_aludes/BPA_PN_Picos_Europa.pdf',
+    lat: 43.187067,
+    lng: -4.821908
+  },
+  {
+    name: 'AEMET - BPA SIERRAS DEL CORDELY PEÑA LABRA',
+    url: 'https://www.aemet.es/documentos/es/eltiempo/prediccion/montana/boletin_peligro_aludes/BPA_sierra_Cordel_PLabra.pdf',
+    lat: 43.047413,
+    lng: -4.326998
+  },
+  {
+    name: 'AEMET - BPA PN SIERRA DE GUADARRAMA',
+    url: 'https://www.aemet.es/documentos/es/eltiempo/prediccion/montana/boletin_peligro_aludes/BPA_PN_Guadarrama.pdf',
+    lat: 40.850631,
+    lng: -3.949723
+  },
+  {
+    name: 'AEMET - BPA PIRINEO NAVARRO Y ARAGONES',
+    url: 'https://www.aemet.es/documentos/es/eltiempo/prediccion/montana/boletin_peligro_aludes/BPA_Pirineo_Nav_Ara.pdf',
+    lat: 42.857522,
+    lng: -0.839908
+  },
+  {
+    name: 'AEMET - BPA PIRINEO CATALAN',
+    url: 'https://www.aemet.es/documentos/es/eltiempo/prediccion/montana/boletin_peligro_aludes/BPA_Pirineo_Cat.pdf',
+    lat: 42.404873,
+    lng: 2.214536
+  },
+  {
+    name: 'BPA A LUARTE, VALLE DE ARAGON',
+    url: 'https://www.alurte.es/boletin.php',
+    lat: 42.789069,
+    lng: -0.319240
+  },
+  {
+    name: 'CENTRE DE LAUGUI D\'ARAN',
+    url: 'https://lauegi.report/bulletin/latest',
+    lat: 42.699263,
+    lng: 0.815074
+  },
+  {
+    name: 'BPA INSTITUC CARTOGRAFIC I GELOGIC DE CATALUNYA',
+    url: 'https://www.icgc.cat/ca/Ambits-tematics/Riscos-i-emergencies/Allaus/Butlleti-de-Perill-dAllaus-BPA',
+    lat: 42.379926,
+    lng: 1.870372
+  },
+  {
+    name: 'SERVEI METEOROLÓGIC NACIONAL ANDORRA',
+    url: 'https://www.meteo.ad/estatneu',
+    lat: 42.506007,
+    lng: 1.522832
+  },
+  {
+    name: 'BPA METEO FRANCES PYRÉNÉES',
+    url: 'https://meteofrance.com/meteo-montagne/pyrenees/risques-avalanche',
+    lat: 42.640564,
+    lng: 2.005010
+  }
+]
 
 /**
  * Componente SVG que representa a una persona escalando una vía ferrata con casco, arnés y mochila
@@ -197,6 +332,10 @@ export function RoutesMapView({
   const [trackError, setTrackError] = useState<string | null>(null)
   // Estado para el popup de cluster
   const [clusterPopup, setClusterPopup] = useState<{ lat: number; lng: number; routes: Route[] } | null>(null)
+  // Estado para mostrar/ocultar los POIs de boletines de peligro de aludes
+  const [showAvalancheBulletins, setShowAvalancheBulletins] = useState(false)
+  // Estado para el POI de boletín de aludes seleccionado
+  const [selectedBulletinPOI, setSelectedBulletinPOI] = useState<number | null>(null)
 
   // Combinar hoveredRouteId externo con interno (el interno tiene prioridad si no hay externo)
   const effectiveHoveredRouteId = hoveredRouteId ?? internalHoveredRouteId
@@ -620,6 +759,7 @@ export function RoutesMapView({
           setInternalSelectedRouteId(null)
           onRouteSelect?.(null)
           setClusterPopup(null)
+          setSelectedBulletinPOI(null)
         }}
         style={{ width: '100%', height: '100%' }}
         mapStyle={`mapbox://styles/mapbox/${mapStyle}`}
@@ -936,138 +1076,219 @@ export function RoutesMapView({
           </>
         )}
 
-        {/* Popup para mostrar las rutas de un cluster - posicionado en esquina superior izquierda */}
-        {clusterPopup && !cardRoute && (
-          <div className="absolute top-4 left-6 sm:left-8 z-20 w-[200px] sm:w-[220px] lg:w-[200px] max-w-[calc(100%-3rem)] sm:max-w-[calc(100%-4rem)] lg:max-w-[calc(100%-3rem)]">
-            {/* Contenedor principal de la tarjeta de cluster (el encabezado y la lista se ajustan directamente a este div) */}
-            <div className="relative overflow-hidden rounded-xl bg-white shadow-xl border border-gray-200">
-              {/* Botón cerrar */}
-              <button
-                type="button"
-                onClick={() => setClusterPopup(null)}
-                className="absolute top-2 right-2 z-20 inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/90 text-gray-600 shadow hover:bg-white"
-              >
-                <X className="h-3 w-3" />
-              </button>
-
-              {/* Header con badge moderno */}
-              <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-3 py-2 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="bg-white/20 backdrop-blur-sm rounded-full px-2 py-0.5">
-                    <span className="text-white text-xs font-bold">
-                      {clusterPopup.routes.length}
-                    </span>
-                  </div>
-                  <h3 className="text-white font-semibold text-xs">
-                    {type === 'ferrata' 
-                      ? (clusterPopup.routes.length === 1 ? 'Vía ferrata' : 'Vías ferratas')
-                      : (clusterPopup.routes.length === 1 ? 'Ruta' : 'Rutas')
-                    }
-                  </h3>
+        {/* Marcadores de boletines de peligro de aludes */}
+        {showAvalancheBulletins && AVALANCHE_BULLETIN_POIS.map((poi, index) => (
+          <Marker
+            key={`avalanche-bulletin-${index}`}
+            longitude={poi.lng}
+            latitude={poi.lat}
+            anchor="bottom"
+          >
+            <div
+              className="cursor-pointer"
+              onClick={(e: React.MouseEvent) => {
+                e.stopPropagation()
+                setSelectedBulletinPOI(selectedBulletinPOI === index ? null : index)
+              }}
+            >
+              <div className="relative">
+                {/* Icono de alerta sin fondo */}
+                <div 
+                  style={{
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <ExclamationTriangleIcon size={24} color="#dc2626" strokeWidth={2} shadow={2} />
                 </div>
+                {/* Punto inferior del marcador */}
+                <div 
+                  className="absolute bg-red-600"
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    bottom: '-4px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                  }}
+                />
               </div>
-              
-              {/* Lista de rutas con scroll personalizado */}
-              <div className="max-h-64 overflow-y-auto custom-scrollbar p-2 bg-gray-50/50">
-                <div className="space-y-1.5">
-                  {clusterPopup.routes.map((route) => (
-                    <button
-                      key={route.id}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        // Cerrar el popup primero
-                        setClusterPopup(null)
-                        // Luego actualizar la ruta seleccionada
-                        handleMarkerClick(route)
-                      }}
-                      onMouseEnter={() => {
-                        if (onMarkerHover) {
-                          onMarkerHover(route.id)
-                        } else {
-                          setInternalHoveredRouteId(route.id)
-                        }
-                      }}
-                      onMouseLeave={() => {
-                        if (onMarkerHover) {
-                          onMarkerHover(null)
-                        } else {
-                          setInternalHoveredRouteId(null)
-                        }
-                      }}
-                      className="w-full text-left p-2 rounded-lg bg-white border border-gray-200 hover:border-primary-300 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 group"
-                    >
-                      <div className="flex items-start gap-2">
-                        {/* Icono con fondo circular */}
-                        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                          type === 'ferrata' 
-                            ? (route.ferrataGrade 
-                                ? (route.ferrataGrade === 'K1' ? 'bg-green-50' :
-                                   route.ferrataGrade === 'K2' ? 'bg-blue-50' :
-                                   route.ferrataGrade === 'K3' ? 'bg-yellow-50' :
-                                   route.ferrataGrade === 'K4' ? 'bg-orange-50' :
-                                   route.ferrataGrade === 'K5' ? 'bg-red-50' :
-                                   route.ferrataGrade === 'K6' ? 'bg-purple-50' :
-                                   'bg-gray-100')
-                                : 'bg-gray-100')
-                            : (route.difficulty === 'Fácil' ? 'bg-green-50' :
-                               route.difficulty === 'Moderada' ? 'bg-orange-50' :
-                               route.difficulty === 'Difícil' ? 'bg-red-50' :
-                               route.difficulty === 'Muy Difícil' ? 'bg-purple-50' :
-                               'bg-gray-100')
-                        } group-hover:scale-110 transition-transform duration-200`}>
-                          {type === 'ferrata' ? (
-                            <FerrataClimberIcon className={`h-4 w-4 ${
-                              route.ferrataGrade
-                                ? getFerrataGradeBorderColor(route.ferrataGrade).text
-                                : 'text-gray-600'
-                            }`} />
-                          ) : (
-                            <Mountain className={`h-4 w-4 ${
-                              route.difficulty === 'Fácil' ? 'text-green-600' :
-                              route.difficulty === 'Moderada' ? 'text-orange-600' :
-                              route.difficulty === 'Difícil' ? 'text-red-600' :
-                              route.difficulty === 'Muy Difícil' ? 'text-purple-600' :
-                              'text-gray-600'
-                            }`} />
-                          )}
-                        </div>
-                        
-                        {/* Contenido */}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-2 leading-snug">
-                            {route.title}
+            </div>
+            {selectedBulletinPOI === index && (
+              <Popup
+                longitude={poi.lng}
+                latitude={poi.lat}
+                anchor="bottom"
+                onClose={() => setSelectedBulletinPOI(null)}
+                closeButton={false}
+                closeOnClick={false}
+                className="avalanche-bulletin-popup"
+              >
+                <div className="p-1.5 min-w-[200px] rounded-xl bg-white border border-gray-200 shadow-xl">
+                  <div className="flex items-start gap-1.5">
+                    <div className="flex-shrink-0 w-5 h-5 rounded-md bg-gradient-to-br from-red-600 to-red-700 flex items-center justify-center shadow-md">
+                      <ExclamationTriangleIcon size={10} color="#ffffff" strokeWidth={1.5} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-[11px] text-gray-900 mb-1 leading-tight">
+                        {poi.name}
+                      </h3>
+                      <p className="text-[9px] font-mono text-gray-500 mb-1 leading-tight">
+                        {poi.lat.toFixed(6)}, {poi.lng.toFixed(6)}
+                      </p>
+                      <a
+                        href={poi.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-0.5 text-[9px] text-red-600 hover:text-red-700 font-semibold transition-colors"
+                      >
+                        <ExternalLink className="h-2.5 w-2.5" />
+                        <span>Ver boletín</span>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </Popup>
+            )}
+          </Marker>
+        ))}
+      </Map>
+
+      {/* Popup para mostrar las rutas de un cluster - posicionado en esquina superior izquierda */}
+      {clusterPopup && !cardRoute && (
+        <div className="absolute top-4 left-6 sm:left-8 z-20 w-[200px] sm:w-[220px] lg:w-[200px] max-w-[calc(100%-3rem)] sm:max-w-[calc(100%-4rem)] lg:max-w-[calc(100%-3rem)]">
+          {/* Contenedor principal de la tarjeta de cluster (el encabezado y la lista se ajustan directamente a este div) */}
+          <div className="relative overflow-hidden rounded-xl bg-white shadow-xl border border-gray-200">
+            {/* Botón cerrar */}
+            <button
+              type="button"
+              onClick={() => setClusterPopup(null)}
+              className="absolute top-2 right-2 z-20 inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/90 text-gray-600 shadow hover:bg-white"
+            >
+              <X className="h-3 w-3" />
+            </button>
+
+            {/* Header con badge moderno */}
+            <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-3 py-2 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="bg-white/20 backdrop-blur-sm rounded-full px-2 py-0.5">
+                  <span className="text-white text-xs font-bold">
+                    {clusterPopup.routes.length}
+                  </span>
+                </div>
+                <h3 className="text-white font-semibold text-xs">
+                  {type === 'ferrata' 
+                    ? (clusterPopup.routes.length === 1 ? 'Vía ferrata' : 'Vías ferratas')
+                    : (clusterPopup.routes.length === 1 ? 'Ruta' : 'Rutas')
+                  }
+                </h3>
+              </div>
+            </div>
+            
+            {/* Lista de rutas con scroll personalizado */}
+            <div className="max-h-64 overflow-y-auto custom-scrollbar p-2 bg-gray-50/50">
+              <div className="space-y-1.5">
+                {clusterPopup.routes.map((route) => (
+                  <button
+                    key={route.id}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      // Cerrar el popup primero
+                      setClusterPopup(null)
+                      // Luego actualizar la ruta seleccionada
+                      handleMarkerClick(route)
+                    }}
+                    onMouseEnter={() => {
+                      if (onMarkerHover) {
+                        onMarkerHover(route.id)
+                      } else {
+                        setInternalHoveredRouteId(route.id)
+                      }
+                    }}
+                    onMouseLeave={() => {
+                      if (onMarkerHover) {
+                        onMarkerHover(null)
+                      } else {
+                        setInternalHoveredRouteId(null)
+                      }
+                    }}
+                    className="w-full text-left p-2 rounded-lg bg-white border border-gray-200 hover:border-primary-300 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 group"
+                  >
+                    <div className="flex items-start gap-2">
+                      {/* Icono con fondo circular */}
+                      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                        type === 'ferrata' 
+                          ? (route.ferrataGrade 
+                              ? (route.ferrataGrade === 'K1' ? 'bg-green-50' :
+                                 route.ferrataGrade === 'K2' ? 'bg-blue-50' :
+                                 route.ferrataGrade === 'K3' ? 'bg-yellow-50' :
+                                 route.ferrataGrade === 'K4' ? 'bg-orange-50' :
+                                 route.ferrataGrade === 'K5' ? 'bg-red-50' :
+                                 route.ferrataGrade === 'K6' ? 'bg-purple-50' :
+                                 'bg-gray-100')
+                              : 'bg-gray-100')
+                          : (route.difficulty === 'Fácil' ? 'bg-green-50' :
+                             route.difficulty === 'Moderada' ? 'bg-orange-50' :
+                             route.difficulty === 'Difícil' ? 'bg-red-50' :
+                             route.difficulty === 'Muy Difícil' ? 'bg-purple-50' :
+                             'bg-gray-100')
+                      } group-hover:scale-110 transition-transform duration-200`}>
+                        {type === 'ferrata' ? (
+                          <FerrataClimberIcon className={`h-4 w-4 ${
+                            route.ferrataGrade
+                              ? getFerrataGradeBorderColor(route.ferrataGrade).text
+                              : 'text-gray-600'
+                          }`} />
+                        ) : (
+                          <Mountain className={`h-4 w-4 ${
+                            route.difficulty === 'Fácil' ? 'text-green-600' :
+                            route.difficulty === 'Moderada' ? 'text-orange-600' :
+                            route.difficulty === 'Difícil' ? 'text-red-600' :
+                            route.difficulty === 'Muy Difícil' ? 'text-purple-600' :
+                            'text-gray-600'
+                          }`} />
+                        )}
+                      </div>
+                      
+                      {/* Contenido */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-2 leading-snug">
+                          {route.title}
+                        </p>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <MapPin className="h-2.5 w-2.5 text-gray-400 flex-shrink-0" />
+                          <p className="text-[10px] text-gray-500 truncate">
+                            {route.location.region}, {route.location.province}
                           </p>
-                          <div className="flex items-center gap-1 mt-0.5">
-                            <MapPin className="h-2.5 w-2.5 text-gray-400 flex-shrink-0" />
-                            <p className="text-[10px] text-gray-500 truncate">
-                              {route.location.region}, {route.location.province}
-                            </p>
+                        </div>
+                        {/* Información de la ruta: distancia, elevación y duración */}
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1 text-[9px] text-gray-600">
+                          <div className="flex items-center gap-0.5">
+                            <MapPin className="h-2 w-2" />
+                            <span>{formatDistance(route.distance)}</span>
                           </div>
-                          {/* Información de la ruta: distancia, elevación y duración */}
-                          <div className="flex flex-wrap items-center gap-1.5 mt-1 text-[9px] text-gray-600">
-                            <div className="flex items-center gap-0.5">
-                              <MapPin className="h-2 w-2" />
-                              <span>{formatDistance(route.distance)}</span>
-                            </div>
-                            <div className="flex items-center gap-0.5">
-                              <TrendingUp className="h-2 w-2" />
-                              <span>{formatElevation(route.elevation)}</span>
-                            </div>
-                            <div className="flex items-center gap-0.5">
-                              <Clock className="h-2 w-2" />
-                              <span>{route.duration}</span>
-                            </div>
+                          <div className="flex items-center gap-0.5">
+                            <TrendingUp className="h-2 w-2" />
+                            <span>{formatElevation(route.elevation)}</span>
+                          </div>
+                          <div className="flex items-center gap-0.5">
+                            <Clock className="h-2 w-2" />
+                            <span>{route.duration}</span>
                           </div>
                         </div>
                       </div>
-                    </button>
-                  ))}
-                </div>
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
           </div>
-        )}
-      </Map>
+        </div>
+      )}
 
       {/* Botón desplegable desde el borde superior izquierdo para mostrar/ocultar panel de detalle */}
       {cardRoute && (
@@ -1231,6 +1452,18 @@ export function RoutesMapView({
 
       {/* Controles del mapa */}
       <div className="absolute top-4 right-4 flex flex-col gap-2 lg:gap-2">
+        <button
+          onClick={() => setShowAvalancheBulletins(!showAvalancheBulletins)}
+          className={`px-1 py-1.5 lg:px-3 lg:py-2 bg-white rounded-lg shadow-md text-xs lg:text-sm font-medium transition-colors flex items-center gap-1.5 lg:gap-2 ${
+            showAvalancheBulletins 
+              ? 'text-red-600 hover:bg-red-50' 
+              : 'text-gray-700 hover:bg-gray-50'
+          }`}
+          title={showAvalancheBulletins ? 'Ocultar boletines de peligro de aludes' : 'Mostrar boletines de peligro de aludes'}
+        >
+          <ExclamationTriangleIcon size={16} color="#dc2626" strokeWidth={2} className="lg:w-4 lg:h-4" />
+          <span className="hidden lg:inline">Boletines</span>
+        </button>
         <button
           onClick={() => setMapStyle(mapStyle === 'outdoors-v12' ? 'satellite-streets-v12' : 'outdoors-v12')}
           className="px-1 py-1.5 lg:px-3 lg:py-2 bg-white rounded-lg shadow-md text-xs lg:text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
