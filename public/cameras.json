@@ -16153,5 +16153,41 @@
     "pk": "",
     "provincia": "",
     "source": "Venta marcelino"
+  },
+  {
+    "latitud": "43.258343",
+    "longitud": "-4.830722",
+    "imagen": "https://rtsp.me/embed/f63Za2K6/",
+    "carretera": "Ruta del Cares",
+    "pk": "",
+    "provincia": "",
+    "source": "rtsp"
+  },
+  {
+    "latitud": "43.350604", 
+    "longitud": "-5.132046",
+    "imagen": "https://rtsp.me/embed/8A6sRKZG/",
+    "carretera": "Cangas de Onís",
+    "pk": "",
+    "provincia": "",
+    "source": "rtsp"
+  },
+  {
+    "latitud": "43.154034",
+    "longitud": "-4.805420",
+    "imagen": "https://cantur.com/camaras/home/cantucom/public.html/camaras/fuentede.jpg",
+    "carretera": "Fuente Dé",
+    "pk": "",
+    "provincia": "",
+    "source": "cantur.com"
+  },
+  {
+    "latitud": "40.738776",
+    "longitud": "-3.878280",
+    "imagen": "https://meteosierra.com/cams/pedriza/thumb.jpg",
+    "carretera": "La Pedriza",
+    "pk": "",
+    "provincia": "",
+    "source": "meteosierra.com"
   }
 ]
