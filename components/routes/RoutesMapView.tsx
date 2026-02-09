@@ -4,10 +4,11 @@ import { useMemo, useState, useCallback, useEffect, useRef } from 'react'
 import { Route, FerrataGrade } from '@/types'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
-import { Mountain, Star, X, RotateCcw, Eye, EyeOff, MapPin, ZoomIn, Clock, TrendingUp, ExternalLink } from 'lucide-react'
+import { Mountain, Star, X, RotateCcw, Eye, EyeOff, MapPin, ZoomIn, Clock, TrendingUp, ExternalLink, Camera } from 'lucide-react'
 import { getDifficultyColor, getFerrataGradeColor, formatDistance, formatElevation } from '@/lib/utils'
 import type { MapRef } from 'react-map-gl'
 import { RouteElevationProfile } from './RouteElevationProfile'
+import camerasJson from '../../public/cameras.json'
 
 /**
  * Icono de triángulo de exclamación personalizado
@@ -120,6 +121,38 @@ interface AvalancheBulletinPOI {
   lat: number
   lng: number
 }
+
+/**
+ * POIs de cámaras DGT
+ * Basados en el JSON de /public/cameras.json
+ */
+interface DgtCameraPOI {
+  latitud: number
+  longitud: number
+  imagen: string
+  carretera: string
+  pk: string
+  provincia: string
+}
+
+// Datos estáticos de cámaras DGT basados en el JSON de /public/cameras.json
+const DGT_CAMERAS: DgtCameraPOI[] = (camerasJson as any[])
+  .map((item: any) => {
+    const lat = Number(item.latitud)
+    const lng = Number(item.longitud)
+    if (Number.isNaN(lat) || Number.isNaN(lng)) return null
+    return {
+      latitud: lat,
+      longitud: lng,
+      imagen: String(item.imagen ?? ''),
+      carretera: String(item.carretera ?? ''),
+      pk: String(item.pk ?? ''),
+      provincia: String(item.provincia ?? ''),
+    }
+  })
+  .filter((item: DgtCameraPOI | null): item is DgtCameraPOI => {
+    return !!item && item.latitud !== 0 && item.longitud !== 0
+  })
 
 const AVALANCHE_BULLETIN_POIS: AvalancheBulletinPOI[] = [
   {
@@ -336,6 +369,13 @@ export function RoutesMapView({
   const [showAvalancheBulletins, setShowAvalancheBulletins] = useState(false)
   // Estado para el POI de boletín de aludes seleccionado
   const [selectedBulletinPOI, setSelectedBulletinPOI] = useState<number | null>(null)
+  // Estado para mostrar/ocultar cámaras DGT
+  // Nota: showDgtCameras se sincroniza automáticamente con isDgtZoomEnabled
+  // pero el usuario puede forzar el estado cuando el zoom es suficiente
+  const [showDgtCameras, setShowDgtCameras] = useState(false)
+  const [selectedDgtCameraIndex, setSelectedDgtCameraIndex] = useState<number | null>(null)
+  // Estado para los límites actuales del mapa
+  const [mapBounds, setMapBounds] = useState<{ north: number; south: number; east: number; west: number } | null>(null)
 
   // Combinar hoveredRouteId externo con interno (el interno tiene prioridad si no hay externo)
   const effectiveHoveredRouteId = hoveredRouteId ?? internalHoveredRouteId
@@ -394,6 +434,7 @@ export function RoutesMapView({
     console.log('Retornando cardRouteBase sin track')
     return cardRouteBase
   }, [cardRouteBase, selectedRouteTrack, trackRouteId, cardRouteId])
+
 
   /**
    * Importa dinámicamente los estilos de Mapbox cuando el componente se monta
@@ -507,6 +548,43 @@ export function RoutesMapView({
       route.location.coordinates.lng !== 0
     )
   }, [routes])
+
+  // Determinar si el zoom es suficiente para mostrar cámaras DGT
+  const isDgtZoomEnabled = useMemo(() => {
+    if (!viewState) return false
+    // Umbral de zoom: ajusta este valor si quieres exigir más/menos zoom
+    return viewState.zoom >= 11
+  }, [viewState])
+
+  // Sincronizar automáticamente showDgtCameras con el zoom
+  // Las cámaras aparecen automáticamente cuando zoom >= 11 y desaparecen cuando zoom < 11
+  useEffect(() => {
+    if (isDgtZoomEnabled) {
+      // Cuando el zoom es suficiente, mostrar las cámaras automáticamente
+      setShowDgtCameras(true)
+    } else {
+      // Cuando el zoom es insuficiente, ocultar las cámaras automáticamente
+      setShowDgtCameras(false)
+      setSelectedDgtCameraIndex(null)
+    }
+  }, [isDgtZoomEnabled])
+
+  // Cámaras DGT dentro del recuadro actual del mapa
+  const visibleDgtCameras = useMemo(() => {
+    if (!mapBounds) return []
+    const { north, south, east, west } = mapBounds
+    return DGT_CAMERAS.filter((camera) => {
+      const lat = camera.latitud
+      const lng = camera.longitud
+      const inLat = lat >= south && lat <= north
+      // Manejar cruces de meridiano 180 (no es el caso de España, pero lo dejamos genérico)
+      const inLng =
+        east >= west
+          ? lng >= west && lng <= east
+          : lng >= west || lng <= east
+      return inLat && inLng
+    })
+  }, [mapBounds])
 
   // Calcular clusters basándose en el estado actual del mapa
   const { clusters, individualRoutes } = useMemo(() => {
@@ -753,13 +831,49 @@ export function RoutesMapView({
         onMove={(evt: any) => {
           setViewState(evt.viewState)
           onViewStateChange?.(evt.viewState)
+
+          try {
+            const map = mapInstanceRef.current || (mapRef.current?.getMap())
+            if (map) {
+              const bounds = map.getBounds()
+              if (bounds) {
+                // Mapbox GL devuelve un objeto con propiedades _ne (noreste) y _sw (suroeste)
+                const ne = (bounds as any)._ne
+                const sw = (bounds as any)._sw
+                if (ne && sw) {
+                  setMapBounds({
+                    north: ne.lat,
+                    south: sw.lat,
+                    east: ne.lng,
+                    west: sw.lng,
+                  })
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error obteniendo bounds del mapa:', error)
+          }
         }}
-        onClick={() => {
+        onClick={(e: any) => {
+          // Verificar si el click fue en un popup o marcador
+          const target = e.originalEvent?.target || e.target
+          if (target) {
+            const isMarker = target.closest?.('.mapboxgl-marker') || 
+                            target.closest?.('.mapboxgl-popup') ||
+                            target.classList?.contains('mapboxgl-marker') ||
+                            target.classList?.contains('mapboxgl-popup')
+            
+            if (isMarker) {
+              return // No cerrar si el click fue en un marker o popup
+            }
+          }
+          
           // Cerrar tarjeta y popup al pinchar en cualquier parte del mapa que no sea un marcador
           setInternalSelectedRouteId(null)
           onRouteSelect?.(null)
           setClusterPopup(null)
           setSelectedBulletinPOI(null)
+          setSelectedDgtCameraIndex(null)
         }}
         style={{ width: '100%', height: '100%' }}
         mapStyle={`mapbox://styles/mapbox/${mapStyle}`}
@@ -1137,9 +1251,6 @@ export function RoutesMapView({
                       <h3 className="font-bold text-[11px] text-gray-900 mb-1 leading-tight">
                         {poi.name}
                       </h3>
-                      <p className="text-[9px] font-mono text-gray-500 mb-1 leading-tight">
-                        {poi.lat.toFixed(6)}, {poi.lng.toFixed(6)}
-                      </p>
                       <a
                         href={poi.url}
                         target="_blank"
@@ -1150,6 +1261,82 @@ export function RoutesMapView({
                         <span>Ver boletín</span>
                       </a>
                     </div>
+                  </div>
+                </div>
+              </Popup>
+            )}
+          </Marker>
+        ))}
+
+        {/* Marcadores de cámaras DGT (solo las visibles en el recuadro actual del mapa) */}
+        {showDgtCameras && visibleDgtCameras.map((camera, index) => (
+          <Marker
+            key={`dgt-camera-${index}`}
+            longitude={camera.longitud}
+            latitude={camera.latitud}
+            anchor="bottom"
+          >
+            <div
+              className="cursor-pointer"
+              onClick={(e: any) => {
+                e.stopPropagation()
+                setSelectedDgtCameraIndex(selectedDgtCameraIndex === index ? null : index)
+              }}
+            >
+              <div className="relative">
+                <div className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-600 text-white shadow-md">
+                  <Camera className="w-4 h-4" />
+                </div>
+                <div
+                  className="absolute bg-blue-600"
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    bottom: '-4px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                  }}
+                />
+              </div>
+            </div>
+            {selectedDgtCameraIndex === index && (
+              <Popup
+                longitude={camera.longitud}
+                latitude={camera.latitud}
+                anchor="bottom"
+                onClose={() => setSelectedDgtCameraIndex(null)}
+                closeButton={false}
+                closeOnClick={false}
+              >
+                <div className="p-1.5 rounded-xl bg-white border border-gray-200 shadow-xl max-w-[260px]">
+                  <div className="flex flex-col gap-1.5">
+                    <div>
+                      <h3 className="font-bold text-[11px] text-gray-900 leading-tight">
+                        {camera.carretera} pk: {camera.pk}
+                      </h3>
+                      <p className="text-[9px] text-gray-500 leading-tight">
+                        {camera.provincia}
+                      </p>
+                    </div>
+                    <div className="relative w-full overflow-hidden rounded-md border border-gray-200 bg-black/5">
+                      <img
+                        src={camera.imagen}
+                        alt={`${camera.carretera} pk ${camera.pk}`}
+                        className="block w-full max-h-[180px] object-contain bg-black"
+                        loading="lazy"
+                      />
+                    </div>
+                    <a
+                      href={camera.imagen}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[9px] text-blue-600 hover:text-blue-700 font-semibold transition-colors"
+                    >
+                      <ExternalLink className="h-2.5 w-2.5" />
+                      <span>Abrir en nueva pestaña</span>
+                    </a>
                   </div>
                 </div>
               </Popup>

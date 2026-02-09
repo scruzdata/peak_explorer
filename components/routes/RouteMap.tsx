@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { Route } from '@/types'
 import dynamic from 'next/dynamic'
-import { Car, RotateCcw, Play, Pause, Square, Download, Eye, EyeOff, Menu, X, Maximize2, Minimize2, UtensilsCrossed, Search, ExternalLink, MapPin, Mountain } from 'lucide-react'
+import { Car, RotateCcw, Play, Pause, Square, Download, Eye, EyeOff, Menu, X, Maximize2, Minimize2, UtensilsCrossed, Search, ExternalLink, MapPin, Mountain, Camera } from 'lucide-react'
 // Iconos de react-icons para waypoints
 // Usando iconos de diferentes familias para asegurar que todos existan
 import { 
@@ -24,6 +24,7 @@ import { RouteElevationProfile } from './RouteElevationProfile'
 import { calculateSlope, getSlopeColor } from '@/lib/utils'
 import type { MapRef } from 'react-map-gl'
 import type { WaypointType } from '@/types'
+import camerasJson from '../../public/cameras.json'
 
 /**
  * Obtiene el icono apropiado para un tipo de waypoint
@@ -102,6 +103,33 @@ const Layer = dynamic(
   { ssr: false }
 )
 
+interface DgtCameraPOI {
+  latitud: number
+  longitud: number
+  imagen: string
+  carretera: string
+  pk: string
+  provincia: string
+}
+
+const DGT_CAMERAS: DgtCameraPOI[] = (camerasJson as any[])
+  .map((item: any) => {
+    const lat = Number(item.latitud)
+    const lng = Number(item.longitud)
+    if (Number.isNaN(lat) || Number.isNaN(lng)) return null
+    return {
+      latitud: lat,
+      longitud: lng,
+      imagen: String(item.imagen ?? ''),
+      carretera: String(item.carretera ?? ''),
+      pk: String(item.pk ?? ''),
+      provincia: String(item.provincia ?? ''),
+    }
+  })
+  .filter((item: DgtCameraPOI | null): item is DgtCameraPOI => {
+    return !!item && item.latitud !== 0 && item.longitud !== 0
+  })
+
 
 interface RouteMapProps {
   route: Route
@@ -128,6 +156,8 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
   const [showSlopeColors, setShowSlopeColors] = useState(false)
   const [selectedRestaurant, setSelectedRestaurant] = useState<number | null>(null)
   const [internalSelectedWaypoint, setInternalSelectedWaypoint] = useState<number | null>(null)
+  const [showDgtCameras, setShowDgtCameras] = useState(false)
+  const [selectedDgtCameraIndex, setSelectedDgtCameraIndex] = useState<number | null>(null)
   
   // Usar el waypoint externo si está disponible, sino usar el interno
   const selectedWaypoint = externalSelectedWaypoint !== undefined ? externalSelectedWaypoint : internalSelectedWaypoint
@@ -148,6 +178,7 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
   const animationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const mapRef = useRef<MapRef | null>(null)
   const mapInstanceRef = useRef<any>(null)
+  const [mapBounds, setMapBounds] = useState<{ north: number; south: number; east: number; west: number } | null>(null)
 
   // Mostrar indicador de zoom cuando se activa el modo interactivo
   useEffect(() => {
@@ -231,6 +262,39 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
   
   const [viewState, setViewState] = useState(initialViewState)
 
+  const isDgtZoomEnabled = useMemo(() => {
+    if (!viewState) return false
+    return viewState.zoom >= 11
+  }, [viewState])
+
+  const visibleDgtCameras = useMemo(() => {
+    if (!mapBounds) return []
+    const { north, south, east, west } = mapBounds
+    return DGT_CAMERAS.filter((camera) => {
+      const lat = camera.latitud
+      const lng = camera.longitud
+      const inLat = lat >= south && lat <= north
+      const inLng =
+        east >= west
+          ? lng >= west && lng <= east
+          : lng >= west || lng <= east
+      return inLat && inLng
+    })
+  }, [mapBounds])
+
+  // Sincronizar automáticamente showDgtCameras con el zoom
+  // Las cámaras aparecen automáticamente cuando zoom >= 11 y desaparecen cuando zoom < 11
+  useEffect(() => {
+    if (isDgtZoomEnabled) {
+      // Cuando el zoom es suficiente, mostrar las cámaras automáticamente
+      setShowDgtCameras(true)
+    } else {
+      // Cuando el zoom es insuficiente, ocultar las cámaras automáticamente
+      setShowDgtCameras(false)
+      setSelectedDgtCameraIndex(null)
+    }
+  }, [isDgtZoomEnabled])
+
   /**
    * Importa dinámicamente los estilos de Mapbox cuando el componente se monta
    */
@@ -306,15 +370,43 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
   }, [isFullscreen])
 
   /**
+   * Calcula y actualiza los bounds del mapa
+   */
+  const updateMapBounds = useCallback(() => {
+    try {
+      const map = mapInstanceRef.current || mapRef.current?.getMap()
+      if (map) {
+        const bounds = map.getBounds()
+        if (bounds) {
+          const ne = (bounds as any)._ne
+          const sw = (bounds as any)._sw
+          if (ne && sw) {
+            setMapBounds({
+              north: ne.lat,
+              south: sw.lat,
+              east: ne.lng,
+              west: sw.lng,
+            })
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error obteniendo bounds del mapa (detalle ruta):', error)
+    }
+  }, [])
+
+  /**
    * Maneja el cambio de vista del mapa
    */
   const onMove = useCallback((evt: { viewState: { longitude: number; latitude: number; zoom: number; pitch?: number; bearing?: number } }) => {
-    setViewState({
+    const newViewState = {
       ...evt.viewState,
       pitch: evt.viewState.pitch ?? 0,
       bearing: evt.viewState.bearing ?? 0,
-    })
-  }, [])
+    }
+    setViewState(newViewState)
+    updateMapBounds()
+  }, [updateMapBounds])
 
   /**
    * Encuentra el índice del punto más cercano en el track a unas coordenadas dadas
@@ -447,7 +539,10 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
     if (selectedRestaurant !== null) {
       setSelectedRestaurant(null)
     }
-  }, [selectedWaypoint, setSelectedWaypoint, selectedParking, setSelectedParking, selectedRestaurant, setSelectedRestaurant])
+    if (selectedDgtCameraIndex !== null) {
+      setSelectedDgtCameraIndex(null)
+    }
+  }, [selectedWaypoint, setSelectedWaypoint, selectedParking, setSelectedParking, selectedRestaurant, setSelectedRestaurant, selectedDgtCameraIndex])
 
   /**
    * Alterna entre estilos de mapa satélite y outdoors
@@ -740,6 +835,29 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
           if (evt.target) {
             mapInstanceRef.current = evt.target
           }
+          // Calcular bounds iniciales cuando el mapa se carga
+          setTimeout(() => {
+            try {
+              const map = evt.target || mapInstanceRef.current || mapRef.current?.getMap()
+              if (map) {
+                const bounds = map.getBounds()
+                if (bounds) {
+                  const ne = (bounds as any)._ne
+                  const sw = (bounds as any)._sw
+                  if (ne && sw) {
+                    setMapBounds({
+                      north: ne.lat,
+                      south: sw.lat,
+                      east: ne.lng,
+                      west: sw.lng,
+                    })
+                  }
+                }
+              }
+            } catch (error) {
+              console.error('Error obteniendo bounds iniciales del mapa:', error)
+            }
+          }, 100) // Pequeño delay para asegurar que el mapa esté completamente renderizado
         }}
         onMouseMove={handleMapMouseMove}
         onMouseLeave={handleMapMouseLeave}
@@ -924,6 +1042,82 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
                         <span>Google Maps</span>
                       </a>
                     </div>
+                  </div>
+                </div>
+              </Popup>
+            )}
+          </Marker>
+        ))}
+
+        {/* Marcadores de cámaras DGT (solo las visibles en el recuadro actual del mapa) */}
+        {showDgtCameras && visibleDgtCameras.map((camera, index) => (
+          <Marker
+            key={`dgt-camera-${index}`}
+            longitude={camera.longitud}
+            latitude={camera.latitud}
+            anchor="bottom"
+          >
+            <div
+              className="cursor-pointer"
+              onClick={(e: React.MouseEvent) => {
+                e.stopPropagation()
+                setSelectedDgtCameraIndex(selectedDgtCameraIndex === index ? null : index)
+              }}
+            >
+              <div className="relative">
+                <div className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-600 text-white shadow-md">
+                  <Camera className="w-4 h-4" />
+                </div>
+                <div
+                  className="absolute bg-blue-600"
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    bottom: '-4px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                  }}
+                />
+              </div>
+            </div>
+            {selectedDgtCameraIndex === index && (
+              <Popup
+                longitude={camera.longitud}
+                latitude={camera.latitud}
+                anchor="bottom"
+                onClose={() => setSelectedDgtCameraIndex(null)}
+                closeButton={false}
+                closeOnClick={false}
+              >
+                <div className="p-1.5 rounded-xl bg-white border border-gray-200 shadow-xl max-w-[260px]">
+                  <div className="flex flex-col gap-1.5">
+                    <div>
+                      <h3 className="font-bold text-[11px] text-gray-900 leading-tight">
+                        {camera.carretera} pk: {camera.pk}
+                      </h3>
+                      <p className="text-[9px] text-gray-500 leading-tight">
+                        {camera.provincia}
+                      </p>
+                    </div>
+                    <div className="relative w-full overflow-hidden rounded-md border border-gray-200 bg-black/5">
+                      <img
+                        src={camera.imagen}
+                        alt={`${camera.carretera} pk ${camera.pk}`}
+                        className="block w-full max-h-[180px] object-contain bg-black"
+                        loading="lazy"
+                      />
+                    </div>
+                    <a
+                      href={camera.imagen}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[9px] text-blue-600 hover:text-blue-700 font-semibold transition-colors"
+                    >
+                      <ExternalLink className="h-2.5 w-2.5" />
+                      <span>Abrir en nueva pestaña</span>
+                    </a>
                   </div>
                 </div>
               </Popup>
@@ -1229,6 +1423,32 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
               {showSlopeColors ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
               <span>Colores pendiente</span>
             </button>
+                <button
+                  onClick={() => {
+                    if (!isDgtZoomEnabled) return
+                    // Solo permitir forzar el estado cuando el zoom es suficiente
+                    setShowDgtCameras(!showDgtCameras)
+                    setIsMenuOpen(false)
+                  }}
+                  disabled={!isDgtZoomEnabled}
+                  className={`px-2 py-1.5 text-left transition-colors text-xs font-medium flex items-center gap-1.5 rounded ${
+                    !isDgtZoomEnabled
+                      ? 'bg-gray-50 text-gray-400 cursor-not-allowed'
+                      : showDgtCameras
+                        ? 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                        : 'hover:bg-gray-50 text-gray-700'
+                  }`}
+                  title={
+                    !isDgtZoomEnabled
+                      ? 'Acércate más con el zoom para ver las cámaras'
+                      : showDgtCameras
+                        ? 'Ocultar cámaras(se mostrarán automáticamente al hacer zoom in)'
+                        : 'Mostrar cámaras'
+                  }
+                >
+                  <Camera className="h-3 w-3" />
+                  <span>Cámaras</span>
+                </button>
             {route.parking && route.parking.length > 0 && (
               <button
                 onClick={() => {
@@ -1303,6 +1523,34 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
               <Map
                 {...viewState}
                 onMove={onMove}
+                onLoad={(evt: any) => {
+                  if (evt.target) {
+                    mapInstanceRef.current = evt.target
+                  }
+                  // Calcular bounds iniciales cuando el mapa se carga en pantalla completa
+                  setTimeout(() => {
+                    try {
+                      const map = evt.target || mapInstanceRef.current || mapRef.current?.getMap()
+                      if (map) {
+                        const bounds = map.getBounds()
+                        if (bounds) {
+                          const ne = (bounds as any)._ne
+                          const sw = (bounds as any)._sw
+                          if (ne && sw) {
+                            setMapBounds({
+                              north: ne.lat,
+                              south: sw.lat,
+                              east: ne.lng,
+                              west: sw.lng,
+                            })
+                          }
+                        }
+                      }
+                    } catch (error) {
+                      console.error('Error obteniendo bounds iniciales del mapa (pantalla completa):', error)
+                    }
+                  }, 100)
+                }}
                 onMouseMove={handleMapMouseMove}
                 onMouseLeave={handleMapMouseLeave}
                 onClick={handleMapClick}
@@ -1476,6 +1724,82 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
                                 <span>Google Maps</span>
                               </a>
                             </div>
+                          </div>
+                        </div>
+                      </Popup>
+                    )}
+                  </Marker>
+                ))}
+
+                {/* Marcadores de cámaras DGT en pantalla completa (solo las visibles en el recuadro actual del mapa) */}
+                {showDgtCameras && visibleDgtCameras.map((camera, index) => (
+                  <Marker
+                    key={`fullscreen-dgt-camera-${index}`}
+                    longitude={camera.longitud}
+                    latitude={camera.latitud}
+                    anchor="bottom"
+                  >
+                    <div
+                      className="cursor-pointer"
+                      onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation()
+                        setSelectedDgtCameraIndex(selectedDgtCameraIndex === index ? null : index)
+                      }}
+                    >
+                      <div className="relative">
+                        <div className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-600 text-white shadow-md">
+                          <Camera className="w-4 h-4" />
+                        </div>
+                        <div
+                          className="absolute bg-blue-600"
+                          style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            bottom: '-4px',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                          }}
+                        />
+                      </div>
+                    </div>
+                    {selectedDgtCameraIndex === index && (
+                      <Popup
+                        longitude={camera.longitud}
+                        latitude={camera.latitud}
+                        anchor="bottom"
+                        onClose={() => setSelectedDgtCameraIndex(null)}
+                        closeButton={false}
+                        closeOnClick={false}
+                      >
+                        <div className="p-1.5 rounded-xl bg-white border border-gray-200 shadow-xl max-w-[260px]">
+                          <div className="flex flex-col gap-1.5">
+                            <div>
+                              <h3 className="font-bold text-[11px] text-gray-900 leading-tight">
+                                {camera.carretera} pk: {camera.pk}
+                              </h3>
+                              <p className="text-[9px] text-gray-500 leading-tight">
+                                {camera.provincia}
+                              </p>
+                            </div>
+                            <div className="relative w-full overflow-hidden rounded-md border border-gray-200 bg-black/5">
+                              <img
+                                src={camera.imagen}
+                                alt={`${camera.carretera} pk ${camera.pk}`}
+                                className="block w-full max-h-[220px] object-contain bg-black"
+                                loading="lazy"
+                              />
+                            </div>
+                            <a
+                              href={camera.imagen}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[9px] text-blue-600 hover:text-blue-700 font-semibold transition-colors"
+                            >
+                              <ExternalLink className="h-2.5 w-2.5" />
+                              <span>Abrir en nueva pestaña</span>
+                            </a>
                           </div>
                         </div>
                       </Popup>
