@@ -29,10 +29,28 @@ function normalizeToArray<T>(value: T | T[]): T[] {
 }
 
 /**
+ * Ordena los grados de ferrata de menor a mayor (K1, K2, K3, K4, K5, K6)
+ */
+function sortFerrataGrades(grades: FerrataGrade[]): FerrataGrade[] {
+  const order: FerrataGrade[] = ['K1', 'K2', 'K3', 'K4', 'K5', 'K6']
+  return grades.sort((a, b) => order.indexOf(a) - order.indexOf(b))
+}
+
+/**
  * Formatea un array de valores separados por guiones (ej: "K2-K3" o "Fácil-Moderada")
+ * Para grados de ferrata, los ordena de menor a mayor
  */
 export function formatArrayWithDashes<T extends string>(values: T | T[]): string {
   const arr = normalizeToArray(values)
+  // Si son grados de ferrata, ordenarlos
+  if (arr.length > 0 && typeof arr[0] === 'string' && arr[0].startsWith('K') && arr[0].length <= 3) {
+    // Verificar que todos los valores sean grados válidos de ferrata
+    const validGrades: FerrataGrade[] = ['K1', 'K2', 'K3', 'K4', 'K5', 'K6']
+    if (arr.every(g => validGrades.includes(g as FerrataGrade))) {
+      const sorted = sortFerrataGrades(arr as FerrataGrade[])
+      return sorted.join('-')
+    }
+  }
   return arr.join('-')
 }
 
@@ -55,11 +73,13 @@ export function getDifficultyColor(difficulty: Difficulty | Difficulty[]): strin
 
 /**
  * Devuelve las clases de color de Tailwind según el grado de vía ferrata
- * Si es un array, usa el color del primer valor
+ * Si es un array, usa el color del grado más alto (más difícil)
  */
 export function getFerrataGradeColor(grade: FerrataGrade | FerrataGrade[]): string {
   const arr = normalizeToArray(grade)
-  const firstGrade = arr[0]
+  // Ordenar y tomar el último (grado más alto)
+  const sorted = sortFerrataGrades(arr)
+  const highestGrade = sorted[sorted.length - 1]
   const colors: Record<string, string> = {
     'K1': 'bg-green-100 text-green-800',
     'K2': 'bg-blue-100 text-blue-800',
@@ -68,7 +88,7 @@ export function getFerrataGradeColor(grade: FerrataGrade | FerrataGrade[]): stri
     'K5': 'bg-red-100 text-red-800',
     'K6': 'bg-purple-100 text-purple-800',
   }
-  return colors[firstGrade] || 'bg-gray-100 text-gray-800'
+  return colors[highestGrade] || 'bg-gray-100 text-gray-800'
 }
 
 export function generateSlug(text: string): string {

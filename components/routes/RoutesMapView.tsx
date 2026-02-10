@@ -268,12 +268,25 @@ function getDifficultyBorderColor(difficulty: string | string[] | undefined): { 
 }
 
 /**
+ * Ordena los grados de ferrata de menor a mayor (K1, K2, K3, K4, K5, K6)
+ */
+function sortFerrataGrades(grades: FerrataGrade[]): FerrataGrade[] {
+  const order: FerrataGrade[] = ['K1', 'K2', 'K3', 'K4', 'K5', 'K6']
+  return grades.sort((a, b) => order.indexOf(a) - order.indexOf(b))
+}
+
+/**
  * Obtiene el color del borde según el grado K de la vía ferrata
- * Si es un array, usa el color del primer valor
+ * Si es un array, usa el color del grado más alto (más difícil)
  */
 function getFerrataGradeBorderColor(grade: FerrataGrade | FerrataGrade[] | undefined): { border: string; text: string } {
-  const firstGrade = getFirstValue(grade)
-  if (!firstGrade) return { border: 'border-gray-600', text: 'text-gray-600' }
+  if (!grade) return { border: 'border-gray-600', text: 'text-gray-600' }
+  
+  // Normalizar a array y ordenar
+  const grades = Array.isArray(grade) ? grade : [grade]
+  const sorted = sortFerrataGrades(grades)
+  const highestGrade = sorted[sorted.length - 1] // Grado más alto (más difícil)
+  
   const colors: Record<FerrataGrade, { border: string; text: string }> = {
     'K1': { border: 'border-green-600', text: 'text-green-600' },
     'K2': { border: 'border-blue-600', text: 'text-blue-600' },
@@ -282,7 +295,7 @@ function getFerrataGradeBorderColor(grade: FerrataGrade | FerrataGrade[] | undef
     'K5': { border: 'border-red-600', text: 'text-red-600' },
     'K6': { border: 'border-purple-600', text: 'text-purple-600' },
   }
-  return colors[firstGrade] || { border: 'border-gray-600', text: 'text-gray-600' }
+  return colors[highestGrade] || { border: 'border-gray-600', text: 'text-gray-600' }
 }
 
 /**
