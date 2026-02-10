@@ -155,15 +155,21 @@ export function RouteList({ routes, type }: RouteListProps) {
 
       // Difficulty filter (only for trekking)
       if (type === 'trekking') {
-        if (selectedDifficulty !== 'all' && route.difficulty !== selectedDifficulty) {
-          return false
+        if (selectedDifficulty !== 'all') {
+          const difficulties = Array.isArray(route.difficulty) ? route.difficulty : [route.difficulty]
+          if (!difficulties.includes(selectedDifficulty)) {
+            return false
+          }
         }
       }
 
       // Grade filter (only for ferratas)
       if (type === 'ferrata') {
-        if (selectedGrade !== 'all' && route.ferrataGrade !== selectedGrade) {
-          return false
+        if (selectedGrade !== 'all' && route.ferrataGrade) {
+          const grades = Array.isArray(route.ferrataGrade) ? route.ferrataGrade : [route.ferrataGrade]
+          if (!grades.includes(selectedGrade)) {
+            return false
+          }
         }
       }
 

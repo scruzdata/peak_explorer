@@ -83,12 +83,24 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
   }
 
   // Función para inicializar formData desde route
-  const initializeFormData = useCallback((routeData?: Route): Partial<Route> => ({
-    type: routeData?.type || 'trekking',
-    title: routeData?.title || '',
-    summary: routeData?.summary || '',
-    difficulty: routeData?.difficulty || 'Moderada',
-    ferrataGrade: routeData?.ferrataGrade,
+  const initializeFormData = useCallback((routeData?: Route): Partial<Route> => {
+    // Normalizar difficulty y ferrataGrade a arrays
+    const normalizeDifficulty = (diff: Difficulty | Difficulty[] | undefined): Difficulty[] => {
+      if (!diff) return ['Moderada']
+      return Array.isArray(diff) ? diff : [diff]
+    }
+    
+    const normalizeFerrataGrade = (grade: FerrataGrade | FerrataGrade[] | undefined): FerrataGrade[] | undefined => {
+      if (!grade) return undefined
+      return Array.isArray(grade) ? grade : [grade]
+    }
+    
+    return {
+      type: routeData?.type || 'trekking',
+      title: routeData?.title || '',
+      summary: routeData?.summary || '',
+      difficulty: normalizeDifficulty(routeData?.difficulty),
+      ferrataGrade: normalizeFerrataGrade(routeData?.ferrataGrade),
     distance: routeData?.distance || 0,
     elevation: routeData?.elevation || 0,
     duration: routeData?.duration || '',
@@ -137,7 +149,8 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
     views: routeData?.views || 0,
     downloads: routeData?.downloads || 0,
     rating: routeData?.rating ?? 0,
-  }), [])
+    }
+  }, [])
 
   const [formData, setFormData] = useState<Partial<Route>>(initializeFormData(route))
 
@@ -191,12 +204,20 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
         }
         
         // Asegurar que tenemos todos los campos requeridos
+        // Normalizar difficulty y ferrataGrade a arrays si no lo son
+        const normalizedDifficulty = Array.isArray(dataToSave.difficulty) 
+          ? dataToSave.difficulty 
+          : (dataToSave.difficulty ? [dataToSave.difficulty] : ['Moderada'])
+        const normalizedFerrataGrade = dataToSave.ferrataGrade
+          ? (Array.isArray(dataToSave.ferrataGrade) ? dataToSave.ferrataGrade : [dataToSave.ferrataGrade])
+          : undefined
+        
         const fullRouteData: Omit<Route, 'id' | 'slug' | 'createdAt' | 'updatedAt'> = {
           type: dataToSave.type || 'trekking',
           title: dataToSave.title || '',
           summary: dataToSave.summary || '',
-          difficulty: dataToSave.difficulty || 'Moderada',
-          ferrataGrade: dataToSave.ferrataGrade,
+          difficulty: normalizedDifficulty,
+          ferrataGrade: normalizedFerrataGrade,
           distance: dataToSave.distance || 0,
           elevation: dataToSave.elevation || 0,
           duration: dataToSave.duration || '',
@@ -886,34 +907,71 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
               {formData.type === 'ferrata' && (
                 <div>
                   <label className="block text-sm font-medium mb-1">Grado Ferrata</label>
-                  <select
-                    value={formData.ferrataGrade || 'K1'}
-                    onChange={(e) => updateField('ferrataGrade', e.target.value as FerrataGrade)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  >
-                    <option value="K1">K1</option>
-                    <option value="K2">K2</option>
-                    <option value="K3">K3</option>
-                    <option value="K4">K4</option>
-                    <option value="K5">K5</option>
-                    <option value="K6">K6</option>
-                  </select>
+                  <div className="border border-gray-300 rounded-md p-2 space-y-2 max-h-48 overflow-y-auto">
+                    {(['K1', 'K2', 'K3', 'K4', 'K5', 'K6'] as FerrataGrade[]).map((grade) => {
+                      const currentGrades = Array.isArray(formData.ferrataGrade) ? formData.ferrataGrade : (formData.ferrataGrade ? [formData.ferrataGrade] : [])
+                      const isChecked = currentGrades.includes(grade)
+                      return (
+                        <label key={grade} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              const currentGrades = Array.isArray(formData.ferrataGrade) ? formData.ferrataGrade : (formData.ferrataGrade ? [formData.ferrataGrade] : [])
+                              if (e.target.checked) {
+                                updateField('ferrataGrade', [...currentGrades, grade])
+                              } else {
+                                updateField('ferrataGrade', currentGrades.filter(g => g !== grade).length > 0 ? currentGrades.filter(g => g !== grade) : undefined)
+                              }
+                            }}
+                            className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                          />
+                          <span className="text-sm">{grade}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                  {Array.isArray(formData.ferrataGrade) && formData.ferrataGrade.length > 0 && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      Seleccionado: {formData.ferrataGrade.join('-')}
+                    </p>
+                  )}
                 </div>
               )}
 
               <div>
                 <label className="block text-sm font-medium mb-1">Dificultad</label>
-                <select
-                  value={formData.difficulty}
-                  onChange={(e) => updateField('difficulty', e.target.value as Difficulty)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  required
-                >
-                  <option value="Fácil">Fácil</option>
-                  <option value="Moderada">Moderada</option>
-                  <option value="Difícil">Difícil</option>
-                  <option value="Muy Difícil">Muy Difícil</option>
-                </select>
+                <div className="border border-gray-300 rounded-md p-2 space-y-2 max-h-48 overflow-y-auto">
+                  {(['Fácil', 'Moderada', 'Difícil', 'Muy Difícil', 'Extrema'] as Difficulty[]).map((difficulty) => {
+                    const currentDifficulties = Array.isArray(formData.difficulty) ? formData.difficulty : (formData.difficulty ? [formData.difficulty] : ['Moderada'])
+                    const isChecked = currentDifficulties.includes(difficulty)
+                    return (
+                      <label key={difficulty} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            const currentDifficulties = Array.isArray(formData.difficulty) ? formData.difficulty : (formData.difficulty ? [formData.difficulty] : ['Moderada'])
+                            if (e.target.checked) {
+                              updateField('difficulty', [...currentDifficulties, difficulty])
+                            } else {
+                              const newDifficulties = currentDifficulties.filter(d => d !== difficulty)
+                              updateField('difficulty', newDifficulties.length > 0 ? newDifficulties : ['Moderada'])
+                            }
+                          }}
+                          className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                          required={Array.isArray(formData.difficulty) ? formData.difficulty.length === 0 : !formData.difficulty}
+                        />
+                        <span className="text-sm">{difficulty}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+                {Array.isArray(formData.difficulty) && formData.difficulty.length > 0 && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    Seleccionado: {formData.difficulty.join('-')}
+                  </p>
+                )}
               </div>
 
               <div>

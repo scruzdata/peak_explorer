@@ -230,7 +230,14 @@ export function AdminPanel() {
   }, [routes])
 
   const uniqueDifficulties = useMemo(() => {
-    const difficulties = new Set(routes.map((r: Route) => r.difficulty))
+    const difficulties = new Set<Difficulty>()
+    routes.forEach((r: Route) => {
+      if (Array.isArray(r.difficulty)) {
+        r.difficulty.forEach(d => difficulties.add(d))
+      } else {
+        difficulties.add(r.difficulty)
+      }
+    })
     return Array.from(difficulties).sort()
   }, [routes])
 
@@ -248,8 +255,11 @@ export function AdminPanel() {
       }
 
       // Filtro por dificultad
-      if (filterDifficulty !== 'all' && route.difficulty !== filterDifficulty) {
-        return false
+      if (filterDifficulty !== 'all') {
+        const difficulties = Array.isArray(route.difficulty) ? route.difficulty : [route.difficulty]
+        if (!difficulties.includes(filterDifficulty)) {
+          return false
+        }
       }
 
       // Filtro por búsqueda de texto (solo título)
@@ -554,7 +564,7 @@ export function AdminPanel() {
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 text-xs text-gray-500">
-                      {route.difficulty}
+                      {Array.isArray(route.difficulty) ? route.difficulty.join('-') : route.difficulty}
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 text-xs text-gray-500">
                       {route.location.region}
@@ -573,7 +583,7 @@ export function AdminPanel() {
                     <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-medium">
                       <div className="flex items-center justify-end space-x-1">
                         <Link
-                          href={`/rutas/${route.slug}`}
+                          href={`/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`}
                           className="text-primary-600 hover:text-primary-900"
                           title="Ver"
                           target="_blank"

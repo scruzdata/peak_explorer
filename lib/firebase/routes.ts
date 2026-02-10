@@ -353,11 +353,16 @@ export async function updateRouteInFirestore(
         } else {
           // Si no existe en Firestore, crear una nueva
           console.log(`📝 Ruta no existe en Firestore, creando nueva...`)
+          // Normalizar difficulty a array si no lo es
+          const normalizedDifficulty = routeData.difficulty
+            ? (Array.isArray(routeData.difficulty) ? routeData.difficulty : [routeData.difficulty])
+            : ['Moderada']
+          
           const fullRouteData = {
             ...routeData,
             title: routeData.title || 'Ruta sin título',
             type: routeData.type || 'trekking',
-            difficulty: routeData.difficulty || 'Moderada',
+            difficulty: normalizedDifficulty,
             distance: routeData.distance || 0,
             elevation: routeData.elevation || 0,
             duration: routeData.duration || '',

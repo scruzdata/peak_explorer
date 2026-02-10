@@ -5,7 +5,7 @@ import { Route, FerrataGrade } from '@/types'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import { Mountain, Star, X, RotateCcw, Eye, EyeOff, MapPin, ZoomIn, Clock, TrendingUp, ExternalLink, Camera } from 'lucide-react'
-import { getDifficultyColor, getFerrataGradeColor, formatDistance, formatElevation } from '@/lib/utils'
+import { getDifficultyColor, getFerrataGradeColor, formatDistance, formatElevation, formatArrayWithDashes } from '@/lib/utils'
 import type { MapRef } from 'react-map-gl'
 import { RouteElevationProfile } from './RouteElevationProfile'
 import camerasJson from '../../public/cameras.json'
@@ -244,9 +244,36 @@ export function FerrataClimberIcon({ className, color }: { className?: string; c
 }
 
 /**
- * Obtiene el color del borde según el grado K de la vía ferrata
+ * Helper para obtener el primer valor de un array o el valor único
  */
-function getFerrataGradeBorderColor(grade: FerrataGrade | undefined): { border: string; text: string } {
+function getFirstValue<T>(value: T | T[] | undefined): T | undefined {
+  if (!value) return undefined
+  return Array.isArray(value) ? value[0] : value
+}
+
+/**
+ * Helper para obtener el color según la dificultad (maneja arrays)
+ */
+function getDifficultyBorderColor(difficulty: string | string[] | undefined): { border: string; text: string } {
+  const firstDiff = getFirstValue(difficulty)
+  if (!firstDiff) return { border: 'border-gray-600', text: 'text-gray-600' }
+  const colors: Record<string, { border: string; text: string }> = {
+    'Fácil': { border: 'border-green-600', text: 'text-green-600' },
+    'Moderada': { border: 'border-orange-600', text: 'text-orange-600' },
+    'Difícil': { border: 'border-red-600', text: 'text-red-600' },
+    'Muy Difícil': { border: 'border-purple-600', text: 'text-purple-600' },
+    'Extrema': { border: 'border-purple-600', text: 'text-purple-600' },
+  }
+  return colors[firstDiff] || { border: 'border-gray-600', text: 'text-gray-600' }
+}
+
+/**
+ * Obtiene el color del borde según el grado K de la vía ferrata
+ * Si es un array, usa el color del primer valor
+ */
+function getFerrataGradeBorderColor(grade: FerrataGrade | FerrataGrade[] | undefined): { border: string; text: string } {
+  const firstGrade = getFirstValue(grade)
+  if (!firstGrade) return { border: 'border-gray-600', text: 'text-gray-600' }
   const colors: Record<FerrataGrade, { border: string; text: string }> = {
     'K1': { border: 'border-green-600', text: 'text-green-600' },
     'K2': { border: 'border-blue-600', text: 'text-blue-600' },
@@ -255,7 +282,7 @@ function getFerrataGradeBorderColor(grade: FerrataGrade | undefined): { border: 
     'K5': { border: 'border-red-600', text: 'text-red-600' },
     'K6': { border: 'border-purple-600', text: 'text-purple-600' },
   }
-  return colors[grade as FerrataGrade] || { border: 'border-gray-600', text: 'text-gray-600' }
+  return colors[firstGrade] || { border: 'border-gray-600', text: 'text-gray-600' }
 }
 
 /**
@@ -990,11 +1017,7 @@ export function RoutesMapView({
                   } ${
                     type === 'ferrata' && route.ferrataGrade
                       ? getFerrataGradeBorderColor(route.ferrataGrade).border
-                      : route.difficulty === 'Fácil' ? 'border-green-600' :
-                        route.difficulty === 'Moderada' ? 'border-orange-600' :
-                        route.difficulty === 'Difícil' ? 'border-red-600' :
-                        route.difficulty === 'Muy Difícil' ? 'border-purple-600' :
-                        'border-gray-600'
+                      : getDifficultyBorderColor(route.difficulty).border
                   }`}
                   style={{ zIndex: 1000 }}
                   >
@@ -1005,17 +1028,11 @@ export function RoutesMapView({
                           : 'text-gray-600'
                       }`} />
                     ) : (
-                      <Mountain className={`h-5 w-5 transition-all duration-300 ${
-                        route.difficulty === 'Fácil' ? 'text-green-600' :
-                        route.difficulty === 'Moderada' ? 'text-orange-600' :
-                        route.difficulty === 'Difícil' ? 'text-red-600' :
-                        route.difficulty === 'Muy Difícil' ? 'text-purple-600' :
-                        'text-gray-600'
-                      }`} />
+                      <Mountain className={`h-5 w-5 transition-all duration-300 ${getDifficultyBorderColor(route.difficulty).text}`} />
                     )}
                     {type === 'ferrata' && route.ferrataGrade && (
                       <span className={`absolute -bottom-0.5 -right-0.5 text-[7px] px-0.5 py-0.5 rounded font-bold ${getFerrataGradeColor(route.ferrataGrade)} shadow-sm`}>
-                        {route.ferrataGrade}
+                        {formatArrayWithDashes(route.ferrataGrade)}
                       </span>
                     )}
                   </div>
@@ -1076,11 +1093,7 @@ export function RoutesMapView({
                       } shadow-xl relative ${
                         type === 'ferrata' && route.ferrataGrade
                           ? getFerrataGradeBorderColor(route.ferrataGrade).border
-                          : route.difficulty === 'Fácil' ? 'border-green-600' :
-                            route.difficulty === 'Moderada' ? 'border-orange-600' :
-                            route.difficulty === 'Difícil' ? 'border-red-600' :
-                            route.difficulty === 'Muy Difícil' ? 'border-purple-600' :
-                            'border-gray-600'
+                          : getDifficultyBorderColor(route.difficulty).border
                       }`}
                       style={{ zIndex: 99998 }}
                       >
@@ -1095,7 +1108,7 @@ export function RoutesMapView({
                         )}
                         {type === 'ferrata' && route.ferrataGrade && (
                           <span className={`absolute -bottom-0.5 -right-0.5 text-[7px] px-0.5 py-0.5 rounded font-bold ${getFerrataGradeColor(route.ferrataGrade)} shadow-sm`}>
-                            {route.ferrataGrade}
+                            {formatArrayWithDashes(route.ferrataGrade)}
                           </span>
                         )}
                       </div>
@@ -1152,11 +1165,7 @@ export function RoutesMapView({
                   } shadow-xl relative ${
                     type === 'ferrata' && hoveredRouteInCluster.route.ferrataGrade
                       ? getFerrataGradeBorderColor(hoveredRouteInCluster.route.ferrataGrade).border
-                      : hoveredRouteInCluster.route.difficulty === 'Fácil' ? 'border-green-600' :
-                        hoveredRouteInCluster.route.difficulty === 'Moderada' ? 'border-orange-600' :
-                        hoveredRouteInCluster.route.difficulty === 'Difícil' ? 'border-red-600' :
-                        hoveredRouteInCluster.route.difficulty === 'Muy Difícil' ? 'border-purple-600' :
-                        'border-gray-600'
+                      : getDifficultyBorderColor(hoveredRouteInCluster.route.difficulty).border
                   }`}
                   style={{ zIndex: 99998 }}
                   >
@@ -1171,7 +1180,7 @@ export function RoutesMapView({
                     )}
                     {type === 'ferrata' && hoveredRouteInCluster.route.ferrataGrade && (
                       <span className={`absolute -bottom-0.5 -right-0.5 text-[7px] px-0.5 py-0.5 rounded font-bold ${getFerrataGradeColor(hoveredRouteInCluster.route.ferrataGrade)} shadow-sm`}>
-                        {hoveredRouteInCluster.route.ferrataGrade}
+                        {formatArrayWithDashes(hoveredRouteInCluster.route.ferrataGrade)}
                       </span>
                     )}
                   </div>
@@ -1410,18 +1419,18 @@ export function RoutesMapView({
                       <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
                         type === 'ferrata' 
                           ? (route.ferrataGrade 
-                              ? (route.ferrataGrade === 'K1' ? 'bg-green-50' :
-                                 route.ferrataGrade === 'K2' ? 'bg-blue-50' :
-                                 route.ferrataGrade === 'K3' ? 'bg-yellow-50' :
-                                 route.ferrataGrade === 'K4' ? 'bg-orange-50' :
-                                 route.ferrataGrade === 'K5' ? 'bg-red-50' :
-                                 route.ferrataGrade === 'K6' ? 'bg-purple-50' :
+                              ? (getFirstValue(route.ferrataGrade) === 'K1' ? 'bg-green-50' :
+                                 getFirstValue(route.ferrataGrade) === 'K2' ? 'bg-blue-50' :
+                                 getFirstValue(route.ferrataGrade) === 'K3' ? 'bg-yellow-50' :
+                                 getFirstValue(route.ferrataGrade) === 'K4' ? 'bg-orange-50' :
+                                 getFirstValue(route.ferrataGrade) === 'K5' ? 'bg-red-50' :
+                                 getFirstValue(route.ferrataGrade) === 'K6' ? 'bg-purple-50' :
                                  'bg-gray-100')
                               : 'bg-gray-100')
-                          : (route.difficulty === 'Fácil' ? 'bg-green-50' :
-                             route.difficulty === 'Moderada' ? 'bg-orange-50' :
-                             route.difficulty === 'Difícil' ? 'bg-red-50' :
-                             route.difficulty === 'Muy Difícil' ? 'bg-purple-50' :
+                          : (getFirstValue(route.difficulty) === 'Fácil' ? 'bg-green-50' :
+                             getFirstValue(route.difficulty) === 'Moderada' ? 'bg-orange-50' :
+                             getFirstValue(route.difficulty) === 'Difícil' ? 'bg-red-50' :
+                             getFirstValue(route.difficulty) === 'Muy Difícil' ? 'bg-purple-50' :
                              'bg-gray-100')
                       } group-hover:scale-110 transition-transform duration-200`}>
                         {type === 'ferrata' ? (
@@ -1431,13 +1440,7 @@ export function RoutesMapView({
                               : 'text-gray-600'
                           }`} />
                         ) : (
-                          <Mountain className={`h-4 w-4 ${
-                            route.difficulty === 'Fácil' ? 'text-green-600' :
-                            route.difficulty === 'Moderada' ? 'text-orange-600' :
-                            route.difficulty === 'Difícil' ? 'text-red-600' :
-                            route.difficulty === 'Muy Difícil' ? 'text-purple-600' :
-                            'text-gray-600'
-                          }`} />
+                          <Mountain className={`h-4 w-4 ${getDifficultyBorderColor(route.difficulty).text}`} />
                         )}
                       </div>
                       

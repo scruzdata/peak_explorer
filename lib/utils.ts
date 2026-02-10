@@ -18,18 +18,48 @@ export function formatDuration(duration: string): string {
   return duration
 }
 
-// Devuelve las clases de color de Tailwind según la dificultad de la ruta
-export function getDifficultyColor(difficulty: string): string {
+import { Difficulty, FerrataGrade } from '@/types'
+
+/**
+ * Normaliza un valor de dificultad o grado a un array
+ */
+function normalizeToArray<T>(value: T | T[]): T[] {
+  if (Array.isArray(value)) return value
+  return [value]
+}
+
+/**
+ * Formatea un array de valores separados por guiones (ej: "K2-K3" o "Fácil-Moderada")
+ */
+export function formatArrayWithDashes<T extends string>(values: T | T[]): string {
+  const arr = normalizeToArray(values)
+  return arr.join('-')
+}
+
+/**
+ * Devuelve las clases de color de Tailwind según la dificultad de la ruta
+ * Si es un array, usa el color del primer valor
+ */
+export function getDifficultyColor(difficulty: Difficulty | Difficulty[]): string {
+  const arr = normalizeToArray(difficulty)
+  const firstDifficulty = arr[0]
   const colors: Record<string, string> = {
     'Fácil': 'bg-green-100 text-green-800',
     'Moderada': 'bg-orange-100 text-orange-800',
     'Difícil': 'bg-red-100 text-red-800',
     'Muy Difícil': 'bg-purple-100 text-purple-800',
+    'Extrema': 'bg-purple-100 text-purple-800',
   }
-  return colors[difficulty] || 'bg-gray-500 text-white font-semibold'
+  return colors[firstDifficulty] || 'bg-gray-500 text-white font-semibold'
 }
 
-export function getFerrataGradeColor(grade: string): string {
+/**
+ * Devuelve las clases de color de Tailwind según el grado de vía ferrata
+ * Si es un array, usa el color del primer valor
+ */
+export function getFerrataGradeColor(grade: FerrataGrade | FerrataGrade[]): string {
+  const arr = normalizeToArray(grade)
+  const firstGrade = arr[0]
   const colors: Record<string, string> = {
     'K1': 'bg-green-100 text-green-800',
     'K2': 'bg-blue-100 text-blue-800',
@@ -38,7 +68,7 @@ export function getFerrataGradeColor(grade: string): string {
     'K5': 'bg-red-100 text-red-800',
     'K6': 'bg-purple-100 text-purple-800',
   }
-  return colors[grade] || 'bg-gray-100 text-gray-800'
+  return colors[firstGrade] || 'bg-gray-100 text-gray-800'
 }
 
 export function generateSlug(text: string): string {

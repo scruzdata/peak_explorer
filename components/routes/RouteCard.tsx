@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Clock, MapPin, TrendingUp, Star, ChevronLeft, ChevronRight, ExternalLink, Hand } from 'lucide-react'
 import { Route } from '@/types'
-import { formatDistance, formatElevation, getDifficultyColor, getFerrataGradeColor } from '@/lib/utils'
+import { formatDistance, formatElevation, getDifficultyColor, getFerrataGradeColor, formatArrayWithDashes } from '@/lib/utils'
 
 interface RouteCardProps {
   route: Route
@@ -315,11 +315,11 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
           <div className="absolute bottom-2 left-2 z-10 pointer-events-none">
             {type === 'ferrata' && route.ferrataGrade ? (
               <span className={`text-xs px-2 py-1 rounded-md font-medium ${getFerrataGradeColor(route.ferrataGrade)}`}>
-                {route.ferrataGrade}
+                {formatArrayWithDashes(route.ferrataGrade)}
               </span>
             ) : (
               <span className={`text-xs px-2 py-1 rounded-md font-medium ${getDifficultyColor(route.difficulty)}`}>
-                {route.difficulty}
+                {formatArrayWithDashes(route.difficulty)}
               </span>
             )}
           </div>
@@ -692,11 +692,11 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
           <div className="absolute bottom-2 left-2 z-10">
             {type === 'ferrata' && route.ferrataGrade ? (
               <span className={`badge ${getFerrataGradeColor(route.ferrataGrade)}`}>
-                {route.ferrataGrade}
+                {formatArrayWithDashes(route.ferrataGrade)}
               </span>
             ) : (
               <span className={`badge ${getDifficultyColor(route.difficulty)}`}>
-                {route.difficulty}
+                {formatArrayWithDashes(route.difficulty)}
               </span>
             )}
           </div>

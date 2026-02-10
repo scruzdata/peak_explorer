@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Route, WebcamData } from '@/types'
-import { formatDistance, formatElevation, getDifficultyColor, getFerrataGradeColor } from '@/lib/utils'
+import { formatDistance, formatElevation, getDifficultyColor, getFerrataGradeColor, formatArrayWithDashes } from '@/lib/utils'
 import { useUserProgress } from '@/components/providers/UserProgressProvider'
 import { RouteMap } from './RouteMap'
 import { RouteElevationProfile } from './RouteElevationProfile'
@@ -303,11 +303,11 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
             <div className="max-w-3xl">
               <div className="mb-4 flex flex-wrap gap-2">
                 <span className={`badge ${getDifficultyColor(route.difficulty)}`}>
-                  {route.difficulty}
+                  {formatArrayWithDashes(route.difficulty)}
                 </span>
                 {route.ferrataGrade && (
                   <span className={`badge ${getFerrataGradeColor(route.ferrataGrade)}`}>
-                    {route.ferrataGrade}
+                    {formatArrayWithDashes(route.ferrataGrade)}
                   </span>
                 )}
                 <span className="badge bg-white/20 text-white backdrop-blur">

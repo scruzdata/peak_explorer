@@ -65,8 +65,8 @@ export interface Route {
   type: RouteType
   title: string
   summary: string
-  difficulty: Difficulty
-  ferrataGrade?: FerrataGrade
+  difficulty: Difficulty | Difficulty[]
+  ferrataGrade?: FerrataGrade | FerrataGrade[]
   distance: number // km
   elevation: number // metros
   duration: string // "4-5 horas"
