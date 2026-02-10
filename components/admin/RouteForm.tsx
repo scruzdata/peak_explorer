@@ -205,10 +205,10 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
         
         // Asegurar que tenemos todos los campos requeridos
         // Normalizar difficulty y ferrataGrade a arrays si no lo son
-        const normalizedDifficulty = Array.isArray(dataToSave.difficulty) 
+        const normalizedDifficulty: Difficulty[] = Array.isArray(dataToSave.difficulty) 
           ? dataToSave.difficulty 
-          : (dataToSave.difficulty ? [dataToSave.difficulty] : ['Moderada'])
-        const normalizedFerrataGrade = dataToSave.ferrataGrade
+          : (dataToSave.difficulty ? [dataToSave.difficulty] : ['Moderada' as Difficulty])
+        const normalizedFerrataGrade: FerrataGrade[] | undefined = dataToSave.ferrataGrade
           ? (Array.isArray(dataToSave.ferrataGrade) ? dataToSave.ferrataGrade : [dataToSave.ferrataGrade])
           : undefined
         
