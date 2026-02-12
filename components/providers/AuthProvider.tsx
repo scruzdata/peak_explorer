@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Para desarrollo, crear usuario admin por defecto
     const mockUser: User = {
       id: '1',
-      email: 'admin@peak-explorer.com',
+      email: 'admin@peakexplorer.es',
       name: 'Administrador',
       role: 'admin', // Cambiado a admin para desarrollo
       createdAt: new Date().toISOString(),
@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInAsAdmin = async () => {
     const adminUser: User = {
       id: 'admin-1',
-      email: 'admin@peak-explorer.com',
+      email: 'admin@peakexplorer.es',
       name: 'Administrador',
       role: 'admin',
       createdAt: new Date().toISOString(),
@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInAsUser = async () => {
     const normalUser: User = {
       id: 'user-1',
-      email: 'usuario@peak-explorer.com',
+      email: 'usuario@peakexplorer.es',
       name: 'Usuario',
       role: 'user',
       createdAt: new Date().toISOString(),

@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next'
 import { getAllRoutesAsync } from '@/lib/routes'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://peak-explorer.com'
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://peakexplorer.es'
 
   try {
     // Obtener rutas desde Firestore (con fallback a datos estáticos si no está configurado)

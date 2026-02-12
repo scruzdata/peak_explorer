@@ -58,7 +58,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'es_ES',
-    url: 'https://peak-explorer.com',
+    url: 'https://peakexplorer.es',
     siteName: 'Peak Explorer',
     title: 'Peak Explorer - Rutas de Trekking y Vías Ferratas',
     description: 'Descubre las mejores rutas de montaña de España',

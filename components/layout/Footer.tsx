@@ -79,8 +79,8 @@ export function Footer() {
             <ul className="space-y-2 text-sm">
               {/* Optimización accesibilidad: text-primary-300 mejora contraste sobre bg-gray-900 (ratio >4.5:1) */}
               <li>
-                <a href="mailto:info@peak-explorer.com" className="hover:text-primary-300 transition-colors">
-                  info@peak-explorer.com
+                <a href="mailto:info@peakexplorer.es" className="hover:text-primary-300 transition-colors">
+                  info@peakexplorer.es
                 </a>
               </li>
             </ul>

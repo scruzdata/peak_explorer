@@ -100,10 +100,10 @@ export default function AvisoAfiliadosPage() {
               Si tienes cualquier duda sobre este Aviso de Afiliados o sobre cómo
               monetizamos la plataforma, escríbenos a{' '}
               <a
-                href="mailto:info@peak-explorer.com"
+                href="mailto:info@peakexplorer.es"
                 className="text-primary-600 hover:text-primary-700 underline"
               >
-                info@peak-explorer.com
+                info@peakexplorer.es
               </a>
               .
             </p>

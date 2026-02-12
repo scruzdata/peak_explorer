@@ -32,10 +32,10 @@ export default function PoliticaPrivacidadPage() {
               El responsable del tratamiento de los datos es <strong>Peak Explorer</strong>.
               Para cualquier duda relacionada con la privacidad puedes escribirnos a{' '}
               <a
-                href="mailto:info@peak-explorer.com"
+                href="mailto:info@peakexplorer.es"
                 className="text-primary-600 hover:text-primary-700 underline"
               >
-                info@peak-explorer.com
+                info@peakexplorer.es
               </a>
               .
             </p>
@@ -164,10 +164,10 @@ export default function PoliticaPrivacidadPage() {
             <p className="mt-2">
               Para ello, escríbenos a{' '}
               <a
-                href="mailto:info@peak-explorer.com"
+                href="mailto:info@peakexplorer.es"
                 className="text-primary-600 hover:text-primary-700 underline"
               >
-                info@peak-explorer.com
+                info@peakexplorer.es
               </a>{' '}
               indicando claramente tu solicitud e identificándote como usuario.
             </p>
