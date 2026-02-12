@@ -39,7 +39,9 @@ import {
   Link2,
   Heading,
   AlignCenter,
-  Pilcrow
+  Pilcrow,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react'
 import { commonFeatures } from '@/lib/data'
 import { AccordionItem } from './Accordion'
@@ -555,6 +557,17 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
     setFormData(prev => {
       const gallery = [...(prev.gallery || [])]
       gallery[index] = { ...gallery[index], [field]: value }
+      return { ...prev, gallery }
+    })
+  }
+
+  const moveGalleryImage = (fromIndex: number, toIndex: number) => {
+    setFormData(prev => {
+      const gallery = [...(prev.gallery || [])]
+      if (fromIndex < 0 || fromIndex >= gallery.length) return prev
+      if (toIndex < 0 || toIndex >= gallery.length) return prev
+      const [moved] = gallery.splice(fromIndex, 1)
+      gallery.splice(toIndex, 0, moved)
       return { ...prev, gallery }
     })
   }
@@ -1440,13 +1453,35 @@ export function RouteForm({ route, onClose, onSave }: RouteFormProps) {
             <div key={index} className="border border-gray-200 rounded-md p-3">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-medium text-gray-600">Imagen #{index + 1}</span>
-                <button
-                  type="button"
-                  onClick={() => handleRemoveGalleryImage(index)}
-                  className="text-red-600 text-xs hover:text-red-800"
-                >
-                  Eliminar
-                </button>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => moveGalleryImage(index, index - 1)}
+                      disabled={index === 0}
+                      className="p-1 rounded text-gray-500 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                      title="Subir imagen"
+                    >
+                      <ChevronUp className="h-3 w-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveGalleryImage(index, index + 1)}
+                      disabled={index === (formData.gallery?.length || 0) - 1}
+                      className="p-1 rounded text-gray-500 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                      title="Bajar imagen"
+                    >
+                      <ChevronDown className="h-3 w-3" />
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveGalleryImage(index)}
+                    className="text-red-600 text-xs hover:text-red-800"
+                  >
+                    Eliminar
+                  </button>
+                </div>
               </div>
 
               <div className="flex gap-3">

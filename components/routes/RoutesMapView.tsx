@@ -1512,7 +1512,7 @@ export function RoutesMapView({
 
       {/* Tarjeta fija de la ruta seleccionada (arriba a la izquierda) - Se muestra cuando se selecciona desde el POI o desde el grid */}
       {cardRoute && showDetailPanel && (
-        <div className="absolute top-12 left-4 sm:left-6 bottom-4 sm:bottom-6 z-20 w-[200px] sm:w-[220px] lg:w-[200px] max-w-[calc(100%-2rem)] sm:max-w-[calc(100%-3rem)] lg:max-w-[calc(100%-2rem)] flex flex-col">
+        <div className="absolute top-12 left-4 sm:left-6 bottom-4 sm:bottom-6 z-20 w-[200px] sm:w-[220px] lg:w-[200px] max-w-[calc(100%-2rem)] sm:max-w-[calc(100%-3rem)] lg:max-w-[calc(100%-2rem)] flex flex-col min-h-0 overflow-y-auto">
           <div className="flex-shrink-0 relative overflow-hidden rounded-md bg-white shadow-md border border-gray-200">
             {/* Botón cerrar */}
             <button
@@ -1563,11 +1563,15 @@ export function RoutesMapView({
               {/* Badges dificultad / grado */}
               <div className="absolute bottom-1 left-1 flex items-center gap-0.5">
                 <span className={`text-[10px] px-1 py-0.5 rounded-md font-medium shadow-sm ${getDifficultyColor(cardRoute.difficulty)}`}>
-                  {cardRoute.difficulty}
+                  {formatArrayWithDashes(cardRoute.difficulty)}
                 </span>
                 {cardRoute.ferrataGrade && (
-                  <span className="text-[10px] px-1 py-0.5 rounded-md font-medium bg-blue-100 text-blue-800 shadow-sm">
-                    {cardRoute.ferrataGrade}
+                  <span
+                    className={`text-[10px] px-1 py-0.5 rounded-md font-medium shadow-sm ${getFerrataGradeColor(
+                      cardRoute.ferrataGrade
+                    )}`}
+                  >
+                    {formatArrayWithDashes(cardRoute.ferrataGrade)}
                   </span>
                 )}
               </div>
@@ -1664,8 +1668,8 @@ export function RoutesMapView({
           }`}
           title={showAvalancheBulletins ? 'Ocultar boletines de peligro de aludes' : 'Mostrar boletines de peligro de aludes'}
         >
-          <ExclamationTriangleIcon size={16} color="#dc2626" strokeWidth={2} className="lg:w-4 lg:h-4" />
-          <span className="hidden lg:inline">Boletines</span>
+          <ExclamationTriangleIcon size={16} color="#dc2626" strokeWidth={2} className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+          <span className="text-[10px] lg:text-xs">Boletines</span>
         </button>
         <button
           onClick={() => setMapStyle(mapStyle === 'outdoors-v12' ? 'satellite-streets-v12' : 'outdoors-v12')}
