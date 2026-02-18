@@ -282,8 +282,22 @@ export function BlogEditor({ blog, title, initialContent, onChange }: BlogEditor
   })
 
   // Permitir actualizar el contenido desde fuera (por ejemplo, tras generar con IA)
+  // pero evitando que cada pulsación de tecla vuelva a hacer setContent() y mueva
+  // el cursor/scroll al final.
   useEffect(() => {
-    if (editor && initialContent) {
+    if (!editor || !initialContent) return
+
+    try {
+      const current = editor.getJSON()
+      const currentStr = JSON.stringify(current)
+      const incomingStr = JSON.stringify(initialContent)
+
+      // Solo aplicamos setContent si el contenido externo es realmente distinto
+      if (currentStr !== incomingStr) {
+        editor.commands.setContent(initialContent)
+      }
+    } catch (error) {
+      console.error('Error comparando contenido del editor:', error)
       editor.commands.setContent(initialContent)
     }
   }, [editor, initialContent])
