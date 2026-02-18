@@ -37,6 +37,7 @@ import { generateSlug } from '@/lib/utils'
 import type { BlogPost } from '@/types'
 import { AffiliateProductExtension } from '@/components/editor/extensions/AffiliateProductExtension'
 import { ComparisonTableExtension } from '@/components/editor/extensions/ComparisonTableExtension'
+import { NodeSelection } from 'prosemirror-state'
 
 export interface BlogEditorProps {
   blog?: BlogPost
@@ -215,11 +216,13 @@ export function BlogEditor({ blog, title, initialContent, onChange }: BlogEditor
       }
     },
     onSelectionUpdate: ({ editor }) => {
-      // Detectar qué tipo de nodo está seleccionado
+      // Detectar qué tipo de nodo está seleccionado (solo si es una NodeSelection)
       const { selection } = editor.state
-      const node = selection.node
-      
-      if (node && node.type.name === 'image') {
+
+      if (selection instanceof NodeSelection) {
+        const node = selection.node
+
+        if (node.type.name === 'image') {
         setIsImageSelected(true)
         setIsAffiliateSelected(false)
         setIsComparisonSelected(false)
@@ -232,7 +235,10 @@ export function BlogEditor({ blog, title, initialContent, onChange }: BlogEditor
           caption: attrs.caption || '',
           alignment: attrs.alignment || 'center',
         })
-      } else if (node && node.type.name === 'affiliateProduct') {
+        return
+      }
+
+        if (node.type.name === 'affiliateProduct') {
         setIsImageSelected(false)
         setIsAffiliateSelected(true)
         setIsComparisonSelected(false)
@@ -245,7 +251,10 @@ export function BlogEditor({ blog, title, initialContent, onChange }: BlogEditor
           affiliateUrl: attrs.affiliateUrl || '',
           badge: attrs.badge || '',
         })
-      } else if (node && node.type.name === 'comparisonTable') {
+        return
+      }
+
+        if (node.type.name === 'comparisonTable') {
         setIsImageSelected(false)
         setIsAffiliateSelected(false)
         setIsComparisonSelected(true)
@@ -262,11 +271,14 @@ export function BlogEditor({ blog, title, initialContent, onChange }: BlogEditor
           buttonColor: attrs.buttonColor || 'amber',
           buttonText: attrs.buttonText || 'nombre',
         })
-      } else {
-        setIsImageSelected(false)
-        setIsAffiliateSelected(false)
-        setIsComparisonSelected(false)
+        return
       }
+      }
+
+      // Si no hay una NodeSelection o no es uno de nuestros nodos especiales, limpiar estado
+      setIsImageSelected(false)
+      setIsAffiliateSelected(false)
+      setIsComparisonSelected(false)
     },
   })
 
