@@ -310,7 +310,7 @@ export function BlogEditor({ blog, title, initialContent, onChange }: BlogEditor
           height: imgElement.height,
           caption: '',
           alignment: 'center',
-        })
+        } as any)
         .run()
     } catch (error) {
       console.error('Error subiendo imagen al editor:', error)
@@ -337,7 +337,7 @@ export function BlogEditor({ blog, title, initialContent, onChange }: BlogEditor
           height: imgElement.height,
           caption: '',
           alignment: 'center',
-        })
+        } as any)
         .run()
     }
     imgElement.onerror = () => {

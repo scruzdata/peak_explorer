@@ -215,6 +215,12 @@ const AVALANCHE_BULLETIN_POIS: AvalancheBulletinPOI[] = [
     url: 'https://meteofrance.com/meteo-montagne/pyrenees/risques-avalanche',
     lat: 42.640564,
     lng: 2.005010
+  },
+  {
+    name: 'BPA METEO SIERRA NEVADA',
+    url: 'https://granalpina.com/aludes-sierra-nevada/',
+    lat: 37.054006, 
+    lng: -3.310611
   }
 ]
 
