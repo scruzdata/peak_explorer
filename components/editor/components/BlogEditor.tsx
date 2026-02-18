@@ -352,7 +352,7 @@ export function BlogEditor({ blog, title, initialContent, onChange }: BlogEditor
           height: null,
           caption: '',
           alignment: 'center',
-        })
+        } as any)
         .run()
     }
   }
