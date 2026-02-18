@@ -37,89 +37,63 @@ async function generateBlogWithGemini(prompt: string, config: AIConfig): Promise
   const model = config.model || 'gemini-pro'
   const apiKey = config.apiKey
 
-  const systemPrompt = `You are an EXPERT WRITER, EXPERT BLOG DESIGNER, and EXPERT IN MOUNTAINEERING AND VIA FERRATAS. You create visually stunning, engaging, and professional blog articles for modern websites.
+  const systemPrompt = `You are an EXPERT BLOG WRITER specialized in mountaineering, hiking and via ferratas.
 
-Your task is to create comprehensive, beautifully formatted blog articles about mountaineering, hiking, and via ferratas that are visually appealing and easy to read.
+Your task is to create comprehensive, well-structured blog articles that will be stored and edited in a modern rich-text editor (Tiptap-like). The backend will convert a simple Markdown-style string into a structured JSON document, so you MUST keep the formatting simple and predictable.
 
-CRITICAL REQUIREMENTS:
-- Write ALL content in SPANISH (Español)
-- Use Markdown format with EXCELLENT visual structure
-- Create content that is visually engaging, not flat or boring
-- Use proper spacing between paragraphs (double line breaks)
-- Use varied formatting: headings, lists, blockquotes, bold, italic
-- Make the content scannable and easy to read
-- Use natural, professional, and accessible language
-- Prioritize safety, real experience, and practical utility
-- Think like an experienced mountain guide AND a professional content designer
+LANGUAGE:
+- All article content (title, excerpt, body, tags, SEO fields) MUST be written in SPANISH (Español).
 
-VISUAL FORMATTING REQUIREMENTS:
-- ALWAYS add a blank line (double line break) between paragraphs
-- Use ## for main section titles (H2)
-- Use ### for subsection titles (H3)
-- Use **bold** for important terms, equipment names, and key concepts
-- Use *italic* for emphasis and special notes
-- Use > blockquotes for expert tips, warnings, and important information
-- Use bullet lists (-) for equipment, tips, and step-by-step instructions
-- Use numbered lists (1.) for sequential processes
-- Add visual separators with horizontal rules (---) between major sections when appropriate
-- Keep paragraphs SHORT (3-4 sentences maximum) for better readability
-- Use emojis sparingly and only when they add value (⚠️ for warnings, ✅ for tips, 🎒 for equipment)
+BODY FORMAT (content field):
+- The "content" field is a SINGLE STRING that uses ONLY these simple Markdown-like patterns:
+  - Headings:
+    - "## " for main section titles (H2)
+    - "### " for subsection titles (H3)
+  - Bullet lists:
+    - Lines starting with "- " for bullet items
+  - Numbered lists:
+    - Lines starting with "1. ", "2. ", etc. for ordered items
+  - Blockquotes:
+    - Lines starting with "> " for tips and warnings
+  - Inline formatting:
+    - **bold** using **text**
+    - *italic* using *text*
+  - Paragraphs:
+    - Separate paragraphs with ONE completely blank line between them
 
-RESPONSE:
-You must respond ONLY with a VALID and parseable JSON object, without additional text, without markdown code blocks, without explanations.
+DO NOT USE:
+- No markdown tables (no "|" table syntax)
+- No images (no ![...](...))
+- No code blocks (\`\`\`)
+- No HTML
+- No custom syntaxes like "![alt|center|30%](url)" or similar
 
-MANDATORY JSON STRUCTURE:
+CONTENT REQUIREMENTS:
+- Topic: mountaineering / hiking / via ferratas (safety-focused, practical, and engaging).
+- Minimum 900 words of useful, well-structured content.
+- Include in the body:
+  - An engaging introduction (2-3 short paragraphs) that hooks the reader.
+  - Clear main sections with "##" headings and optional "###" subsections.
+  - Short, scannable paragraphs (max ~3-4 sentences) with blank lines between them.
+  - Bullet lists for equipment, tips, and key points.
+  - Numbered lists for step-by-step processes.
+  - Blockquotes for expert tips and safety warnings.
+  - Safety focus and real-world, practical advice.
+  - A conclusion that summarizes key ideas and invites the reader to action.
+
+RESPONSE FORMAT:
+You must respond ONLY with a single VALID and parseable JSON object, without additional text, without markdown code blocks, without explanations.
+
+MANDATORY JSON STRUCTURE (keys and types):
 
 {
-  "title": "Attractive, engaging article title in Spanish",
-  "excerpt": "Brief and attractive summary in Spanish (2-3 sentences that hook the reader)",
-  "content": "Full article content in Markdown format in Spanish with EXCELLENT visual structure. MUST include:
-  
-  - Attractive introduction with engaging hook (2-3 paragraphs with blank lines between them)
-  - Well-defined sections with clear titles (## for main sections, ### for subsections)
-  - Short, scannable paragraphs (3-4 sentences max) with blank lines between them
-  - Bullet lists for equipment, tips, and key points
-  - Numbered lists for step-by-step processes
-  - Blockquotes (>) for expert tips, warnings, and important information
-  - Bold text (**text**) for important terms, equipment names, and key concepts
-  - Italic text (*text*) for emphasis
-  - Horizontal rules (---) between major sections for visual separation
-  - Practical tips in visually distinct formats
-  - Safety warnings in blockquotes with clear formatting
-  - Equipment recommendations in organized lists
-  - Engaging conclusion that summarizes key points
-  
-  FORMATTING EXAMPLE:
-  
-  ## Introducción
-  
-  Este es el primer párrafo de la introducción. Debe ser atractivo y enganchar al lector.
-  
-  Este es el segundo párrafo. Debe continuar desarrollando el tema de manera interesante.
-  
-  ## Material Esencial
-  
-  Para esta actividad necesitarás:
-  
-  - **Mochila de montaña**: Debe ser cómoda y resistente
-  - **Botas de senderismo**: Con buen agarre y protección
-  - **Ropa técnica**: Capas que permitan regular la temperatura
-  
-  > ⚠️ **Importante**: Nunca subestimes el equipo de seguridad. Es tu vida la que está en juego.
-  
-  ## Preparación
-  
-  Sigue estos pasos para prepararte correctamente:
-  
-  1. Planifica tu ruta con antelación
-  2. Revisa las condiciones meteorológicas
-  3. Informa a alguien de tu plan
-  
-  Minimum 900 words of useful, well-formatted content.",
+  "title": "Título atractivo y envolvente en español",
+  "excerpt": "Resumen breve y atractivo en español (2-3 frases que enganchen al lector).",
+  "content": "Cuerpo completo del artículo en un solo string con el formato tipo Markdown sencillo descrito arriba.",
   "tags": ["tag1", "tag2", "tag3"],
   "seo": {
-    "metaTitle": "SEO optimized title in Spanish",
-    "metaDescription": "SEO optimized description in Spanish (150-160 characters)",
+    "metaTitle": "Título SEO optimizado en español",
+    "metaDescription": "Descripción SEO optimizada en español (150-160 caracteres).",
     "keywords": ["keyword1", "keyword2", "keyword3"]
   }
 }
@@ -129,11 +103,9 @@ CRITICAL JSON RULES:
 - Do not include comments in the JSON
 - Do not include markdown code blocks (\`\`\`) around the JSON
 - Do not include any text outside the JSON object
-- Ensure all text content (title, excerpt, content, seo fields) is in SPANISH
+- Ensure all text content (title, excerpt, content, seo fields, tags) is in SPANISH (Español)
 - Arrays must be properly formatted without trailing commas
-- The JSON must be complete and valid before sending
-- The content field MUST have proper spacing (blank lines between paragraphs)
-- The content MUST be visually engaging, not flat or boring`
+- The JSON must be complete and valid before sending`
 
   const userPrompt = `Create a comprehensive, visually stunning blog article about: "${prompt}"
 
@@ -247,14 +219,67 @@ IMPORTANT:
       cleanedContent = cleanedContent.replace(/^```\n?/, '').replace(/\n?```$/, '')
     }
 
-    // Parsear JSON
+    // Parsear JSON (o, si falla, extraer campos clave manualmente)
     let blogData
     try {
       blogData = JSON.parse(cleanedContent)
     } catch (parseError: any) {
       console.error('Error parseando JSON de Gemini:', parseError)
-      console.error('Contenido que falló al parsear:', cleanedContent.substring(0, 500))
-      throw new Error(`Error parseando la respuesta JSON de Gemini: ${parseError.message}`)
+      console.error('Contenido que falló al parsear (primeros 500 chars):', cleanedContent.substring(0, 500))
+
+      // Fallback robusto: extraer "title", "excerpt" y "content" sin depender de JSON válido
+      const extractStringField = (key: string): string | undefined => {
+        const keyPattern = `"${key}": "`
+        const start = cleanedContent.indexOf(keyPattern)
+        if (start === -1) return undefined
+        const valueStart = start + keyPattern.length
+
+        let i = valueStart
+        let escaped = false
+
+        while (i < cleanedContent.length) {
+          const ch = cleanedContent[i]
+          if (ch === '\\') {
+            escaped = !escaped
+          } else if (ch === '"' && !escaped) {
+            const raw = cleanedContent.slice(valueStart, i)
+            // Des-escapar secuencias típicas
+            return raw.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\')
+          } else {
+            escaped = false
+          }
+          i++
+        }
+
+        return undefined
+      }
+
+      let fallbackTitle = extractStringField('title')
+      let fallbackExcerpt = extractStringField('excerpt')
+      let fallbackContent = extractStringField('content')
+
+      // Si no se encuentran explícitamente, usar valores de respaldo
+      if (!fallbackTitle) {
+        fallbackTitle = `Artículo sobre ${prompt}`.trim()
+      }
+      if (!fallbackContent) {
+        // Como último recurso, usar todo el contenido bruto como cuerpo del artículo
+        fallbackContent = cleanedContent
+      }
+
+      console.warn('Usando extracción manual de campos debido a JSON inválido de Gemini.')
+
+      blogData = {
+        title: fallbackTitle,
+        excerpt: fallbackExcerpt || '',
+        content: fallbackContent,
+        tags: [],
+        seo: {
+          metaTitle: fallbackTitle,
+          metaDescription: fallbackExcerpt || '',
+          keywords: [],
+        },
+      }
     }
 
     // Validar estructura básica

@@ -74,30 +74,29 @@ const CustomImage = Image.extend({
       const img = document.createElement('img')
       img.src = src || ''
       img.alt = alt || ''
-      img.className = 'rounded-lg'
-      
-      // Construir estilos CSS
-      const styles: string[] = []
-      
-      // Aplicar dimensiones si existen
-      if (width) {
-        styles.push(`width:${width}px`)
-        styles.push('max-width:100%')
-      }
-      if (height) {
-        styles.push(`height:${height}px`)
+
+      // Base: siempre imagen responsive ocupando el ancho disponible
+      // En escritorio aplicamos variaciones según la alineación
+      let alignmentClasses = ''
+      if (alignment === 'left') {
+        // En móvil ocupa todo el ancho; en md+ se comporta como imagen flotante
+        alignmentClasses = 'md:float-left md:mr-4 md:mb-4 md:max-w-[40%]'
+      } else if (alignment === 'right') {
+        alignmentClasses = 'md:float-right md:ml-4 md:mb-4 md:max-w-[40%]'
       } else {
-        styles.push('height:auto')
+        // Centrada, pero full‑width en móvil
+        alignmentClasses = 'mx-auto'
       }
 
-      // Aplicar alineación
-      if (alignment === 'left') {
-        styles.push('float:left', 'margin:0 1rem 1rem 0', 'max-width:40%')
-      } else if (alignment === 'right') {
-        styles.push('float:right', 'margin:0 0 1rem 1rem', 'max-width:40%')
-      } else {
-        styles.push('display:block', 'margin:1rem auto', 'max-width:80%')
+      img.className = `rounded-lg w-full h-auto max-w-full ${alignmentClasses}`
+
+      // Si el usuario ha especificado un ancho máximo, lo respetamos solo como límite superior
+      const styles: string[] = []
+      if (width) {
+        styles.push(`max-width:${width}px`)
       }
+      // Siempre altura automática para mantener proporción
+      styles.push('height:auto')
 
       img.style.cssText = styles.join(';')
 
@@ -281,6 +280,13 @@ export function BlogEditor({ blog, title, initialContent, onChange }: BlogEditor
       setIsComparisonSelected(false)
     },
   })
+
+  // Permitir actualizar el contenido desde fuera (por ejemplo, tras generar con IA)
+  useEffect(() => {
+    if (editor && initialContent) {
+      editor.commands.setContent(initialContent)
+    }
+  }, [editor, initialContent])
 
   const handleImageUpload = async (file: File) => {
     if (!file.type.startsWith('image/')) {

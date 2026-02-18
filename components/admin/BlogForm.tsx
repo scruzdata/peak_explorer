@@ -214,11 +214,47 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
       }
 
       const data = await response.json()
-      
+
       // Rellenar el formulario con el contenido generado
       if (data.title) setTitle(data.title)
       if (data.excerpt) setExcerpt(data.excerpt)
-      if (data.content) setContent(data.content)
+
+      // Contenido en texto plano (para extracto, lectura estimada, validaciones, etc.)
+      if (typeof data.content === 'string' && data.content.trim().length > 0) {
+        setContent(data.content)
+      }
+
+      // Contenido estructurado para el editor visual (Tiptap)
+      if (data.contentJson && typeof data.contentJson === 'object' && data.contentJson.type === 'doc') {
+        setContentJson(data.contentJson)
+      } else if (typeof data.content === 'string' && data.content.trim().length > 0) {
+        // Fallback: construir un JSON básico de Tiptap a partir del texto plano
+        const paragraphs = String(data.content)
+          .split('\n\n')
+          .map((p: string) => p.trim())
+          .filter((p: string) => p.length > 0)
+
+        const generatedJson =
+          paragraphs.length > 0
+            ? {
+                type: 'doc',
+                content: paragraphs.map((p: string) => ({
+                  type: 'paragraph',
+                  content: [{ type: 'text', text: p }],
+                })),
+              }
+            : {
+                type: 'doc',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [{ type: 'text', text: String(data.content) }],
+                  },
+                ],
+              }
+
+        setContentJson(generatedJson)
+      }
       if (data.tags && Array.isArray(data.tags)) setTags(data.tags)
       if (data.seo) {
         if (data.seo.metaTitle) setSeoTitle(data.seo.metaTitle)
@@ -799,7 +835,9 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
                         blog={blog}
                         title={title}
                         initialContent={
-                          blog?.contentJson
+                          contentJson
+                            ? contentJson
+                            : blog?.contentJson
                             ? blog.contentJson
                             : blog?.content
                             ? {
