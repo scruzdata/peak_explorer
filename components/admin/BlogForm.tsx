@@ -1218,10 +1218,9 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
               </button>
               <button
                 onClick={() => {
-                  const textarea = contentRef.current
                   const value = content || ''
-                  const start = textarea?.selectionStart ?? value.length
-                  const end = textarea?.selectionEnd ?? value.length
+                  const start = value.length
+                  const end = value.length
 
                   const category =
                     comparisonCategory.trim() || 'Mochilas de senderismo'
@@ -1268,14 +1267,6 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
                   const newValue =
                     value.slice(0, start) + block + value.slice(end)
                   setContent(newValue)
-
-                  window.requestAnimationFrame(() => {
-                    if (textarea) {
-                      const cursor = start + block.length
-                      textarea.focus()
-                      textarea.setSelectionRange(cursor, cursor)
-                    }
-                  })
 
                   setShowComparisonModal(false)
                 }}
