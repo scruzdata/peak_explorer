@@ -44,6 +44,7 @@ export function MarkdownImageEditor({ content, onChange, onImageUpload, showPrev
   const imageRegex = /!\[([^\|]*)(?:\|([^\|]+))?(?:\|(\d+)%)?\]\(([^)]+)(?:\s+"([^"]+)")?\)/g
 
   // Parsear imágenes del contenido
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const parseImages = useCallback((text: string): ImageBlock[] => {
     const images: ImageBlock[] = []
     let match

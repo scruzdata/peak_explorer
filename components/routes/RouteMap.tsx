@@ -1,4 +1,5 @@
 'use client'
+/* eslint-disable @next/next/no-img-element */
 
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { Route } from '@/types'

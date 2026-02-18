@@ -1,4 +1,5 @@
 'use client'
+/* eslint-disable @next/next/no-img-element */
 
 import { useMemo, useState, useCallback, useEffect, useRef } from 'react'
 import { Route, FerrataGrade } from '@/types'

@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import ReactDOM from 'react-dom'
+import { createRoot } from 'react-dom/client'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
@@ -144,9 +144,10 @@ export function BlogRenderer({ contentJson }: BlogRendererProps) {
               />
             )
 
-            const root = document.createElement('div')
-            dom.appendChild(root)
-            ReactDOM.render(reactElement, root)
+            const rootElement = document.createElement('div')
+            dom.appendChild(rootElement)
+            const root = createRoot(rootElement)
+            root.render(reactElement)
 
             return { dom }
           }
@@ -168,9 +169,10 @@ export function BlogRenderer({ contentJson }: BlogRendererProps) {
                 buttonText={buttonText}
               />
             )
-            const root = document.createElement('div')
-            dom.appendChild(root)
-            ReactDOM.render(reactElement, root)
+            const rootElement = document.createElement('div')
+            dom.appendChild(rootElement)
+            const root = createRoot(rootElement)
+            root.render(reactElement)
 
             return { dom }
           }
