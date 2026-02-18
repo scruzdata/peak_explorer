@@ -8,7 +8,8 @@ export interface BlogPost {
   slug: string
   title: string
   excerpt: string
-  content: string // Markdown o HTML
+  content: string // Texto plano o markdown para compatibilidad
+  contentJson?: any // Contenido estructurado Tiptap (JSON)
   featuredImage?: ImageData
   images?: ImageData[] // Imágenes intercaladas en el contenido
   tags: string[]

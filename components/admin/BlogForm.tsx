@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import NextImage from 'next/image'
 import { 
   X, 
@@ -16,27 +16,20 @@ import {
   FileText, 
   Layers, 
   Search,
-  Bold,
-  Italic,
-  List,
-  Quote,
-  Code2,
-  Link2,
-  Heading,
-  AlignCenter,
-  Pilcrow
+  Table
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { BlogPost, BlogStatus, ImageData } from '@/types'
 import { createBlogInFirestore, updateBlogInFirestore } from '@/lib/firebase/blogs'
 import { uploadBlogImage, deleteStorageFileByUrl } from '@/lib/firebase/storage'
 import { calculateReadingTime, generateSlug } from '@/lib/utils'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import remarkBreaks from 'remark-breaks'
-import rehypeRaw from 'rehype-raw'
-import type { Components } from 'react-markdown'
+import dynamicImport from 'next/dynamic'
 import { AccordionItem } from './Accordion'
+
+const BlogEditor = dynamicImport(
+  () => import('@/components/editor/components/BlogEditor').then((mod) => ({ default: mod.BlogEditor })),
+  { ssr: false }
+)
 
 interface BlogFormProps {
   blog?: BlogPost
@@ -48,7 +41,6 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
   const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
-  const [showInteractivePreview, setShowInteractivePreview] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [showPromptModal, setShowPromptModal] = useState(false)
   const [promptText, setPromptText] = useState('')
@@ -57,6 +49,8 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
   const [title, setTitle] = useState(blog?.title || '')
   const [excerpt, setExcerpt] = useState(blog?.excerpt || '')
   const [content, setContent] = useState(blog?.content || '')
+  // Contenido actual en JSON (se va actualizando mientras escribes)
+  const [contentJson, setContentJson] = useState<any>(blog?.contentJson || null)
   const [tags, setTags] = useState<string[]>(blog?.tags || [])
   const [tagInput, setTagInput] = useState('')
   const [status, setStatus] = useState<BlogStatus>(blog?.status || 'draft')
@@ -66,7 +60,33 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
   const [seoDescription, setSeoDescription] = useState(blog?.seo.metaDescription || '')
   const [seoKeywords, setSeoKeywords] = useState<string[]>(blog?.seo.keywords || [])
   const [keywordInput, setKeywordInput] = useState('')
-  const contentRef = useRef<HTMLTextAreaElement>(null)
+  const [showComparisonModal, setShowComparisonModal] = useState(false)
+  const [comparisonCategory, setComparisonCategory] = useState('')
+  const [comparisonProducts, setComparisonProducts] = useState<
+    { title: string; imageUrl: string; link: string; bullets: string; priceHint: string }[]
+  >([
+    {
+      title: 'Producto 1',
+      imageUrl: 'https://m.media-amazon.com/images/I/AAA.jpg',
+      link: 'TU_ENLACE_AFILIADO_1',
+      bullets: '✓ Punto fuerte 1\n✓ Punto fuerte 2\n✓ Ideal para ...',
+      priceHint: '[Rango de precio orientativo]',
+    },
+    {
+      title: 'Producto 2',
+      imageUrl: 'https://m.media-amazon.com/images/I/BBB.jpg',
+      link: 'TU_ENLACE_AFILIADO_2',
+      bullets: '✓ Punto fuerte 1\n✓ Punto fuerte 2\n✓ Ideal para ...',
+      priceHint: '[Rango de precio orientativo]',
+    },
+    {
+      title: 'Producto 3',
+      imageUrl: 'https://m.media-amazon.com/images/I/CCC.jpg',
+      link: 'TU_ENLACE_AFILIADO_3',
+      bullets: '✓ Punto fuerte 1\n✓ Punto fuerte 2\n✓ Ideal para ...',
+      priceHint: '[Rango de precio orientativo]',
+    },
+  ])
 
   // Generar SEO automáticamente si no está definido
   useEffect(() => {
@@ -257,10 +277,30 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
         featuredImage: finalFeaturedImage,
       })
       
+      // Asegurar que contentJson es un objeto válido antes de guardar
+      let finalContentJson = undefined
+      if (contentJson && typeof contentJson === 'object') {
+        // Validar que tiene la estructura básica de Tiptap
+        if (contentJson.type === 'doc' && Array.isArray(contentJson.content)) {
+          finalContentJson = contentJson
+          // Log para depuración
+          console.log('✅ Guardando contentJson válido:', {
+            type: contentJson.type,
+            contentLength: contentJson.content?.length,
+            hasLinks: JSON.stringify(contentJson).includes('"type":"link"'),
+          })
+        } else {
+          console.warn('⚠️ contentJson no tiene la estructura esperada de Tiptap:', contentJson)
+        }
+      } else {
+        console.warn('⚠️ contentJson no es un objeto válido:', typeof contentJson, contentJson)
+      }
+      
       const blogData: Omit<BlogPost, 'id' | 'slug' | 'createdAt' | 'updatedAt'> = {
         title: title.trim(),
         excerpt: excerpt.trim(),
         content: content.trim(),
+        contentJson: finalContentJson,
         tags,
         status,
         featuredImage: finalFeaturedImage,
@@ -294,215 +334,7 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
     }
   }
 
-  // Componentes personalizados para el renderizado de Markdown (igual que en la página publicada)
-  const markdownComponents: Components = {
-    p: ({ ...props }) => (
-      <p className="mb-6 leading-7 text-gray-700" {...props} />
-    ),
-    h2: ({ ...props }) => (
-      <h2 className="mb-4 mt-8 text-3xl font-bold text-gray-900 first:mt-0" {...props} />
-    ),
-    h3: ({ ...props }) => (
-      <h3 className="mb-3 mt-6 text-2xl font-semibold text-gray-900" {...props} />
-    ),
-    ul: ({ ...props }) => (
-      <ul className="mb-6 ml-6 list-disc space-y-2 text-gray-700" {...props} />
-    ),
-    ol: ({ ...props }) => (
-      <ol className="mb-6 ml-6 list-decimal space-y-2 text-gray-700" {...props} />
-    ),
-    li: ({ ...props }) => (
-      <li className="leading-7" {...props} />
-    ),
-    blockquote: ({ ...props }) => (
-      <blockquote className="my-6 border-l-4 border-primary-500 bg-primary-50 py-4 pl-6 pr-4 italic text-gray-800" {...props} />
-    ),
-    strong: ({ ...props }) => (
-      <strong className="font-bold text-gray-900" {...props} />
-    ),
-    em: ({ ...props }) => (
-      <em className="italic text-gray-800" {...props} />
-    ),
-    hr: ({ ...props }) => (
-      <hr className="my-8 border-gray-300" {...props} />
-    ),
-    a: ({ ...props }) => (
-      <a className="text-primary-600 underline hover:text-primary-700" {...props} />
-    ),
-    img: (props) => {
-      const imgProps = props as any
-      // Detectar alineación del alt text: ![alt|alignment](url)
-      const altText = imgProps.alt || ''
-      const alignmentMatch = altText.match(/\|(left|right|center|full)$/)
-      const alignment = alignmentMatch ? (alignmentMatch[1] as 'left' | 'center' | 'right' | 'full') : 'full'
-      const cleanAlt = altText.replace(/\|(left|right|center|full)$/, '')
-      
-      const alignmentClasses = {
-        left: 'float-left mr-4 mb-4 max-w-xs',
-        right: 'float-right ml-4 mb-4 max-w-xs',
-        center: 'mx-auto my-6 max-w-md block',
-        full: 'my-6 w-full'
-      }
-      
-      return (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img 
-          className={`rounded-lg ${alignmentClasses[alignment]}`} 
-          alt={cleanAlt} 
-          {...imgProps} 
-        />
-      )
-    },
-  }
-
-  type MarkdownAction = 'bold' | 'italic' | 'heading' | 'list' | 'quote' | 'code' | 'break' | 'link' | 'imageLeft' | 'imageRight' | 'imageCenter'
-
-  // Función auxiliar para obtener dimensiones de una imagen desde su URL
-  const getImageDimensions = (url: string): Promise<{ width: number; height: number }> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image()
-      img.onload = () => {
-        resolve({ width: img.naturalWidth || img.width, height: img.naturalHeight || img.height })
-      }
-      img.onerror = () => {
-        // Si falla, usar dimensiones por defecto
-        resolve({ width: 400, height: 300 })
-      }
-      img.src = url
-      // Timeout de seguridad
-      setTimeout(() => {
-        if (!img.complete) {
-          resolve({ width: 400, height: 300 })
-        }
-      }, 5000)
-    })
-  }
-
-  const applyMarkdown = async (action: MarkdownAction) => {
-    const textarea = contentRef.current
-    if (!textarea) return
-
-    const value = content || ''
-    const start = textarea.selectionStart ?? value.length
-    const end = textarea.selectionEnd ?? value.length
-    const selection = value.slice(start, end)
-
-    const defaults: Record<MarkdownAction, string> = {
-      bold: 'texto en negrita',
-      italic: 'texto en cursiva',
-      heading: 'Título de sección',
-      list: 'Elemento de lista',
-      quote: 'Cita o nota',
-      code: 'console.log("hola")',
-      break: '',
-      link: 'enlace descriptivo',
-      imageLeft: 'https://ejemplo.com/imagen.jpg',
-      imageRight: 'https://ejemplo.com/imagen.jpg',
-      imageCenter: 'https://ejemplo.com/imagen.jpg',
-    }
-
-    const selectedText = selection || defaults[action]
-    let replacement = ''
-
-    // Detectar si la selección es una URL de imagen
-    const isImageUrl = (text: string): boolean => {
-      const trimmed = text.trim()
-      return (
-        (trimmed.startsWith('http://') || trimmed.startsWith('https://')) &&
-        (trimmed.match(/\.(jpg|jpeg|png|gif|webp|avif)(\?|$)/i) !== null || 
-         trimmed.includes('firebasestorage.googleapis.com') ||
-         trimmed.includes('storage.googleapis.com'))
-      )
-    }
-
-    switch (action) {
-      case 'bold':
-        replacement = `**${selectedText}**`
-        break
-      case 'italic':
-        replacement = `*${selectedText}*`
-        break
-      case 'heading':
-        replacement = `\n\n# ${selectedText}\n`
-        break
-      case 'list':
-        replacement = `\n- ${selectedText}`
-        break
-      case 'quote':
-        replacement = `\n> ${selectedText}`
-        break
-      case 'code':
-        replacement = `\n\`\`\`\n${selectedText}\n\`\`\`\n`
-        break
-      case 'break':
-        replacement = `\n\n${selectedText ? `${selectedText}\n\n` : ''}`
-        break
-      case 'link':
-        replacement = `[${selectedText}](https://ejemplo.com)`
-        break
-      case 'imageLeft': {
-        const url = selection.trim() || defaults.imageLeft
-        if (isImageUrl(url)) {
-          // Obtener dimensiones de la imagen
-          const { width, height } = await getImageDimensions(url)
-          // Insertar HTML con float y tamaño
-          replacement = `\n\n<div style="float:left; margin:0 1rem 1rem 0; width:${Math.min(width, 400)}px; max-width:40%;">
-  <img src="${url}" alt="Descripción imagen" style="width:100%; height:auto; border-radius:8px;" />
-  <small style="display:block; font-size:12px; color:#6b7280;">Pie de foto opcional</small>
-</div>\n\n`
-        } else {
-          // Si no es URL de imagen, usar Markdown tradicional
-          replacement = `\n\n![Descripción imagen|left](${url})\n\n`
-        }
-        break
-      }
-      case 'imageRight': {
-        const url = selection.trim() || defaults.imageRight
-        if (isImageUrl(url)) {
-          // Obtener dimensiones de la imagen
-          const { width, height } = await getImageDimensions(url)
-          // Insertar HTML con float y tamaño
-          replacement = `\n\n<div style="float:right; margin:0 0 1rem 1rem; width:${Math.min(width, 400)}px; max-width:40%;">
-  <img src="${url}" alt="Descripción imagen" style="width:100%; height:auto; border-radius:8px;" />
-  <small style="display:block; font-size:12px; color:#6b7280;">Pie de foto opcional</small>
-</div>\n\n`
-        } else {
-          // Si no es URL de imagen, usar Markdown tradicional
-          replacement = `\n\n![Descripción imagen|right](${url})\n\n`
-        }
-        break
-      }
-      case 'imageCenter': {
-        const url = selection.trim() || defaults.imageCenter
-        if (isImageUrl(url)) {
-          // Obtener dimensiones de la imagen
-          const { width, height } = await getImageDimensions(url)
-          // Insertar HTML centrado con tamaño
-          replacement = `\n\n<div style="display:flex; justify-content:center; margin:1rem 0;">
-  <div style="text-align:center; max-width:${Math.min(width, 600)}px; width:100%;">
-    <img src="${url}" alt="Descripción imagen" style="width:100%; height:auto; border-radius:8px;" />
-    <small style="display:block; font-size:12px; color:#6b7280; margin-top:0.5rem;">Pie de foto opcional</small>
-  </div>
-</div>\n\n`
-        } else {
-          // Si no es URL de imagen, usar Markdown tradicional
-          replacement = `\n\n![Descripción imagen|center](${url})\n\n`
-        }
-        break
-      }
-      default:
-        replacement = selectedText
-    }
-
-    const newValue = `${value.slice(0, start)}${replacement}${value.slice(end)}`
-    setContent(newValue)
-
-    window.requestAnimationFrame(() => {
-      const cursor = start + replacement.length
-      textarea.focus()
-      textarea.setSelectionRange(cursor, cursor)
-    })
-  }
+  // El contenido ahora se gestiona con el editor visual Tiptap (BlogEditor)
 
   // Helpers para galería de imágenes (sección separada)
   const addGalleryImage = () => {
@@ -657,13 +489,12 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
 
                   {/* Content */}
                   <div className="prose prose-lg max-w-none">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm, remarkBreaks] as any}
-                      rehypePlugins={[rehypeRaw] as any}
-                      components={markdownComponents}
-                    >
-                      {content || '*Sin contenido*'}
-                    </ReactMarkdown>
+                    <p className="mb-4 text-sm text-gray-500">
+                      Vista previa de texto (el contenido se mostrará con el nuevo editor visual en la página pública).
+                    </p>
+                    <p className="whitespace-pre-wrap text-gray-800">
+                      {content || 'Sin contenido'}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -958,156 +789,49 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
 
                 {/* Contenido */}
                 {renderSection(
-                  'Contenido (Markdown)',
+                  'Contenido (Editor visual)',
                   <>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Contenido (Markdown) *
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setShowInteractivePreview(!showInteractivePreview)}
-                        className="flex items-center space-x-1 rounded-md border border-gray-300 bg-white px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
-                        title={showInteractivePreview ? 'Ocultar vista previa' : 'Mostrar vista previa'}
-                      >
-                        <Eye className="h-4 w-4" />
-                        <span>{showInteractivePreview ? 'Ocultar vista previa' : 'Vista previa'}</span>
-                      </button>
-                    </div>
-
-                    {/* Barra de herramientas estilo rutas */}
                     <div className="space-y-2">
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => applyMarkdown('bold')}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
-                          aria-label="Negrita"
-                          title="Negrita"
-                        >
-                          <Bold className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => applyMarkdown('italic')}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
-                          aria-label="Cursiva"
-                          title="Cursiva"
-                        >
-                          <Italic className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => applyMarkdown('heading')}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
-                          aria-label="Título"
-                          title="Título"
-                        >
-                          <Heading className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => applyMarkdown('list')}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
-                          aria-label="Lista"
-                          title="Lista"
-                        >
-                          <List className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => applyMarkdown('quote')}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
-                          aria-label="Cita"
-                          title="Cita"
-                        >
-                          <Quote className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => applyMarkdown('code')}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
-                          aria-label="Código"
-                          title="Código"
-                        >
-                          <Code2 className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => applyMarkdown('link')}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
-                          aria-label="Enlace"
-                          title="Enlace"
-                        >
-                          <Link2 className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => applyMarkdown('break')}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
-                          aria-label="Nuevo párrafo"
-                          title="Nuevo párrafo"
-                        >
-                          <Pilcrow className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => applyMarkdown('imageLeft')}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
-                          aria-label="Imagen izquierda"
-                          title="Imagen izquierda"
-                        >
-                          <ImageIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => applyMarkdown('imageRight')}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
-                          aria-label="Imagen derecha"
-                          title="Imagen derecha"
-                        >
-                          <ImageIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => applyMarkdown('imageCenter')}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 flex items-center justify-center"
-                          aria-label="Imagen centrada"
-                          title="Imagen centrada"
-                        >
-                          <AlignCenter className="h-4 w-4" />
-                        </button>
-                      </div>
-
-                      <textarea
-                        ref={contentRef}
-                        value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm"
-                        rows={14}
-                        placeholder="# Título\n\nContenido en Markdown..."
+                      <label className="block text-sm font-medium text-gray-700">
+                        Contenido del artículo *
+                      </label>
+                      <BlogEditor
+                        blog={blog}
+                        title={title}
+                        initialContent={
+                          blog?.contentJson
+                            ? blog.contentJson
+                            : blog?.content
+                            ? {
+                                type: 'doc',
+                                content: [
+                                  {
+                                    type: 'paragraph',
+                                    content: [{ type: 'text', text: blog.content }],
+                                  },
+                                ],
+                              }
+                            : undefined
+                        }
+                        onChange={(json, plainText) => {
+                          // Validar que el JSON tiene la estructura correcta antes de guardarlo
+                          if (json && typeof json === 'object' && json.type === 'doc') {
+                            // Log para depuración - verificar que los enlaces están en el JSON
+                            const jsonString = JSON.stringify(json)
+                            const hasLinks = jsonString.includes('"type":"link"') || jsonString.includes('"marks"')
+                            if (hasLinks) {
+                              console.log('✅ JSON contiene enlaces:', {
+                                hasLinkType: jsonString.includes('"type":"link"'),
+                                hasMarks: jsonString.includes('"marks"'),
+                              })
+                            }
+                            setContentJson(json)
+                            setContent(plainText)
+                          } else {
+                            console.warn('⚠️ JSON inválido recibido del editor:', json)
+                          }
+                        }}
                       />
-                      <p className="text-xs text-gray-500">
-                        Usa Markdown para dar formato: títulos con <code>#</code>, listas con <code>-</code>, negritas <code>**texto**</code>, cursivas <code>*texto*</code>, e imágenes con sintaxis <code>![alt|left](url)</code>, <code>![alt|right](url)</code> o <code>![alt|center](url)</code>.
-                      </p>
-
-                      {showInteractivePreview && (
-                        <div className="mt-4 border rounded-md p-4 bg-gray-50">
-                          <div className="flex items-center justify-between mb-3">
-                            <h4 className="text-sm font-semibold text-gray-700">Vista previa</h4>
-                            <span className="text-xs text-gray-500">Así se mostrará el contenido en el blog</span>
-                          </div>
-                          <div className="prose prose-sm sm:prose lg:prose-lg max-w-none">
-                            <ReactMarkdown
-                              remarkPlugins={[remarkGfm, remarkBreaks] as any}
-                              rehypePlugins={[rehypeRaw] as any}
-                              components={markdownComponents}
-                            >
-                              {content || '*La vista previa aparecerá aquí cuando escribas contenido.*'}
-                            </ReactMarkdown>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </>,
                   FileText,
@@ -1350,6 +1074,215 @@ export function BlogForm({ blog, onClose, onSave }: BlogFormProps) {
                     <span>Generar Artículo</span>
                   </>
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para crear comparativa de productos (Amazon) */}
+      {showComparisonModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-70">
+          <div className="relative w-full max-w-5xl rounded-lg bg-white shadow-xl mx-4 max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Crear comparativa de productos (Amazon)
+              </h3>
+              <button
+                onClick={() => setShowComparisonModal(false)}
+                className="rounded-md p-2 text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Contenido */}
+            <div className="p-6 space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Categoría o título de la comparativa
+                </label>
+                <input
+                  type="text"
+                  value={comparisonCategory}
+                  onChange={(e) => setComparisonCategory(e.target.value)}
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  placeholder="Ej: Mochilas de senderismo, Bastones de trekking..."
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Esto se usará en el título, por ejemplo: &quot;Comparativa de Mochilas de senderismo&quot;.
+                </p>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-3">
+                {comparisonProducts.map((product, index) => (
+                  <div key={index} className="rounded-lg border border-gray-200 p-3 space-y-2 bg-gray-50">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-semibold text-gray-700">
+                        Producto #{index + 1}
+                      </span>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
+                        Nombre del producto
+                      </label>
+                      <input
+                        type="text"
+                        value={product.title}
+                        onChange={(e) => {
+                          const next = [...comparisonProducts]
+                          next[index] = { ...next[index], title: e.target.value }
+                          setComparisonProducts(next)
+                        }}
+                        className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                        placeholder="Ej: Mochila 30L ligera..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
+                        URL imagen Amazon
+                      </label>
+                      <input
+                        type="url"
+                        value={product.imageUrl}
+                        onChange={(e) => {
+                          const next = [...comparisonProducts]
+                          next[index] = { ...next[index], imageUrl: e.target.value }
+                          setComparisonProducts(next)
+                        }}
+                        className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                        placeholder="https://m.media-amazon.com/..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
+                        Enlace de afiliado Amazon
+                      </label>
+                      <input
+                        type="url"
+                        value={product.link}
+                        onChange={(e) => {
+                          const next = [...comparisonProducts]
+                          next[index] = { ...next[index], link: e.target.value }
+                          setComparisonProducts(next)
+                        }}
+                        className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                        placeholder="https://www.amazon.es/...?tag=tu-id-afiliado"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
+                        Puntos fuertes (uno por línea)
+                      </label>
+                      <textarea
+                        value={product.bullets}
+                        onChange={(e) => {
+                          const next = [...comparisonProducts]
+                          next[index] = { ...next[index], bullets: e.target.value }
+                          setComparisonProducts(next)
+                        }}
+                        rows={3}
+                        className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                        placeholder={"✓ Ligera\n✓ Cómoda\n✓ Ideal para rutas de 1 día"}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
+                        Texto de precio (opcional)
+                      </label>
+                      <input
+                        type="text"
+                        value={product.priceHint}
+                        onChange={(e) => {
+                          const next = [...comparisonProducts]
+                          next[index] = { ...next[index], priceHint: e.target.value }
+                          setComparisonProducts(next)
+                        }}
+                        className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                        placeholder="[Rango de precio orientativo]"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end space-x-4 border-t border-gray-200 bg-white px-6 py-4">
+              <button
+                onClick={() => setShowComparisonModal(false)}
+                className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  const textarea = contentRef.current
+                  const value = content || ''
+                  const start = textarea?.selectionStart ?? value.length
+                  const end = textarea?.selectionEnd ?? value.length
+
+                  const category =
+                    comparisonCategory.trim() || 'Mochilas de senderismo'
+
+                  const products = comparisonProducts
+                    .filter(
+                      (p) =>
+                        p.title.trim() ||
+                        p.imageUrl.trim() ||
+                        p.link.trim()
+                    )
+                    .map((p) => {
+                      const bulletLines = p.bullets
+                        .split('\n')
+                        .map((line) => line.trim())
+                        .filter(Boolean)
+                      const bulletsText =
+                        bulletLines.length > 0
+                          ? bulletLines.join(' · ')
+                          : 'Punto fuerte principal'
+
+                      const imageMarkdown = p.imageUrl
+                        ? `![${p.title || 'Producto'}|center|30%](${p.imageUrl})`
+                        : ''
+
+                      const priceText = p.priceHint || '—'
+                      const linkText = p.link
+                        ? `[Ver en Amazon](${p.link})`
+                        : '—'
+
+                      const titleText = p.title || 'Producto'
+
+                      return `| ${imageMarkdown} | ${titleText} | ${bulletsText} | ${priceText} | ${linkText} |`
+                    })
+
+                  const header =
+                    '| Imagen | Producto | Descripción | Precio | Enlace |\n' +
+                    '|--------|----------|-------------|--------|--------|'
+
+                  const rows = products.length > 0 ? products.join('\n') : ''
+
+                  const block = `\n\n## Comparativa de ${category}\n\n${header}\n${rows}\n\n`
+
+                  const newValue =
+                    value.slice(0, start) + block + value.slice(end)
+                  setContent(newValue)
+
+                  window.requestAnimationFrame(() => {
+                    if (textarea) {
+                      const cursor = start + block.length
+                      textarea.focus()
+                      textarea.setSelectionRange(cursor, cursor)
+                    }
+                  })
+
+                  setShowComparisonModal(false)
+                }}
+                className="flex items-center space-x-2 rounded-md bg-primary-600 px-4 py-2 text-sm text-white hover:bg-primary-700"
+              >
+                <Table className="h-4 w-4" />
+                <span>Insertar comparativa en el contenido</span>
               </button>
             </div>
           </div>

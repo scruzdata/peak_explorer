@@ -59,6 +59,7 @@ function firestoreToBlogPost(docData: any, id: string): BlogPost {
     title: data.title || 'Sin título',
     excerpt: data.excerpt || '',
     content: data.content || '',
+    contentJson: data.contentJson ? (typeof data.contentJson === 'object' ? data.contentJson : JSON.parse(data.contentJson)) : undefined,
     tags: Array.isArray(data.tags) ? data.tags : [],
     status: data.status || 'draft',
     featuredImage: data.featuredImage && typeof data.featuredImage === 'object' && data.featuredImage.url 

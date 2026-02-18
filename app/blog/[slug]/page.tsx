@@ -7,22 +7,20 @@ import { BlogPost } from '@/types'
 import { Calendar, Clock, Tag } from 'lucide-react'
 import { calculateReadingTime } from '@/lib/utils'
 
-// OPTIMIZACIÓN: Lazy loading de react-markdown (~30KB) - solo cargar cuando se visita un blog
-// Los plugins son pequeños y se importan normalmente
-const ReactMarkdown = dynamicImport(
-  () => import('react-markdown'),
-  { 
-    ssr: true, // Mantener SSR para SEO del contenido
-    loading: () => <div className="animate-pulse space-y-4"><div className="h-4 bg-gray-200 rounded w-3/4"></div><div className="h-4 bg-gray-200 rounded"></div></div>
+// OPTIMIZACIÓN: Lazy loading del renderer de Tiptap para contenido JSON
+const BlogRenderer = dynamicImport(
+  () => import('@/components/blog/renderers/BlogRenderer').then((mod) => ({ default: mod.BlogRenderer })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="animate-pulse space-y-4">
+        <div className="h-4 w-3/4 rounded bg-gray-200"></div>
+        <div className="h-4 rounded bg-gray-200"></div>
+      </div>
+    ),
   }
 )
 
-// Plugins de markdown (pequeños, se importan normalmente)
-import remarkGfm from 'remark-gfm'
-import remarkBreaks from 'remark-breaks'
-import rehypeRaw from 'rehype-raw'
-
-import type { Components } from 'react-markdown'
 import { BlogFeaturedImage } from '@/components/blog/BlogFeaturedImage'
 
 // OPTIMIZACIÓN: Lazy loading de RecentBlogsCarousel (usa componentes pesados)
@@ -90,104 +88,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         day: 'numeric',
       })
 
-  // Componentes personalizados para el renderizado de Markdown
-  const markdownComponents: Components = {
-    p: ({ ...props }) => (
-      <p className="mb-6 leading-7 text-gray-700" {...props} />
-    ),
-    h2: ({ ...props }) => (
-      <h2 className="mb-4 mt-8 text-3xl font-bold text-gray-900 first:mt-0" {...props} />
-    ),
-    h3: ({ ...props }) => (
-      <h3 className="mb-3 mt-6 text-2xl font-semibold text-gray-900" {...props} />
-    ),
-    ul: ({ ...props }) => (
-      <ul className="mb-6 ml-6 list-disc space-y-2 text-gray-700" {...props} />
-    ),
-    ol: ({ ...props }) => (
-      <ol className="mb-6 ml-6 list-decimal space-y-2 text-gray-700" {...props} />
-    ),
-    li: ({ ...props }) => (
-      <li className="leading-7" {...props} />
-    ),
-    blockquote: ({ ...props }) => (
-      <blockquote className="my-6 border-l-4 border-primary-500 bg-primary-50 py-4 pl-6 pr-4 italic text-gray-800" {...props} />
-    ),
-    strong: ({ ...props }) => (
-      <strong className="font-bold text-gray-900" {...props} />
-    ),
-    em: ({ ...props }) => (
-      <em className="italic text-gray-800" {...props} />
-    ),
-    hr: ({ ...props }) => (
-      <hr className="my-8 border-gray-300" {...props} />
-    ),
-    a: ({ ...props }) => (
-      <a className="text-primary-600 underline hover:text-primary-700" {...props} />
-    ),
-    img: (props) => {
-      const imgProps = props as any
-      // Detectar alineación y tamaño del alt text: ![alt|alignment|size%](url)
-      const altText = imgProps.alt || ''
-      const alignmentMatch = altText.match(/\|(left|right|center|full)/)
-      const sizeMatch = altText.match(/\|(\d+)%/)
-      const alignment = alignmentMatch ? (alignmentMatch[1] as 'left' | 'center' | 'right' | 'full') : 'full'
-      const size = sizeMatch ? parseInt(sizeMatch[1]) : 100
-      const cleanAlt = altText.replace(/\|(left|right|center|full)/g, '').replace(/\|\d+%/g, '')
-      
-      const alignmentClasses = {
-        left: 'float-left mr-4 mb-4',
-        right: 'float-right ml-4 mb-4',
-        center: 'mx-auto my-6 block',
-        full: 'my-6 w-full block'
-      }
-      
-      const maxWidthClasses = {
-        left: 'max-w-xs',
-        right: 'max-w-xs',
-        center: 'max-w-md',
-        full: 'max-w-full'
-      }
-      
-      // Optimización: Usar next/image en lugar de <img> para lazy loading automático
-      // y optimización de imágenes (WebP, AVIF). Las imágenes en markdown no son críticas
-      // por lo que se cargan con lazy loading (mejora LCP y reduce carga inicial)
-      const imageUrl = imgProps.src || ''
-      const isExternal = imageUrl.startsWith('http://') || imageUrl.startsWith('https://')
-      const isFirebase = imageUrl.includes('firebasestorage') || imageUrl.includes('firebase')
-      
-      return (
-        <div 
-          className={`relative ${alignmentClasses[alignment]} ${maxWidthClasses[alignment]}`}
-          style={{ width: size !== 100 ? `${size}%` : undefined }}
-        >
-          {isExternal ? (
-            <Image
-              src={imageUrl}
-              alt={cleanAlt}
-              width={1200}
-              height={800}
-              className="rounded-lg w-full h-auto"
-              loading="lazy" // Lazy loading para imágenes no críticas (mejora LCP)
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              unoptimized={isFirebase} // Firebase Storage no se puede optimizar con Next.js
-            />
-          ) : (
-            // Para imágenes locales, usar next/image con ruta relativa
-            <Image
-              src={imageUrl}
-              alt={cleanAlt}
-              width={1200}
-              height={800}
-              className="rounded-lg w-full h-auto"
-              loading="lazy"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            />
-          )}
-        </div>
-      )
-    },
-  }
+  // Para entradas antiguas sin JSON, se puede mantener un fallback a contenido plano si lo deseas.
 
   return (
     <article className="min-h-screen bg-gray-50">
@@ -257,13 +158,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
         {/* Content */}
         <div className="prose prose-lg max-w-none">
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm, remarkBreaks] as any}
-            rehypePlugins={[rehypeRaw] as any}
-            components={markdownComponents}
-          >
-            {blog.content}
-          </ReactMarkdown>
+          {blog.contentJson ? (
+            <BlogRenderer contentJson={blog.contentJson} />
+          ) : (
+            <p className="whitespace-pre-wrap text-gray-800">{blog.content}</p>
+          )}
         </div>
       </div>
 

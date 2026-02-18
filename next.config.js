@@ -66,6 +66,11 @@ const nextConfig = {
         "'self'",
         'data:', // Para imágenes en base64
         'blob:', // Para imágenes generadas dinámicamente
+        // Imágenes de Amazon (afiliados, banners, etc.)
+        'https://*.amazon.com',
+        'https://*.amazon.es',
+        'https://m.media-amazon.com',
+        'https://images-na.ssl-images-amazon.com',
         'https://*.mapbox.com', // Tiles de Mapbox
         'https://*.firebaseapp.com', // Firebase Storage
         'https://*.firebasestorage.googleapis.com', // Firebase Storage
