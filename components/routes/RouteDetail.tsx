@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Route, WebcamData } from '@/types'
@@ -25,7 +25,9 @@ import {
   AlertTriangle,
   Info,
   X,
-  Download
+  Download,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 import confetti from 'canvas-confetti'
 
@@ -177,6 +179,51 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
   useEffect(() => {
     setSelectedWebcamIndex(0)
   }, [route.id])
+
+  /**
+   * Navega a la webcam anterior
+   */
+  const goToPreviousWebcam = useCallback(() => {
+    if (normalizedWebcams.length > 0) {
+      setSelectedWebcamIndex((prev) => 
+        prev === 0 ? normalizedWebcams.length - 1 : prev - 1
+      )
+    }
+  }, [normalizedWebcams.length])
+
+  /**
+   * Navega a la webcam siguiente
+   */
+  const goToNextWebcam = useCallback(() => {
+    if (normalizedWebcams.length > 0) {
+      setSelectedWebcamIndex((prev) => 
+        prev === normalizedWebcams.length - 1 ? 0 : prev + 1
+      )
+    }
+  }, [normalizedWebcams.length])
+
+  /**
+   * Maneja la navegación con teclado cuando el modal está abierto
+   */
+  useEffect(() => {
+    if (!showWebcamImageModal || normalizedWebcams.length <= 1) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        goToPreviousWebcam()
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        goToNextWebcam()
+      } else if (e.key === 'Escape') {
+        e.preventDefault()
+        setShowWebcamImageModal(false)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [showWebcamImageModal, normalizedWebcams.length, goToPreviousWebcam, goToNextWebcam])
 
   /**
    * Galería con la imagen principal primero seguida del resto
@@ -1003,12 +1050,55 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
           >
             <button
               type="button"
-              className="absolute right-2 top-2 rounded-full bg-black/60 p-1 text-white hover:bg-black"
+              className="absolute right-2 top-2 rounded-full bg-black/60 p-1 text-white hover:bg-black z-10"
               aria-label="Cerrar imagen ampliada"
               onClick={() => setShowWebcamImageModal(false)}
             >
               <X className="h-5 w-5" />
             </button>
+            
+            {/* Botón de navegación izquierda */}
+            {normalizedWebcams.length > 1 && (
+              <button
+                type="button"
+                className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white hover:bg-black z-10 transition-colors"
+                aria-label="Webcam anterior"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  goToPreviousWebcam()
+                }}
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </button>
+            )}
+
+            {/* Botón de navegación derecha */}
+            {normalizedWebcams.length > 1 && (
+              <button
+                type="button"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white hover:bg-black z-10 transition-colors"
+                aria-label="Webcam siguiente"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  goToNextWebcam()
+                }}
+              >
+                <ChevronRight className="h-6 w-6" />
+              </button>
+            )}
+
+            {/* Título de la webcam */}
+            {normalizedWebcams[selectedWebcamIndex].title && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 px-4 py-2 rounded-lg text-white text-sm font-medium z-10">
+                {normalizedWebcams[selectedWebcamIndex].title}
+                {normalizedWebcams.length > 1 && (
+                  <span className="ml-2 text-gray-300">
+                    ({selectedWebcamIndex + 1} / {normalizedWebcams.length})
+                  </span>
+                )}
+              </div>
+            )}
+
             <Image
               src={normalizedWebcams[selectedWebcamIndex].url}
               alt={normalizedWebcams[selectedWebcamIndex].title || `Webcam ${selectedWebcamIndex + 1}`}

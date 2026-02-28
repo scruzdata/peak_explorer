@@ -26,6 +26,7 @@ import { calculateSlope, getSlopeColor } from '@/lib/utils'
 import type { MapRef } from 'react-map-gl'
 import type { WaypointType } from '@/types'
 import camerasJson from '../../public/cameras.json'
+import { getAllRefugios, Refugio } from '@/lib/firebase/refugios'
 
 /**
  * Obtiene el icono apropiado para un tipo de waypoint
@@ -159,6 +160,10 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
   const [internalSelectedWaypoint, setInternalSelectedWaypoint] = useState<number | null>(null)
   const [showDgtCameras, setShowDgtCameras] = useState(false)
   const [selectedDgtCameraIndex, setSelectedDgtCameraIndex] = useState<number | null>(null)
+  const [refugios, setRefugios] = useState<Refugio[]>([])
+  const [showRefugios, setShowRefugios] = useState(false)
+  const [selectedRefugioIndex, setSelectedRefugioIndex] = useState<number | null>(null)
+  const refugioPopupScrollRef = useRef<HTMLDivElement | null>(null)
   
   // Usar el waypoint externo si está disponible, sino usar el interno
   const selectedWaypoint = externalSelectedWaypoint !== undefined ? externalSelectedWaypoint : internalSelectedWaypoint
@@ -268,6 +273,11 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
     return viewState.zoom >= 11
   }, [viewState])
 
+  const isRefugiosZoomEnabled = useMemo(() => {
+    if (!viewState) return false
+    return viewState.zoom >= 11
+  }, [viewState])
+
   const visibleDgtCameras = useMemo(() => {
     if (!mapBounds) return []
     const { north, south, east, west } = mapBounds
@@ -295,6 +305,86 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
       setSelectedDgtCameraIndex(null)
     }
   }, [isDgtZoomEnabled])
+
+  // Sincronizar automáticamente showRefugios con el zoom
+  useEffect(() => {
+    if (isRefugiosZoomEnabled) {
+      setShowRefugios(true)
+    } else {
+      setShowRefugios(false)
+      setSelectedRefugioIndex(null)
+    }
+  }, [isRefugiosZoomEnabled])
+
+  // Cargar refugios desde Firestore
+  useEffect(() => {
+    getAllRefugios().then(setRefugios).catch(console.error)
+  }, [])
+
+  // Filtrar refugios visibles según los bounds del mapa
+  const visibleRefugios = useMemo(() => {
+    if (!mapBounds || refugios.length === 0) return []
+    const { north, south, east, west } = mapBounds
+    return refugios.filter((refugio: Refugio) => {
+      const lat = refugio.location.coordinates.lat
+      const lng = refugio.location.coordinates.lng
+      const inLat = lat >= south && lat <= north
+      const inLng =
+        east >= west
+          ? lng >= west && lng <= east
+          : lng >= west || lng <= east
+      return inLat && inLng
+    })
+  }, [mapBounds, refugios])
+
+  // Hacer scroll al top del popup cuando se abre
+  useEffect(() => {
+    if (selectedRefugioIndex !== null) {
+      // Intentar múltiples veces para asegurar que el DOM esté renderizado
+      const attemptScroll = (attempts = 0) => {
+        if (attempts > 10) return // Máximo 10 intentos
+        requestAnimationFrame(() => {
+          if (refugioPopupScrollRef.current) {
+            refugioPopupScrollRef.current.scrollTop = 0
+          } else {
+            // Fallback: buscar en el DOM
+            const popup = document.querySelector('.mapboxgl-popup-content')
+            if (popup) {
+              const scrollableDiv = popup.querySelector('div[style*="overflow-y-auto"]') as HTMLElement
+              if (scrollableDiv) {
+                scrollableDiv.scrollTop = 0
+              } else if (attempts < 10) {
+                setTimeout(() => attemptScroll(attempts + 1), 20)
+              }
+            } else if (attempts < 10) {
+              setTimeout(() => attemptScroll(attempts + 1), 20)
+            }
+          }
+        })
+      }
+      attemptScroll()
+    }
+  }, [selectedRefugioIndex])
+
+  /**
+   * Obtiene el color según el tipo de refugio
+   */
+  const getRefugioColor = (type: string): string => {
+    switch (type) {
+      case 'alpine_hut':
+        return '#8b5cf6' // morado
+      case 'wilderness_hut':
+        return '#10b981' // verde
+      case 'basic_hut':
+        return '#f59e0b' // naranja
+      case 'shelter':
+        return '#3b82f6)' // azul
+      case 'hut':
+        return '#ef4444' // rojo
+      default:
+        return '#6b7280' // gris
+    }
+  }
 
   /**
    * Importa dinámicamente los estilos de Mapbox cuando el componente se monta
@@ -543,7 +633,10 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
     if (selectedDgtCameraIndex !== null) {
       setSelectedDgtCameraIndex(null)
     }
-  }, [selectedWaypoint, setSelectedWaypoint, selectedParking, setSelectedParking, selectedRestaurant, setSelectedRestaurant, selectedDgtCameraIndex])
+    if (selectedRefugioIndex !== null) {
+      setSelectedRefugioIndex(null)
+    }
+  }, [selectedWaypoint, setSelectedWaypoint, selectedParking, setSelectedParking, selectedRestaurant, setSelectedRestaurant, selectedDgtCameraIndex, selectedRefugioIndex])
 
   /**
    * Alterna entre estilos de mapa satélite y outdoors
@@ -1043,6 +1136,147 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
                         <span>Google Maps</span>
                       </a>
                     </div>
+                  </div>
+                </div>
+              </Popup>
+            )}
+          </Marker>
+        ))}
+
+        {/* Marcadores de refugios (solo cuando zoom >= 11) */}
+        {showRefugios && visibleRefugios.map((refugio, index) => (
+          <Marker
+            key={`refugio-${refugio.id}-${index}`}
+            longitude={refugio.location.coordinates.lng}
+            latitude={refugio.location.coordinates.lat}
+            anchor="bottom"
+          >
+            <div
+              className="cursor-pointer"
+              onClick={(e: React.MouseEvent) => {
+                e.stopPropagation()
+                setSelectedRefugioIndex(selectedRefugioIndex === index ? null : index)
+              }}
+            >
+              <div className="relative">
+                <div 
+                  className="flex items-center justify-center w-7 h-7 rounded-full text-white shadow-md"
+                  style={{ backgroundColor: getRefugioColor(refugio.type) }}
+                >
+                  <FaHome className="w-4 h-4" />
+                </div>
+                <div
+                  className="absolute"
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    bottom: '-4px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                    backgroundColor: getRefugioColor(refugio.type),
+                  }}
+                />
+              </div>
+            </div>
+            {selectedRefugioIndex === index && (
+              <Popup
+                longitude={refugio.location.coordinates.lng}
+                latitude={refugio.location.coordinates.lat}
+                anchor="top"
+                offset={[0, 10]}
+                onClose={() => setSelectedRefugioIndex(null)}
+                closeButton={false}
+                closeOnClick={false}
+              >
+                <div 
+                  ref={refugioPopupScrollRef}
+                  className="p-4 rounded-2xl bg-white border border-gray-200 shadow-2xl max-w-[420px] overflow-y-auto" 
+                  style={{ maxHeight: 'min(400px, calc(100vh - 200px))' }}
+                >
+                  <div className="flex flex-col gap-3">
+                    {/* Header */}
+                    <div>
+                      <h3 className="font-bold text-lg text-gray-900 leading-tight mb-2">
+                        {refugio.name}
+                      </h3>
+                      <div className="flex flex-col gap-1.5">
+                        <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-gray-100 rounded-lg w-fit">
+                          <span className="text-xs font-medium text-gray-700 capitalize">{refugio.type.replace('_', ' ')}</span>
+                        </div>
+                        {refugio.elevation && (
+                          <p className="text-sm text-gray-600 font-medium">
+                            Elevación: <span className="text-gray-900">{refugio.elevation}m</span>
+                          </p>
+                        )}
+                        {refugio.tags?.capacity && (
+                          <p className="text-sm text-gray-600 font-medium">
+                            Capacidad: <span className="text-gray-900">{refugio.tags.capacity}</span>
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Imagen si existe */}
+                    {refugio.tags?.image && (
+                      <div className="relative w-full overflow-hidden rounded-lg border border-gray-200 bg-black/5">
+                        <img
+                          src={refugio.tags.image}
+                          alt={refugio.name}
+                          className="block w-full max-h-[280px] object-contain bg-black"
+                          loading="lazy"
+                        />
+                      </div>
+                    )}
+                    
+                    {/* Información de tags (excluyendo campos específicos) */}
+                    {refugio.tags && (() => {
+                      const excludedFields = ['name', 'elevation', 'tourism', 'shelter_type', 'capacity', 'image', 'backcountry',
+                        "addr:postcode","addr:city","access","wikidata","wikipedia","name:ca","name:es","name:fr","name:oc","description:fr","ref:refuges.info","addr:street", "addr:housenumber","addr:city",
+                      ]
+                      const filteredTags = Object.entries(refugio.tags).filter(([key]) => !excludedFields.includes(key))
+                      return filteredTags.length > 0 && (
+                        <div className="border-t border-gray-200 pt-3">
+                          <h4 className="font-semibold text-sm text-gray-800 mb-2">Información adicional:</h4>
+                          <div className="flex flex-col gap-2">
+                            {filteredTags.map(([key, value]) => {
+                              const valueStr = String(value)
+                              const isUrl = /^https?:\/\//.test(valueStr)
+                              return (
+                                <div key={key} className="text-xs text-gray-700">
+                                  <span className="font-semibold text-gray-800 capitalize">{key.replace('_', ' ')}:</span>{' '}
+                                  {isUrl ? (
+                                    <a
+                                      href={valueStr}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:text-blue-700 underline inline-flex items-center gap-1"
+                                    >
+                                      {valueStr}
+                                      <ExternalLink className="h-3 w-3" />
+                                    </a>
+                                  ) : (
+                                    <span className="text-gray-700">{valueStr}</span>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })()}
+                    
+                            {/* Enlace a Google Maps */}
+                            <a
+                              href={`https://www.google.com/maps?q=${refugio.location.coordinates.lat},${refugio.location.coordinates.lng}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors mt-1"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              <span>Abrir en Google Maps</span>
+                            </a>
                   </div>
                 </div>
               </Popup>
@@ -1725,6 +1959,147 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
                                 <span>Google Maps</span>
                               </a>
                             </div>
+                          </div>
+                        </div>
+                      </Popup>
+                    )}
+                  </Marker>
+                ))}
+
+                {/* Marcadores de refugios en pantalla completa */}
+                {showRefugios && visibleRefugios.map((refugio, index) => (
+                  <Marker
+                    key={`fullscreen-refugio-${refugio.id}-${index}`}
+                    longitude={refugio.location.coordinates.lng}
+                    latitude={refugio.location.coordinates.lat}
+                    anchor="bottom"
+                  >
+                    <div
+                      className="cursor-pointer"
+                      onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation()
+                        setSelectedRefugioIndex(selectedRefugioIndex === index ? null : index)
+                      }}
+                    >
+                      <div className="relative">
+                        <div 
+                          className="flex items-center justify-center w-7 h-7 rounded-full text-white shadow-md"
+                          style={{ backgroundColor: getRefugioColor(refugio.type) }}
+                        >
+                          <FaHome className="w-4 h-4" />
+                        </div>
+                        <div
+                          className="absolute"
+                          style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            bottom: '-4px',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                            backgroundColor: getRefugioColor(refugio.type),
+                          }}
+                        />
+                      </div>
+                    </div>
+                    {selectedRefugioIndex === index && (
+                      <Popup
+                        longitude={refugio.location.coordinates.lng}
+                        latitude={refugio.location.coordinates.lat}
+                        anchor="top"
+                        offset={[0, 10]}
+                        onClose={() => setSelectedRefugioIndex(null)}
+                        closeButton={false}
+                        closeOnClick={false}
+                      >
+                        <div 
+                          ref={refugioPopupScrollRef}
+                          className="p-4 rounded-2xl bg-white border border-gray-200 shadow-2xl max-w-[420px] overflow-y-auto" 
+                          style={{ maxHeight: 'min(400px, calc(100vh - 200px))' }}
+                        >
+                          <div className="flex flex-col gap-3">
+                            {/* Header */}
+                            <div>
+                              <h3 className="font-bold text-lg text-gray-900 leading-tight mb-2">
+                                {refugio.name}
+                              </h3>
+                              <div className="flex flex-col gap-1.5">
+                                <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-gray-100 rounded-lg w-fit">
+                                  <span className="text-xs font-medium text-gray-700 capitalize">{refugio.type.replace('_', ' ')}</span>
+                                </div>
+                                {refugio.elevation && (
+                                  <p className="text-sm text-gray-600 font-medium">
+                                    Elevación: <span className="text-gray-900">{refugio.elevation}m</span>
+                                  </p>
+                                )}
+                                {refugio.tags?.capacity && (
+                                  <p className="text-sm text-gray-600 font-medium">
+                                    Capacidad: <span className="text-gray-900">{refugio.tags.capacity}</span>
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            
+                            {/* Imagen si existe */}
+                            {refugio.tags?.image && (
+                              <div className="relative w-full overflow-hidden rounded-lg border border-gray-200 bg-black/5">
+                                <img
+                                  src={refugio.tags.image}
+                                  alt={refugio.name}
+                                  className="block w-full max-h-[280px] object-contain bg-black"
+                                  loading="lazy"
+                                />
+                              </div>
+                            )}
+                            
+                            {/* Información de tags (excluyendo campos específicos) */}
+                            {refugio.tags && (() => {
+                              const excludedFields = ['name', 'elevation', 'tourism', 'shelter_type', 'capacity', 'image', 'backcountry',
+                                "addr:postcode","addr:city","access","wikidata","wikipedia","name:ca","name:es","name:fr","name:oc","description:fr","ref:refuges.info","addr:street", "addr:housenumber","addr:city",
+                              ]
+                              const filteredTags = Object.entries(refugio.tags).filter(([key]) => !excludedFields.includes(key))
+                              return filteredTags.length > 0 && (
+                                <div className="border-t border-gray-200 pt-3">
+                                  <h4 className="font-semibold text-sm text-gray-800 mb-2">Información adicional:</h4>
+                                  <div className="flex flex-col gap-2">
+                                    {filteredTags.map(([key, value]) => {
+                                      const valueStr = String(value)
+                                      const isUrl = /^https?:\/\//.test(valueStr)
+                                      return (
+                                        <div key={key} className="text-xs text-gray-700">
+                                          <span className="font-semibold text-gray-800 capitalize">{key.replace('_', ' ')}:</span>{' '}
+                                          {isUrl ? (
+                                            <a
+                                              href={valueStr}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-blue-600 hover:text-blue-700 underline inline-flex items-center gap-1"
+                                            >
+                                              {valueStr}
+                                              <ExternalLink className="h-3 w-3" />
+                                            </a>
+                                          ) : (
+                                            <span className="text-gray-700">{valueStr}</span>
+                                          )}
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                              )
+                            })()}
+                            
+                            {/* Enlace a Google Maps */}
+                            <a
+                              href={`https://www.google.com/maps?q=${refugio.location.coordinates.lat},${refugio.location.coordinates.lng}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors mt-1"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              <span>Abrir en Google Maps</span>
+                            </a>
                           </div>
                         </div>
                       </Popup>
