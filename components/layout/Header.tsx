@@ -2,61 +2,115 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
-import { Menu, X, Mountain, Bookmark, Trophy } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Menu, X, Mountain, Bookmark, Trophy, ChevronDown } from 'lucide-react'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { cn } from '@/lib/utils'
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   const pathname = usePathname()
   const { user, signOut } = useAuth()
 
+  const isLandingPage = pathname === '/'
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 24)
+    handleScroll()
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false)
+  }, [pathname])
+
   const navItems = [
-    { href: '/', label: 'Inicio' },
-    { href: '/rutas', label: 'Rutas de Montaña' },
-    { href: '/vias-ferratas', label: 'Vías Ferratas' },
-    { href: '/blog', label: 'Blog' },
+    { href: '/rutas',          label: 'Rutas' },
+    { href: '/vias-ferratas',  label: 'Vías Ferratas' },
+    { href: '/blog',           label: 'Blog' },
   ]
 
+  const isScrolledOrNotLanding = scrolled || !isLandingPage
+
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-gray-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
-      <nav className="mx-auto grid max-w-7xl grid-cols-[1fr_auto] md:grid-cols-[1fr_auto_1fr] items-center px-4 py-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center space-x-2 group justify-self-start">
-          <Mountain className="h-8 w-8 text-primary-600 transition-transform group-hover:scale-110" />
-          <span className="text-xl font-bold text-gray-900">Peak Explorer</span>
+    <header
+      className={cn(
+        'fixed top-0 left-0 right-0 z-40 transition-all duration-300',
+        isScrolledOrNotLanding
+          ? 'bg-white/95 backdrop-blur-md shadow-nav border-b border-editorial-100'
+          : 'bg-transparent'
+      )}
+    >
+      <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 h-16">
+
+        {/* Logo */}
+        <Link
+          href="/"
+          className="flex items-center gap-2.5 group flex-shrink-0"
+          prefetch={false}
+        >
+          <div className={cn(
+            'flex items-center justify-center w-8 h-8 rounded-lg transition-colors duration-300',
+            isScrolledOrNotLanding ? 'bg-primary-600' : 'bg-white/20 backdrop-blur-sm'
+          )}>
+            <Mountain className="h-5 w-5 text-white" />
+          </div>
+          <span className={cn(
+            'text-base font-bold tracking-tight transition-colors duration-300',
+            isScrolledOrNotLanding ? 'text-editorial-900' : 'text-white text-shadow-hero'
+          )}>
+            Peak Explorer
+          </span>
         </Link>
 
         {/* Desktop Navigation */}
-        <div className="hidden md:flex md:items-center md:space-x-8 md:justify-self-center">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              // OPTIMIZACIÓN DE PERFORMANCE:
-              // Desactivar el prefetch automático de Next.js para que SOLO la landing (`/`)
-              // se cargue de forma eager. El resto de rutas se cargan on‑demand al hacer click,
-              // evitando descargar JavaScript de páginas no visitadas en el primer paint.
-              prefetch={false}
-              className={cn(
-                'text-sm font-medium transition-colors hover:text-primary-600',
-                // Optimización accesibilidad: text-primary-700 mejora contraste sobre fondo blanco (ratio >4.5:1)
-                pathname === item.href ? 'text-primary-700' : 'text-gray-700'
-              )}
-            >
-              {item.label}
-            </Link>
-          ))}
+        <div className="hidden md:flex items-center gap-1">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                prefetch={false}
+                className={cn(
+                  'relative px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200',
+                  isActive
+                    ? isScrolledOrNotLanding
+                      ? 'text-primary-700 bg-primary-50'
+                      : 'text-white bg-white/15'
+                    : isScrolledOrNotLanding
+                      ? 'text-editorial-600 hover:text-editorial-900 hover:bg-editorial-100'
+                      : 'text-white/80 hover:text-white hover:bg-white/10'
+                )}
+              >
+                {item.label}
+                {isActive && (
+                  <span className={cn(
+                    'absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full',
+                    isScrolledOrNotLanding ? 'bg-primary-600' : 'bg-white'
+                  )} />
+                )}
+              </Link>
+            )
+          })}
         </div>
 
-        {/* User Menu */}
-        <div className="hidden md:flex md:items-center md:space-x-4 md:justify-self-end">
+        {/* Right side: User menu + CTA */}
+        <div className="hidden md:flex items-center gap-2">
           {user ? (
             <>
               <Link
                 href="/mis-rutas"
                 prefetch={false}
-                className="flex items-center space-x-1 text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
+                className={cn(
+                  'flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg transition-all duration-200',
+                  isScrolledOrNotLanding
+                    ? 'text-editorial-600 hover:text-editorial-900 hover:bg-editorial-100'
+                    : 'text-white/80 hover:text-white hover:bg-white/10'
+                )}
               >
                 <Bookmark className="h-4 w-4" />
                 <span>Mis Rutas</span>
@@ -64,7 +118,12 @@ export function Header() {
               <Link
                 href="/perfil"
                 prefetch={false}
-                className="flex items-center space-x-1 text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
+                className={cn(
+                  'flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg transition-all duration-200',
+                  isScrolledOrNotLanding
+                    ? 'text-editorial-600 hover:text-editorial-900 hover:bg-editorial-100'
+                    : 'text-white/80 hover:text-white hover:bg-white/10'
+                )}
               >
                 <Trophy className="h-4 w-4" />
                 <span>Perfil</span>
@@ -73,95 +132,120 @@ export function Header() {
                 <Link
                   href="/admin"
                   prefetch={false}
-                  // Optimización accesibilidad: text-primary-700 mejora contraste sobre fondo blanco
-                  className="text-sm font-medium text-primary-700 hover:text-primary-800"
+                  className={cn(
+                    'text-sm font-medium px-3 py-2 rounded-lg transition-all duration-200',
+                    isScrolledOrNotLanding
+                      ? 'text-primary-700 hover:bg-primary-50'
+                      : 'text-white/80 hover:text-white hover:bg-white/10'
+                  )}
                 >
                   Admin
                 </Link>
               )}
               <button
                 onClick={signOut}
-                className="text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
+                className={cn(
+                  'text-sm font-medium px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer',
+                  isScrolledOrNotLanding
+                    ? 'text-editorial-500 hover:text-editorial-900 hover:bg-editorial-100'
+                    : 'text-white/60 hover:text-white hover:bg-white/10'
+                )}
               >
                 Salir
               </button>
             </>
-          ) : null}
+          ) : (
+            <Link
+              href="/rutas"
+              prefetch={false}
+              className={cn(
+                'text-sm font-semibold px-4 py-2 rounded-xl transition-all duration-200',
+                isScrolledOrNotLanding
+                  ? 'bg-primary-600 text-white hover:bg-primary-700'
+                  : 'bg-white text-editorial-900 hover:bg-white/90'
+              )}
+            >
+              Explorar rutas
+            </Link>
+          )}
         </div>
 
         {/* Mobile Menu Button */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden p-2 text-gray-700 hover:text-primary-600 transition-colors justify-self-end"
+          className={cn(
+            'md:hidden p-2 rounded-lg transition-colors duration-200 cursor-pointer',
+            isScrolledOrNotLanding
+              ? 'text-editorial-700 hover:bg-editorial-100'
+              : 'text-white hover:bg-white/10'
+          )}
           aria-label="Toggle menu"
         >
-          {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          {mobileMenuOpen
+            ? <X className="h-5 w-5" />
+            : <Menu className="h-5 w-5" />}
         </button>
       </nav>
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-gray-200 bg-white">
-          <div className="px-4 py-4 space-y-4">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                prefetch={false}
-                onClick={() => setMobileMenuOpen(false)}
-                className={cn(
-                  'block text-center text-base font-medium transition-colors',
-                  // Optimización accesibilidad: text-primary-700 mejora contraste sobre fondo blanco
-                  pathname === item.href ? 'text-primary-700' : 'text-gray-700 hover:text-primary-600'
-                )}
-              >
-                {item.label}
-              </Link>
-            ))}
-            {user ? (
-              <div className="pt-4 border-t border-gray-200 space-y-3">
+        <div className="md:hidden bg-white border-t border-editorial-100 shadow-lg">
+          <div className="px-4 pt-2 pb-4 space-y-1">
+            {navItems.map((item) => {
+              const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+              return (
                 <Link
-                  href="/mis-rutas"
+                  key={item.href}
+                  href={item.href}
                   prefetch={false}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block text-center text-base font-medium text-gray-700 hover:text-primary-600"
+                  className={cn(
+                    'flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-colors',
+                    isActive
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-editorial-700 hover:bg-editorial-50'
+                  )}
                 >
-                  Mis Rutas
+                  {item.label}
+                  {isActive && <span className="w-1.5 h-1.5 rounded-full bg-primary-600" />}
                 </Link>
-                <Link
-                  href="/perfil"
-                  prefetch={false}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block text-center text-base font-medium text-gray-700 hover:text-primary-600"
-                >
-                  Perfil
+              )
+            })}
+
+            {user ? (
+              <div className="pt-2 mt-2 border-t border-editorial-100 space-y-1">
+                <Link href="/mis-rutas" prefetch={false} onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium text-editorial-700 hover:bg-editorial-50">
+                  <Bookmark className="h-4 w-4" /> Mis Rutas
+                </Link>
+                <Link href="/perfil" prefetch={false} onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium text-editorial-700 hover:bg-editorial-50">
+                  <Trophy className="h-4 w-4" /> Perfil
                 </Link>
                 {user.role === 'admin' && (
-                  <Link
-                    href="/admin"
-                    prefetch={false}
-                    onClick={() => setMobileMenuOpen(false)}
-                    // Optimización accesibilidad: text-primary-700 mejora contraste sobre fondo blanco
-                    className="block text-center text-base font-medium text-primary-700"
-                  >
+                  <Link href="/admin" prefetch={false} onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium text-primary-700 hover:bg-primary-50">
                     Admin
                   </Link>
                 )}
                 <button
-                  onClick={() => {
-                    signOut()
-                    setMobileMenuOpen(false)
-                  }}
-                  className="block w-full text-center text-base font-medium text-gray-700 hover:text-primary-600"
+                  onClick={() => { signOut(); setMobileMenuOpen(false) }}
+                  className="w-full flex items-center px-4 py-3 rounded-xl text-sm font-medium text-editorial-500 hover:bg-editorial-50 cursor-pointer"
                 >
-                  Salir
+                  Cerrar sesión
                 </button>
               </div>
-            ) : null}
+            ) : (
+              <div className="pt-2 mt-2 border-t border-editorial-100">
+                <Link href="/rutas" prefetch={false} onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-center w-full px-4 py-3 rounded-xl text-sm font-semibold bg-primary-600 text-white">
+                  Explorar rutas
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       )}
     </header>
   )
 }
-

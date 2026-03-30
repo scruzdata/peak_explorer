@@ -556,9 +556,9 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
       viewport={{ once: true }}
       transition={{ duration: 0.5 }}
       className={`relative card card-hover group transition-all duration-300 ${isMobile && hasMultipleImages ? 'pt-10' : ''} ${
-        isSelected ? 'ring-2 ring-primary-600 ring-offset-2 shadow-xl' : ''
+        isSelected ? 'ring-2 ring-primary-600 ring-offset-2 shadow-card-hover' : ''
       } ${
-        isHovered && !isSelected ? 'ring-2 ring-primary-500 ring-offset-2 scale-105 shadow-xl' : ''
+        isHovered && !isSelected ? 'ring-2 ring-primary-400 ring-offset-2 scale-[1.02] shadow-card-hover' : ''
       }`}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
@@ -634,12 +634,12 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
               })()}
             </motion.div>
           </AnimatePresence>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
           
           {/* Rating Badge */}
           {hasRating && (
-            <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-white/90 px-2 py-1 text-xs font-semibold text-gray-900 shadow z-10">
-              <Star className="h-3.5 w-3.5 text-amber-500" fill="currentColor" strokeWidth={1.5} />
+            <div className="absolute top-3 right-3 flex items-center gap-1 rounded-full bg-black/50 backdrop-blur-sm px-2.5 py-1 text-xs font-bold text-white shadow z-10">
+              <Star className="h-3 w-3 text-cta-400" fill="currentColor" strokeWidth={0} />
               {ratingValue}
             </div>
           )}
@@ -647,40 +647,35 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
           {/* Navigation Arrows */}
           {hasMultipleImages && (
             <>
-              {/* Left Arrow */}
               <button
                 onClick={goToPrevious}
-                className="absolute left-2 top-1/2 -translate-y-1/2 z-20 rounded-full bg-white/90 backdrop-blur-sm p-1.5 shadow-lg hover:bg-white transition-all opacity-0 group-hover/image:opacity-100"
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-20 rounded-full bg-white/90 backdrop-blur-sm p-1.5 shadow-lg hover:bg-white transition-all opacity-0 group-hover/image:opacity-100 cursor-pointer"
                 aria-label="Imagen anterior"
               >
-                <ChevronLeft className="h-4 w-4 text-gray-900" />
+                <ChevronLeft className="h-4 w-4 text-editorial-900" />
               </button>
-              
-              {/* Right Arrow */}
               <button
                 onClick={goToNext}
-                className="absolute right-2 top-1/2 -translate-y-1/2 z-20 rounded-full bg-white/90 backdrop-blur-sm p-1.5 shadow-lg hover:bg-white transition-all opacity-0 group-hover/image:opacity-100"
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-20 rounded-full bg-white/90 backdrop-blur-sm p-1.5 shadow-lg hover:bg-white transition-all opacity-0 group-hover/image:opacity-100 cursor-pointer"
                 aria-label="Siguiente imagen"
               >
-                <ChevronRight className="h-4 w-4 text-gray-900" />
+                <ChevronRight className="h-4 w-4 text-editorial-900" />
               </button>
             </>
           )}
 
-          {/* Dots Indicator - Solo visual, no interactivo */}
+          {/* Dots Indicator */}
           {hasMultipleImages && (
-            <div 
-              className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-2"
+            <div
+              className="absolute bottom-9 left-1/2 -translate-x-1/2 z-20 flex gap-1.5"
               aria-label={`Imagen ${currentImageIndex + 1} de ${allImages.length}`}
               role="status"
             >
               {allImages.map((_, index) => (
                 <div
                   key={index}
-                  className={`h-1.5 rounded-full transition-all pointer-events-none ${
-                    index === currentImageIndex 
-                      ? 'w-6 bg-white' 
-                      : 'w-1.5 bg-white/60'
+                  className={`h-1 rounded-full transition-all pointer-events-none ${
+                    index === currentImageIndex ? 'w-5 bg-white' : 'w-1 bg-white/50'
                   }`}
                   aria-hidden="true"
                 />
@@ -689,7 +684,7 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
           )}
 
           {/* Difficulty/Grade Badge */}
-          <div className="absolute bottom-2 left-2 z-10">
+          <div className="absolute bottom-3 left-3 z-10">
             {type === 'ferrata' && route.ferrataGrade ? (
               <span className={`badge ${getFerrataGradeColor(route.ferrataGrade)}`}>
                 {formatArrayWithDashes(route.ferrataGrade)}
@@ -702,42 +697,43 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
           </div>
         </div>
 
-        <div className="p-4">
-          <Link 
+        <div className="p-4 pb-5">
+          {/* Location */}
+          <div className="mb-2 flex items-center gap-1 text-xs font-medium text-editorial-400 uppercase tracking-wider">
+            <MapPin className="h-3 w-3 flex-shrink-0" />
+            <span className="truncate">{route.location.region}, {route.location.province}</span>
+          </div>
+
+          <Link
             href={`/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={(e) => {
-              e.stopPropagation()
-            }}
+            onClick={(e) => { e.stopPropagation() }}
             className="block"
           >
-            <h3 className="mb-1.5 text-lg font-bold text-gray-900 group-hover:text-primary-600 transition-colors cursor-pointer hover:underline">
+            <h3 className="mb-2 text-base font-bold text-editorial-900 group-hover:text-primary-700 transition-colors cursor-pointer leading-snug line-clamp-2">
               {route.title}
             </h3>
           </Link>
-          <p className="mb-3 line-clamp-2 text-sm text-gray-600">
+
+          <p className="mb-4 line-clamp-2 text-sm text-editorial-500 leading-relaxed">
             {route.summary}
           </p>
 
-          <div className="flex flex-wrap gap-3 text-xs text-gray-600">
-            <div className="flex items-center">
-              <MapPin className="mr-1 h-3.5 w-3.5" />
+          {/* Stats row */}
+          <div className="flex items-center gap-4 text-xs font-medium text-editorial-600 border-t border-editorial-100 pt-3">
+            <div className="flex items-center gap-1">
+              <MapPin className="h-3.5 w-3.5 text-primary-500" />
               {formatDistance(route.distance)}
             </div>
-            <div className="flex items-center">
-              <TrendingUp className="mr-1 h-3.5 w-3.5" />
+            <div className="flex items-center gap-1">
+              <TrendingUp className="h-3.5 w-3.5 text-accent-500" />
               {formatElevation(route.elevation)}
             </div>
-            <div className="flex items-center">
-              <Clock className="mr-1 h-3.5 w-3.5" />
+            <div className="flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5 text-editorial-400" />
               {route.duration}
             </div>
-          </div>
-
-          <div className="mt-3 flex items-center text-xs text-gray-500">
-            <MapPin className="mr-1 h-3.5 w-3.5" />
-            {route.location.region}, {route.location.province}
           </div>
         </div>
     </motion.div>

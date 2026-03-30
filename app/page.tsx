@@ -1,189 +1,315 @@
 import Link from 'next/link'
-import { ArrowRight, Mountain, Zap, MapPin } from 'lucide-react'
+import { ArrowRight, Mountain, Download, MapPin, Zap, Shield, Star, TrendingUp } from 'lucide-react'
 import dynamicImport from 'next/dynamic'
 import { getTrekkingRoutesAsync, getFerratasAsync } from '@/lib/routes'
 
-// OPTIMIZACIÓN: Lazy loading de componentes pesados para reducir JavaScript inicial en la landing
-// RouteCard usa framer-motion que es pesado (~50KB), solo cargar cuando sea necesario
 const RouteCard = dynamicImport(
   () => import('@/components/routes/RouteCard').then((mod) => ({ default: mod.RouteCard })),
-  { 
-    ssr: true, // Mantener SSR para SEO de las primeras rutas
-    loading: () => <div className="h-64 bg-gray-100 animate-pulse rounded-lg" /> // Placeholder mientras carga
+  {
+    ssr: true,
+    loading: () => <div className="h-72 skeleton" />,
   }
 )
 
-// OPTIMIZACIÓN: BlogCard es más ligero pero aún así lazy load para reducir bundle inicial
 const BlogCard = dynamicImport(
   () => import('@/components/blog/BlogCard').then((mod) => ({ default: mod.BlogCard })),
-  { 
-    ssr: true, // Mantener SSR para SEO
-    loading: () => <div className="h-64 bg-gray-100 animate-pulse rounded-lg" />
+  {
+    ssr: true,
+    loading: () => <div className="h-64 skeleton" />,
   }
 )
 
-// OPTIMIZACIÓN: VideoHero solo se necesita en la landing, pero puede ser lazy si está below the fold
-// Como está en el hero (above the fold), lo mantenemos normal pero optimizado
 import { VideoHero } from '@/components/VideoHero'
 
-// OPTIMIZACIÓN: FerrataClimberIcon es un SVG, pero lazy load para reducir imports
 const FerrataClimberIcon = dynamicImport(
   () => import('@/components/routes/RoutesMapView').then((mod) => ({ default: mod.FerrataClimberIcon })),
-  { ssr: false } // SVG, no crítico para SEO
+  { ssr: false }
 )
 
-// OPTIMIZACIÓN: Lazy loading de Firebase - solo cargar cuando se necesite
-// Esto evita cargar ~100KB de Firebase en la landing si no se usa
 async function getAllBlogsLazy() {
   try {
-    // Dynamic import de Firebase solo cuando se necesita
     const { getAllBlogsFromFirestore } = await import('@/lib/firebase/blogs')
-    const blogs = await getAllBlogsFromFirestore(false) // Solo blogs publicados
-    console.log(`✅ Blogs cargados desde Firebase: ${blogs.length}`)
-    return blogs
-  } catch (error) {
-    console.error('❌ Error cargando blogs desde Firebase:', error)
-    if (error instanceof Error) {
-      console.error('Mensaje de error:', error.message)
-      console.error('Stack:', error.stack)
-    }
-    return [] // Fallback a array vacío si Firebase no está disponible
+    return await getAllBlogsFromFirestore(false)
+  } catch {
+    return []
   }
 }
 
-// Forzar recarga dinámica para obtener datos frescos de Firestore
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export default async function HomePage() {
-  // OPTIMIZACIÓN: Lazy loading de blogs - Firebase solo se carga si se necesita
-  // Obtener rutas desde Firestore (solo datos estáticos si Firestore no está configurado)
   const [allTrekkingRoutes, allFerratas, allBlogs] = await Promise.all([
     getTrekkingRoutesAsync(),
     getFerratasAsync(),
-    getAllBlogsLazy(), // Lazy loading de Firebase
+    getAllBlogsLazy(),
   ])
-  
-  // Ordenar rutas por createdAt (más recientes primero) y obtener destacadas
-  const sortedTrekking = [...allTrekkingRoutes].sort((a, b) => {
+
+  const sortByDate = (a: { createdAt?: string | number | Date }, b: { createdAt?: string | number | Date }) => {
     const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0
     const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0
-    return bTime - aTime // Más reciente primero
-  })
-  const sortedFerratas = [...allFerratas].sort((a, b) => {
-    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0
-    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0
-    return bTime - aTime // Más reciente primero
-  })
-  
-  // Obtener rutas destacadas (primeras 3 de trekking, primeras 2 de ferratas)
-  const featuredTrekking = sortedTrekking.slice(0, 3)
-  const featuredFerratas = sortedFerratas.slice(0, 2)
-  
-  // Obtener blogs recientes (primeros 3)
+    return bTime - aTime
+  }
+
+  const featuredTrekking = [...allTrekkingRoutes].sort(sortByDate).slice(0, 3)
+  const featuredFerratas = [...allFerratas].sort(sortByDate).slice(0, 2)
   const recentBlogs = allBlogs.slice(0, 3)
+
+  const totalRoutes = allTrekkingRoutes.length + allFerratas.length
 
   return (
     <>
-      {/* Hero Section */}
-      <section className="relative h-[90vh] min-h-[600px] flex items-center justify-center overflow-hidden">
+      {/* ── HERO ──────────────────────────────────────────────────────────── */}
+      {/* -mt-16 pulls the hero behind the fixed header for full-bleed effect */}
+      <section className="relative -mt-16 h-screen min-h-[640px] flex items-center justify-center overflow-hidden">
+        {/* Background video */}
         <div className="absolute inset-0 z-0">
-          {/* Video optimizado: carga solo cuando está visible, se pausa cuando sale del viewport
-              Usa Intersection Observer para detección eficiente y reduce el uso de recursos */}
-          <VideoHero 
-            src="/Animate_the_clouds_202511141732.webm" 
+          <VideoHero
+            src="/Animate_the_clouds_202511141732.webm"
             className="absolute inset-0 w-full h-full"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/60" />
+          {/* Gradient overlay: dark top (for header legibility) → dark bottom (for text) */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/25 to-black/65" />
         </div>
-        
+
+        {/* Hero content */}
         <div className="relative z-10 mx-auto max-w-4xl px-4 text-center text-white">
-          <h1 className="mb-6 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl animate-fade-in">
-            Explora las Montañas de España
+          {/* Eyebrow */}
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-sm px-4 py-1.5 text-sm font-medium text-white/90 animate-fade-in">
+            <Mountain className="h-4 w-4 text-primary-300" />
+            Montañas de España
+          </div>
+
+          {/* Headline */}
+          <h1 className="mb-5 font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black uppercase tracking-tight text-white text-shadow-hero animate-fade-up leading-[0.9]">
+            Explora<br />
+            <span className="text-gradient-brand" style={{ WebkitTextFillColor: 'unset', color: '#38bdf8' }}>
+              sin límites
+            </span>
           </h1>
-          <p className="mb-8 text-xl sm:text-2xl text-gray-200 animate-slide-up">
-            Descubre rutas de trekking y vías ferratas con guías completas, mapas GPX y consejos de seguridad
+
+          {/* Subheadline */}
+          <p className="mb-10 text-lg sm:text-xl text-white/80 max-w-xl mx-auto text-shadow-hero animate-slide-up leading-relaxed">
+            Rutas de trekking y vías ferratas con guías completas,
+            mapas GPX y condiciones en tiempo real.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center animate-scale-in">
-            <Link href="/rutas" className="btn-secondary text-lg px-8 py-4 bg-white/10 backdrop-blur text-white hover:bg-white/20">
-              Ver Rutas de Montaña
-              <Mountain className="ml-2 h-5 w-5" />
-            </Link>
-            <Link href="/vias-ferratas" className="btn-secondary text-lg px-8 py-4 bg-white/10 backdrop-blur text-white hover:bg-white/20">
-              Ver Vías Ferratas
-              <FerrataClimberIcon className="ml-2 h-10 w-10" />
-            </Link>
-          </div>
-        </div>
 
-        {/* Scroll Indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 animate-bounce">
-          <div className="w-6 h-10 border-2 border-white/50 rounded-full flex justify-center">
-            <div className="w-1 h-3 bg-white/50 rounded-full mt-2" />
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          {/* Optimización accesibilidad: h2 agregado para mantener jerarquía secuencial (h1 -> h2 -> h3) */}
-          <h2 className="sr-only">Características principales</h2>
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-            <div className="text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary-100">
-                <MapPin className="h-8 w-8 text-primary-600" />
-              </div>
-              <h3 className="mb-2 text-xl font-semibold">Rutas Detalladas</h3>
-              <p className="text-gray-600">
-                Información completa: distancia, desnivel, dificultad y mucho más
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary-100">
-                <Mountain className="h-8 w-8 text-primary-600" />
-              </div>
-              <h3 className="mb-2 text-xl font-semibold">Mapas GPX</h3>
-              <p className="text-gray-600">
-                Descarga tracks GPS para usar en tu dispositivo o aplicación favorita
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary-100">
-                <Zap className="h-8 w-8 text-primary-600" />
-              </div>
-              <h3 className="mb-2 text-xl font-semibold">Consejos de Seguridad</h3>
-              <p className="text-gray-600">
-                Recomendaciones esenciales para disfrutar de forma segura
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Trekking Routes */}
-      <section className="py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-4 sm:mb-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
-                Rutas de Montaña Destacadas
-              </h2>
-              <p className="mt-2 text-lg text-gray-600">
-                Las mejores rutas de trekking en España
-              </p>
-            </div>
-            {/* Optimización accesibilidad: text-primary-700 mejora contraste sobre fondo blanco (ratio >4.5:1) */}
+          {/* CTAs */}
+          <div className="flex flex-col sm:flex-row gap-3 justify-center animate-scale-in">
             <Link
               href="/rutas"
-              className="flex items-center text-primary-700 hover:text-primary-800 font-medium self-start sm:self-auto"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-7 py-4 text-base font-semibold text-white shadow-lg hover:bg-primary-700 transition-all duration-200 hover:-translate-y-0.5"
             >
-              Ver todas
-              <ArrowRight className="ml-2 h-5 w-5" />
+              <Mountain className="h-5 w-5" />
+              Rutas de Montaña
+            </Link>
+            <Link
+              href="/vias-ferratas"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-white/10 backdrop-blur-sm border border-white/30 px-7 py-4 text-base font-semibold text-white hover:bg-white/20 transition-all duration-200 hover:-translate-y-0.5"
+            >
+              <FerrataClimberIcon className="h-5 w-5" />
+              Vías Ferratas
             </Link>
           </div>
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {/* Optimización: priority para primeras rutas (en viewport inicial) mejora LCP */}
+        </div>
+
+        {/* Scroll indicator */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1 animate-bounce">
+          <div className="w-5 h-8 border-2 border-white/40 rounded-full flex justify-center pt-1.5">
+            <div className="w-0.5 h-2 bg-white/60 rounded-full" />
+          </div>
+        </div>
+      </section>
+
+      {/* ── STATS BAR ──────────────────────────────────────────────────────── */}
+      <section className="bg-editorial-900 text-white">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-white/10">
+            <div className="flex flex-col items-center gap-0.5 px-4 py-3">
+              <span className="font-display text-3xl sm:text-4xl font-black text-white leading-none">
+                {totalRoutes}+
+              </span>
+              <span className="text-xs font-medium text-white/50 uppercase tracking-widest">Rutas</span>
+            </div>
+            <div className="flex flex-col items-center gap-0.5 px-4 py-3">
+              <span className="font-display text-3xl sm:text-4xl font-black text-white leading-none">
+                {allFerratas.length}+
+              </span>
+              <span className="text-xs font-medium text-white/50 uppercase tracking-widest">Ferratas</span>
+            </div>
+            <div className="flex flex-col items-center gap-0.5 px-4 py-3">
+              <span className="font-display text-3xl sm:text-4xl font-black text-primary-300 leading-none">
+                GPX
+              </span>
+              <span className="text-xs font-medium text-white/50 uppercase tracking-widest">Descarga libre</span>
+            </div>
+            <div className="flex flex-col items-center gap-0.5 px-4 py-3">
+              <span className="font-display text-3xl sm:text-4xl font-black text-primary-300 leading-none">
+                HD
+              </span>
+              <span className="text-xs font-medium text-white/50 uppercase tracking-widest">Webcams</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── VALUE PROPOSITIONS ─────────────────────────────────────────────── */}
+      <section className="py-20 bg-white">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-14">
+            <p className="section-label justify-center">
+              <Zap className="h-3.5 w-3.5" /> Por qué Peak Explorer
+            </p>
+            <h2 className="section-heading text-4xl sm:text-5xl">
+              Todo lo que necesitas
+            </h2>
+          </div>
+
+          {/* Bento grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+            {/* ── Card 1: Guías — hiker on ridge with map, aerial trail view ── */}
+            <div className="lg:col-span-2 group relative overflow-hidden rounded-3xl min-h-[240px] flex flex-col justify-between cursor-default">
+              {/* Background image */}
+              <div
+                className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+                style={{ backgroundImage: "url('/bento-guias.jpg')" }}
+              />
+              {/* Colour overlay: sky-blue tint so card identity holds even without image */}
+              <div className="absolute inset-0 bg-gradient-to-br from-primary-900/85 via-primary-800/70 to-primary-700/60" />
+              {/* Content */}
+              <div className="relative z-10 p-8 flex flex-col justify-between h-full">
+                <div>
+                  <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-sm border border-white/20">
+                    <MapPin className="h-6 w-6 text-white" />
+                  </div>
+                  <h3 className="mb-2 text-2xl font-bold text-white">Guías Completas de Ruta</h3>
+                  <p className="text-white/80 leading-relaxed max-w-sm text-sm">
+                    Distancia, desnivel, dificultad, puntos de interés, parkings y más.
+                    Toda la información para planificar tu aventura.
+                  </p>
+                </div>
+                <div className="mt-6">
+                  <Link
+                    href="/rutas"
+                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-white/90 hover:text-white hover:gap-2.5 transition-all"
+                  >
+                    Ver todas las rutas <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Card 2: GPX — GPS device on rock, orange-sunset backdrop ── */}
+            <div className="group relative overflow-hidden rounded-3xl min-h-[240px] flex flex-col justify-between cursor-default">
+              <div
+                className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+                style={{ backgroundImage: "url('/bento-gpx.jpg')" }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-br from-accent-700/85 via-accent-600/70 to-accent-500/55" />
+              <div className="relative z-10 p-8 flex flex-col justify-between h-full">
+                <div>
+                  <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-sm border border-white/20">
+                    <Download className="h-6 w-6 text-white" />
+                  </div>
+                  <h3 className="mb-2 text-xl font-bold text-white">Tracks GPX Gratis</h3>
+                  <p className="text-white/80 text-sm leading-relaxed">
+                    Descarga el track GPS en formato GPX para cualquier dispositivo o app.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Card 3: Seguridad — safety gear laid out on rock ── */}
+            <div className="group relative overflow-hidden rounded-3xl min-h-[200px] flex flex-col justify-between cursor-default">
+              <div
+                className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+                style={{ backgroundImage: "url('/bento-seguridad.jpg')" }}
+              />
+              {/* Light card: semi-white overlay so dark text remains legible */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/75 via-white/60 to-editorial-100/70" />
+              <div className="relative z-10 p-8 flex flex-col justify-between h-full">
+                <div>
+                  <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-editorial-900/10 backdrop-blur-sm border border-editorial-300/40">
+                    <Shield className="h-6 w-6 text-editorial-800" />
+                  </div>
+                  <h3 className="mb-2 text-lg font-bold text-editorial-900">Consejos de Seguridad</h3>
+                  <p className="text-editorial-700 text-sm leading-relaxed">
+                    Recomendaciones esenciales y equipamiento necesario para cada ruta.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Card 4: Valoraciones — hikers celebrating at summit ── */}
+            <div className="group relative overflow-hidden rounded-3xl min-h-[200px] flex flex-col justify-between cursor-default">
+              <div
+                className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+                style={{ backgroundImage: "url('/bento-valoraciones.jpg')" }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-br from-cta-600/80 via-cta-500/65 to-cta-400/50" />
+              <div className="relative z-10 p-8 flex flex-col justify-between h-full">
+                <div>
+                  <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-sm border border-white/20">
+                    <Star className="h-6 w-6 text-white" />
+                  </div>
+                  <h3 className="mb-2 text-lg font-bold text-white">Valoraciones</h3>
+                  <p className="text-white/80 text-sm leading-relaxed">
+                    Ratings reales y reseñas de la comunidad de montañeros.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Card 5: Webcams — stormy misty peak, telephoto ── */}
+            <div className="group relative overflow-hidden rounded-3xl min-h-[200px] flex flex-col justify-between cursor-default">
+              <div
+                className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+                style={{ backgroundImage: "url('/bento-webcams.jpg')" }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-br from-summit-700/80 via-summit-600/65 to-summit-500/50" />
+              <div className="relative z-10 p-8 flex flex-col justify-between h-full">
+                <div>
+                  <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-sm border border-white/20">
+                    <TrendingUp className="h-6 w-6 text-white" />
+                  </div>
+                  <h3 className="mb-2 text-lg font-bold text-white">Webcams en Vivo</h3>
+                  <p className="text-white/80 text-sm leading-relaxed">
+                    Comprueba las condiciones actuales antes de salir.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* ── FEATURED TREKKING ROUTES ───────────────────────────────────────── */}
+      <section className="py-20 bg-editorial-50">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-10 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+            <div>
+              <p className="section-label">
+                <Mountain className="h-3.5 w-3.5" /> Trekking
+              </p>
+              <h2 className="section-heading">
+                Rutas Destacadas
+              </h2>
+              <p className="mt-2 text-base text-editorial-500">
+                Las mejores rutas de montaña en España, curadas por expertos.
+              </p>
+            </div>
+            <Link
+              href="/rutas"
+              className="flex items-center gap-1.5 text-sm font-semibold text-primary-700 hover:text-primary-900 transition-colors self-start sm:self-auto whitespace-nowrap"
+            >
+              Ver todas las rutas
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {featuredTrekking.map((route, index) => (
               <RouteCard key={route.id} route={route} priority={index < 2} />
             ))}
@@ -191,59 +317,65 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Featured Ferratas */}
-      <section className="py-16 bg-gray-50">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-6 sm:mb-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* ── FEATURED VÍA FERRATAS ─────────────────────────────────────────── */}
+      <section className="py-20 bg-editorial-900 relative overflow-hidden">
+        {/* Decorative background elements */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full bg-primary-400 blur-3xl" />
+          <div className="absolute bottom-0 right-1/4 w-80 h-80 rounded-full bg-accent-400 blur-3xl" />
+        </div>
+
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-10 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
             <div>
-              <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
-                Vías Ferratas Destacadas
+              <p className="section-label" style={{ color: '#7dd3fc' }}>
+                Vías Ferratas
+              </p>
+              <h2 className="font-display text-3xl sm:text-4xl font-black uppercase tracking-tight text-white leading-tight">
+                Ferratas Destacadas
               </h2>
-              <p className="mt-2 text-lg text-gray-600">
-                Experiencias verticales de K2 a K6
+              <p className="mt-2 text-base text-editorial-400">
+                Experiencias verticales de K2 a K6 en los mejores macizos.
               </p>
             </div>
-            {/* Optimización accesibilidad: text-primary-700 mejora contraste sobre bg-gray-50 (ratio >4.5:1) */}
             <Link
               href="/vias-ferratas"
-              className="flex items-center text-primary-700 hover:text-primary-800 font-medium self-start sm:self-auto"
+              className="flex items-center gap-1.5 text-sm font-semibold text-primary-300 hover:text-primary-200 transition-colors self-start sm:self-auto whitespace-nowrap"
             >
-              Ver todas
-              <ArrowRight className="ml-2 h-5 w-5" />
+              Ver todas las ferratas
+              <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-            {/* Optimización: lazy loading para vías ferratas (below the fold) */}
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             {featuredFerratas.map((route) => (
-              <RouteCard key={route.id} route={route} priority={false} />
+              <RouteCard key={route.id} route={route} priority={false} type="ferrata" />
             ))}
           </div>
         </div>
       </section>
 
-      {/* Recent Blog Posts */}
+      {/* ── RECENT BLOG POSTS ─────────────────────────────────────────────── */}
       {recentBlogs.length > 0 && (
-        <section className="py-16">
+        <section className="py-20 bg-white">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mb-12 flex items-center justify-between">
+            <div className="mb-10 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
               <div>
-                <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
-                  Blog Recientes
-                </h2>
-                <p className="mt-2 text-lg text-gray-600">
-                  Últimos artículos sobre montaña, rutas y aventuras
+                <p className="section-label">Blog</p>
+                <h2 className="section-heading">Últimos Artículos</h2>
+                <p className="mt-2 text-base text-editorial-500">
+                  Guías, reportajes y noticias de montaña.
                 </p>
               </div>
-              {/* Optimización accesibilidad: text-primary-700 mejora contraste sobre fondo blanco (ratio >4.5:1) */}
               <Link
                 href="/blog"
-                className="hidden sm:flex items-center text-primary-700 hover:text-primary-800 font-medium"
+                className="hidden sm:flex items-center gap-1.5 text-sm font-semibold text-primary-700 hover:text-primary-900 transition-colors"
               >
-                Ver todos
-                <ArrowRight className="ml-2 h-5 w-5" />
+                Ver todos los artículos
+                <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
-            <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {recentBlogs.map((blog) => (
                 <BlogCard key={blog.id} blog={blog} openInNewTab={true} />
               ))}
@@ -251,7 +383,40 @@ export default async function HomePage() {
           </div>
         </section>
       )}
+
+      {/* ── FINAL CTA ─────────────────────────────────────────────────────── */}
+      <section className="py-24 bg-primary-600 relative overflow-hidden">
+        {/* Background shimmer */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-white blur-3xl" />
+        </div>
+
+        <div className="relative mx-auto max-w-3xl px-4 sm:px-6 text-center text-white">
+          <Mountain className="mx-auto mb-6 h-12 w-12 text-primary-200 animate-float" />
+          <h2 className="mb-4 font-display text-4xl sm:text-5xl font-black uppercase tracking-tight text-white leading-tight">
+            ¿Listo para la aventura?
+          </h2>
+          <p className="mb-10 text-lg text-primary-100 max-w-lg mx-auto">
+            Explora cientos de rutas, descarga tus tracks GPX y vive la montaña como nunca antes.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link
+              href="/rutas"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-8 py-4 text-base font-bold text-primary-700 hover:bg-primary-50 transition-all duration-200 hover:-translate-y-0.5 shadow-lg"
+            >
+              <Mountain className="h-5 w-5" />
+              Explorar Rutas
+            </Link>
+            <Link
+              href="/vias-ferratas"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-white/30 px-8 py-4 text-base font-bold text-white hover:bg-white/10 transition-all duration-200 hover:-translate-y-0.5"
+            >
+              Ver Ferratas
+              <ArrowRight className="h-5 w-5" />
+            </Link>
+          </div>
+        </div>
+      </section>
     </>
   )
 }
-

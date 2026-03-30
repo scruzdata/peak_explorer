@@ -7,8 +7,8 @@
 ---
 
 **Project:** Peak Explorer
-**Generated:** 2026-03-30 11:25:10
-**Category:** Sports Team/Club
+**Generated:** 2026-03-30 12:09:35
+**Category:** Luxury/Premium Brand
 
 ---
 
@@ -18,24 +18,24 @@
 
 | Role | Hex | CSS Variable |
 |------|-----|--------------|
-| Primary | `#18181B` | `--color-primary` |
-| Secondary | `#3F3F46` | `--color-secondary` |
-| CTA/Accent | `#EC4899` | `--color-cta` |
-| Background | `#FAFAFA` | `--color-background` |
-| Text | `#09090B` | `--color-text` |
+| Primary | `#171717` | `--color-primary` |
+| Secondary | `#404040` | `--color-secondary` |
+| CTA/Accent | `#D4AF37` | `--color-cta` |
+| Background | `#FFFFFF` | `--color-background` |
+| Text | `#171717` | `--color-text` |
 
-**Color Notes:** Editorial black + accent pink
+**Color Notes:** Minimal black + accent gold
 
 ### Typography
 
-- **Heading Font:** Barlow Condensed
-- **Body Font:** Barlow
-- **Mood:** sports, fitness, athletic, energetic, condensed, action
-- **Google Fonts:** [Barlow Condensed + Barlow](https://fonts.google.com/share?selection.family=Barlow+Condensed:wght@400;500;600;700|Barlow:wght@300;400;500;600;700)
+- **Heading Font:** Inter
+- **Body Font:** Inter
+- **Mood:** minimal, clean, swiss, functional, neutral, professional
+- **Google Fonts:** [Inter + Inter](https://fonts.google.com/share?selection.family=Inter:wght@300;400;500;600;700)
 
 **CSS Import:**
 ```css
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Barlow:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 ```
 
 ### Spacing Variables
@@ -68,7 +68,7 @@
 ```css
 /* Primary Button */
 .btn-primary {
-  background: #EC4899;
+  background: #D4AF37;
   color: white;
   padding: 12px 24px;
   border-radius: 8px;
@@ -85,8 +85,8 @@
 /* Secondary Button */
 .btn-secondary {
   background: transparent;
-  color: #18181B;
-  border: 2px solid #18181B;
+  color: #171717;
+  border: 2px solid #171717;
   padding: 12px 24px;
   border-radius: 8px;
   font-weight: 600;
@@ -99,7 +99,7 @@
 
 ```css
 .card {
-  background: #FAFAFA;
+  background: #FFFFFF;
   border-radius: 12px;
   padding: 24px;
   box-shadow: var(--shadow-md);
@@ -125,9 +125,9 @@
 }
 
 .input:focus {
-  border-color: #18181B;
+  border-color: #171717;
   outline: none;
-  box-shadow: 0 0 0 3px #18181B20;
+  box-shadow: 0 0 0 3px #17171720;
 }
 ```
 
@@ -153,28 +153,28 @@
 
 ## Style Guidelines
 
-**Style:** Vibrant & Block-based
+**Style:** Liquid Glass
 
-**Keywords:** Bold, energetic, playful, block layout, geometric shapes, high color contrast, duotone, modern, energetic
+**Keywords:** Flowing glass, morphing, smooth transitions, fluid effects, translucent, animated blur, iridescent, chromatic aberration
 
-**Best For:** Startups, creative agencies, gaming, social media, youth-focused, entertainment, consumer
+**Best For:** Premium SaaS, high-end e-commerce, creative platforms, branding experiences, luxury portfolios
 
-**Key Effects:** Large sections (48px+ gaps), animated patterns, bold hover (color shift), scroll-snap, large type (32px+), 200-300ms
+**Key Effects:** Morphing elements (SVG/CSS), fluid animations (400-600ms curves), dynamic blur (backdrop-filter), color transitions
 
 ### Page Pattern
 
-**Pattern Name:** Newsletter / Content First
+**Pattern Name:** Minimal Single Column
 
-- **Conversion Strategy:**  typewriter effect,  subtle fade-in, Single field form (Email only). Show 'Join X, 000 readers'. Read sample link.
-- **CTA Placement:** Hero inline form + Sticky header form
-- **Section Order:** 1. Hero (Value Prop + Form), 2. Recent Issues/Archives, 3. Social Proof (Subscriber count), 4. About Author
+- **Conversion Strategy:** Single CTA focus. Large typography. Lots of whitespace. No nav clutter. Mobile-first.
+- **CTA Placement:** Center, large CTA button
+- **Section Order:** 1. Hero headline, 2. Short description, 3. Benefit bullets (3 max), 4. CTA, 5. Footer
 
 ---
 
 ## Anti-Patterns (Do NOT Use)
 
-- ❌ Static content
-- ❌ Poor fan engagement
+- ❌ Cheap visuals
+- ❌ Fast animations
 
 ### Additional Forbidden Patterns
 

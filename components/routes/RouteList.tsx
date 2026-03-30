@@ -306,14 +306,14 @@ export function RouteList({ routes, type }: RouteListProps) {
     <div className={`${viewMode === 'both' ? 'w-full' : 'mx-auto max-w-7xl px-4 pt-4 pb-12 sm:px-6 lg:px-8 lg:pt-6'} ${isMobile && viewMode === 'map' ? 'flex flex-col h-[calc(100vh-80px)]' : ''}`}>
       {/* Panel de filtros superpuesto en móvil */}
       {isMobile && showMobileFilters && (
-        <div className="fixed inset-0 z-40 lg:hidden bg-black/40">
-          <div className="absolute top-20 left-0 right-0 mx-4 rounded-lg bg-white shadow-xl max-h-[70vh] overflow-y-auto p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-gray-800">Filtros</h2>
+        <div className="fixed inset-0 z-40 lg:hidden bg-black/50 backdrop-blur-sm">
+          <div className="absolute top-20 left-0 right-0 mx-4 rounded-2xl bg-white shadow-xl max-h-[70vh] overflow-y-auto p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-bold text-editorial-900 uppercase tracking-wider">Filtros</h2>
               <button
                 type="button"
                 onClick={() => setShowMobileFilters(false)}
-                className="text-sm text-gray-500 hover:text-gray-700"
+                className="text-sm font-medium text-editorial-500 hover:text-editorial-900 cursor-pointer"
               >
                 Cerrar
               </button>
@@ -334,22 +334,22 @@ export function RouteList({ routes, type }: RouteListProps) {
         </div>
       )}
       {/* Search and Filters */}
-      <div className={`${viewMode === 'both' ? 'px-4 sm:px-6 lg:px-8 pt-2' : ''} ${isMobile && viewMode === 'map' ? 'flex-shrink-0' : ''} mb-4`}>
-        <div className="flex flex-col lg:flex-row gap-3 items-start lg:items-end justify-between">
-          <div className="flex flex-col lg:flex-row gap-3 items-start lg:items-end flex-1">
+      <div className={`${viewMode === 'both' ? 'px-4 sm:px-6 lg:px-8 pt-3' : ''} ${isMobile && viewMode === 'map' ? 'flex-shrink-0' : ''} mb-4`}>
+        <div className="flex flex-col lg:flex-row gap-3 items-start lg:items-center justify-between">
+          <div className="flex flex-col lg:flex-row gap-3 items-start lg:items-center flex-1">
             {/* Search Bar */}
-            <div className="relative flex-1 w-full lg:max-w-md">
-              <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+            <div className="relative flex-1 w-full lg:max-w-sm">
+              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-editorial-400 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Buscar rutas..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-1.5 pl-10 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full rounded-xl border border-editorial-200 bg-white pl-10 pr-4 py-2.5 text-sm text-editorial-900 placeholder:text-editorial-400 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
               />
             </div>
 
-            {/* Filters - solo visibles en escritorio/tablet; en móvil van en panel superpuesto */}
+            {/* Filters - desktop */}
             {!isMobile && (
               <div className="flex-1 lg:flex-none">
                 <RouteFilters
@@ -369,73 +369,65 @@ export function RouteList({ routes, type }: RouteListProps) {
           </div>
 
           {/* View Mode Toggle */}
-          {/* Optimización accesibilidad: role="group" y aria-label para grupo de botones de vista */}
-          <div 
-            role="group" 
+          <div
+            role="group"
             aria-label="Seleccionar modo de visualización"
-            className="flex items-center gap-2 bg-gray-100 rounded-lg p-1 lg:flex-shrink-0"
+            className="flex items-center gap-1 bg-editorial-100 rounded-xl p-1 lg:flex-shrink-0"
           >
-            {/* Optimización accesibilidad: aria-pressed indica estado activo, aria-label descriptivo */}
             <button
               onClick={() => setViewMode('grid')}
               aria-label="Vista de cuadrícula"
               aria-pressed={viewMode === 'grid' || viewMode === 'both'}
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 cursor-pointer ${
                 viewMode === 'grid' || viewMode === 'both'
-                  ? 'bg-white text-primary-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-white text-primary-700 shadow-sm'
+                  : 'text-editorial-500 hover:text-editorial-800 hover:bg-white/50'
               }`}
-              title="Vista de cuadrícula"
             >
               <Grid3x3 className="h-4 w-4" aria-hidden="true" />
               <span className="hidden sm:inline">Cuadrícula</span>
             </button>
-            {/* Optimización accesibilidad: aria-pressed indica estado activo, aria-label descriptivo */}
             <button
               onClick={() => setViewMode('map')}
               aria-label="Vista de mapa"
               aria-pressed={viewMode === 'map' || viewMode === 'both'}
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 cursor-pointer ${
                 viewMode === 'map' || viewMode === 'both'
-                  ? 'bg-white text-primary-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-white text-primary-700 shadow-sm'
+                  : 'text-editorial-500 hover:text-editorial-800 hover:bg-white/50'
               }`}
-              title="Vista de mapa"
             >
               <Map className="h-4 w-4" aria-hidden="true" />
               <span className="hidden sm:inline">Mapa</span>
             </button>
-            {/* El modo combinado solo está disponible en escritorio (lg y superior) */}
-            {/* Optimización accesibilidad: aria-pressed indica estado activo, aria-label descriptivo */}
             <button
               onClick={() => setViewMode('both')}
-              aria-label="Vista combinada de cuadrícula y mapa (solo escritorio)"
+              aria-label="Vista combinada (solo escritorio)"
               aria-pressed={viewMode === 'both'}
-              className={`hidden lg:flex px-3 py-2 rounded-md text-sm font-medium transition-colors items-center gap-2 ${
+              className={`hidden lg:flex px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 items-center gap-2 cursor-pointer ${
                 viewMode === 'both'
-                  ? 'bg-white text-primary-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-white text-primary-700 shadow-sm'
+                  : 'text-editorial-500 hover:text-editorial-800 hover:bg-white/50'
               }`}
-              title="Vista combinada (solo escritorio)"
             >
               <LayoutGrid className="h-4 w-4" aria-hidden="true" />
               <span className="hidden sm:inline">Ambas</span>
             </button>
-            {/* Botón de filtros para móvil, situado a la derecha del selector */}
+            {/* Mobile filters button */}
             <button
               type="button"
               onClick={() => setShowMobileFilters(true)}
-              className="flex lg:hidden items-center gap-1 rounded-md bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+              className="flex lg:hidden items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-medium text-editorial-700 shadow-sm hover:bg-editorial-50 cursor-pointer"
             >
               Filtros
-              <ChevronDown className={`h-4 w-4 transition-transform ${showMobileFilters ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${showMobileFilters ? 'rotate-180' : ''}`} />
             </button>
           </div>
         </div>
       </div>
 
       {/* Results Count */}
-      <div className={`${viewMode === 'both' ? 'px-4 sm:px-6 lg:px-8' : ''} ${isMobile && viewMode === 'map' ? 'flex-shrink-0' : ''} mb-6 text-sm text-gray-600`}>
+      <div className={`${viewMode === 'both' ? 'px-4 sm:px-6 lg:px-8' : ''} ${isMobile && viewMode === 'map' ? 'flex-shrink-0' : ''} mb-5 text-sm text-editorial-500`}>
         {viewMode === 'both' ? (
           <>
             {filteredRoutes.length > 0 ? (
@@ -490,9 +482,12 @@ export function RouteList({ routes, type }: RouteListProps) {
                 ))}
               </div>
             ) : (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-gray-500 text-center">
-                  No hay rutas visibles en esta zona del mapa
+              <div className="flex flex-col items-center justify-center h-full gap-3 py-12">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-editorial-100">
+                  <Map className="h-5 w-5 text-editorial-400" />
+                </div>
+                <p className="text-sm font-medium text-editorial-500 text-center">
+                  No hay rutas en esta zona del mapa
                 </p>
               </div>
             )}
@@ -552,9 +547,17 @@ export function RouteList({ routes, type }: RouteListProps) {
           )}
         </>
       ) : (
-        // Mensaje cuando no hay rutas (solo en modos individuales, no en "both")
-        <div className="py-12 text-center">
-          <p className="text-lg text-gray-600">No se encontraron rutas con los filtros seleccionados.</p>
+        // Empty state — no routes match filters
+        <div className="py-20 text-center">
+          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-editorial-100">
+            <Search className="h-7 w-7 text-editorial-400" />
+          </div>
+          <p className="text-lg font-semibold text-editorial-700 mb-1">
+            No se encontraron rutas
+          </p>
+          <p className="text-sm text-editorial-400 mb-6">
+            Prueba ajustando los filtros o la búsqueda.
+          </p>
           <button
             onClick={() => {
               setSearchQuery('')
@@ -563,7 +566,7 @@ export function RouteList({ routes, type }: RouteListProps) {
               setSelectedSeason('all')
               setSelectedRegion('all')
             }}
-            className="mt-4 text-primary-600 hover:text-primary-700 font-medium"
+            className="inline-flex items-center gap-2 rounded-xl border border-primary-200 bg-primary-50 px-5 py-2.5 text-sm font-semibold text-primary-700 hover:bg-primary-100 transition-colors cursor-pointer"
           >
             Limpiar filtros
           </button>
