@@ -254,6 +254,16 @@ const nextConfig = {
               value: 'public, max-age=31536000, immutable',
             },
           ],
+        },
+        {
+          // Cachear vídeos estáticos — los nombres incluyen timestamp, por lo que son inmutables
+          source: '/:all*(webm|mp4|ogg)',
+          headers: [
+            {
+              key: 'Cache-Control',
+              value: 'public, max-age=31536000, immutable',
+            },
+          ],
         }
       )
     }

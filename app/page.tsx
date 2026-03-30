@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { ArrowRight, Mountain, Download, MapPin, Zap, Shield, Star, TrendingUp } from 'lucide-react'
 import dynamicImport from 'next/dynamic'
 import { getTrekkingRoutesAsync, getFerratasAsync } from '@/lib/routes'
@@ -35,8 +36,7 @@ async function getAllBlogsLazy() {
   }
 }
 
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+export const revalidate = 60
 
 export default async function HomePage() {
   const [allTrekkingRoutes, allFerratas, allBlogs] = await Promise.all([
@@ -66,6 +66,7 @@ export default async function HomePage() {
         <div className="absolute inset-0 z-0">
           <VideoHero
             src="/Animate_the_clouds_202511141732.webm"
+            posterSrc="/bento-guias.jpg"
             className="absolute inset-0 w-full h-full"
           />
           {/* Gradient overlay: dark top (for header legibility) → dark bottom (for text) */}
@@ -82,8 +83,8 @@ export default async function HomePage() {
 
           {/* Headline */}
           <h1 className="mb-5 font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black uppercase tracking-tight text-white text-shadow-hero animate-fade-up leading-[0.9]">
-            Explora<br />
-            <span className="text-gradient-brand" style={{ WebkitTextFillColor: 'unset', color: '#38bdf8' }}>
+            <span className="block">Explora</span>
+            <span className="block" style={{ WebkitTextFillColor: 'unset', color: '#38bdf8' }}>
               sin límites
             </span>
           </h1>
@@ -153,6 +154,41 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* ── EDITORIAL INTRO ───────────────────────────────────────────────── */}
+      <section className="py-16 bg-white border-b border-editorial-100">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="font-display text-2xl sm:text-3xl font-black uppercase tracking-tight text-editorial-900 mb-6">
+            La guía definitiva de montaña en España
+          </h2>
+          <div className="space-y-4 text-base sm:text-lg text-editorial-600 leading-relaxed">
+            <p>
+              Peak Explorer es la plataforma de referencia para descubrir, planificar y vivir rutas de
+              trekking y vías ferratas en las principales sierras y macizos de España. Cubrimos desde los
+              clásicos del Sistema Central —Guadarrama, Gredos, Béjar— hasta los Pirineos, Picos de Europa,
+              Sierra Nevada y la Cordillera Cantábrica.
+            </p>
+            <p>
+              Cada ruta incluye ficha técnica completa con distancia, desnivel acumulado, tiempo estimado,
+              dificultad, mejor época y condiciones de acceso. Todos los itinerarios disponen de track GPX
+              descargable gratuitamente para Garmin, Suunto, Wahoo, Komoot o cualquier app de navegación.
+              Los mapas interactivos muestran el trazado en tiempo real con perfil de elevación detallado.
+            </p>
+            <p>
+              Para las vías ferratas clasificamos cada vía según la escala europea K (K1 a K6), con
+              información sobre el equipamiento necesario, longitud de los pasos verticales y alternativas
+              de descenso. La seguridad es nuestra prioridad: cada ficha incorpora consejos específicos
+              para las condiciones locales y acceso a webcams en vivo para comprobar el estado del macizo
+              antes de salir.
+            </p>
+            <p>
+              Tanto si eres senderista de fin de semana como alpinista experimentado, encontrarás rutas
+              adaptadas a tu nivel. Guarda tus favoritas, marca las completadas y descubre nuevos retos
+              cerca de ti.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* ── VALUE PROPOSITIONS ─────────────────────────────────────────────── */}
       <section className="py-20 bg-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -171,10 +207,9 @@ export default async function HomePage() {
             {/* ── Card 1: Guías — hiker on ridge with map, aerial trail view ── */}
             <div className="lg:col-span-2 group relative overflow-hidden rounded-3xl min-h-[240px] flex flex-col justify-between cursor-default">
               {/* Background image */}
-              <div
-                className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                style={{ backgroundImage: "url('/bento-guias.jpg')" }}
-              />
+              <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-105">
+                <Image src="/bento-guias.jpg" alt="" fill className="object-cover" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 66vw, 800px" />
+              </div>
               {/* Colour overlay: sky-blue tint so card identity holds even without image */}
               <div className="absolute inset-0 bg-gradient-to-br from-primary-900/85 via-primary-800/70 to-primary-700/60" />
               {/* Content */}
@@ -202,10 +237,9 @@ export default async function HomePage() {
 
             {/* ── Card 2: GPX — GPS device on rock, orange-sunset backdrop ── */}
             <div className="group relative overflow-hidden rounded-3xl min-h-[240px] flex flex-col justify-between cursor-default">
-              <div
-                className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                style={{ backgroundImage: "url('/bento-gpx.jpg')" }}
-              />
+              <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-105">
+                <Image src="/bento-gpx.jpg" alt="" fill className="object-cover" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px" />
+              </div>
               <div className="absolute inset-0 bg-gradient-to-br from-accent-700/85 via-accent-600/70 to-accent-500/55" />
               <div className="relative z-10 p-8 flex flex-col justify-between h-full">
                 <div>
@@ -222,10 +256,9 @@ export default async function HomePage() {
 
             {/* ── Card 3: Seguridad — safety gear laid out on rock ── */}
             <div className="group relative overflow-hidden rounded-3xl min-h-[200px] flex flex-col justify-between cursor-default">
-              <div
-                className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                style={{ backgroundImage: "url('/bento-seguridad.jpg')" }}
-              />
+              <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-105">
+                <Image src="/bento-seguridad.jpg" alt="" fill className="object-cover" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px" />
+              </div>
               {/* Light card: semi-white overlay so dark text remains legible */}
               <div className="absolute inset-0 bg-gradient-to-br from-white/75 via-white/60 to-editorial-100/70" />
               <div className="relative z-10 p-8 flex flex-col justify-between h-full">
@@ -243,10 +276,9 @@ export default async function HomePage() {
 
             {/* ── Card 4: Valoraciones — hikers celebrating at summit ── */}
             <div className="group relative overflow-hidden rounded-3xl min-h-[200px] flex flex-col justify-between cursor-default">
-              <div
-                className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                style={{ backgroundImage: "url('/bento-valoraciones.jpg')" }}
-              />
+              <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-105">
+                <Image src="/bento-valoraciones.jpg" alt="" fill className="object-cover" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px" />
+              </div>
               <div className="absolute inset-0 bg-gradient-to-br from-cta-600/80 via-cta-500/65 to-cta-400/50" />
               <div className="relative z-10 p-8 flex flex-col justify-between h-full">
                 <div>
@@ -263,10 +295,9 @@ export default async function HomePage() {
 
             {/* ── Card 5: Webcams — stormy misty peak, telephoto ── */}
             <div className="group relative overflow-hidden rounded-3xl min-h-[200px] flex flex-col justify-between cursor-default">
-              <div
-                className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                style={{ backgroundImage: "url('/bento-webcams.jpg')" }}
-              />
+              <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-105">
+                <Image src="/bento-webcams.jpg" alt="" fill className="object-cover" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px" />
+              </div>
               <div className="absolute inset-0 bg-gradient-to-br from-summit-700/80 via-summit-600/65 to-summit-500/50" />
               <div className="relative z-10 p-8 flex flex-col justify-between h-full">
                 <div>

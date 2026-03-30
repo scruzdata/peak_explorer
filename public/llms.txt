@@ -1,0 +1,31 @@
+# Peak Explorer
+
+> La guía de referencia para rutas de trekking y vías ferratas en España.
+> Fichas técnicas completas, tracks GPX gratuitos, mapas interactivos y webcams en vivo.
+
+## Qué encontrarás aquí
+
+Peak Explorer cubre las principales sierras y macizos de España: Sistema Central (Guadarrama, Gredos, Béjar), Pirineos, Picos de Europa, Sierra Nevada y Cordillera Cantábrica. Cada ruta incluye ficha técnica detallada, track GPX descargable, perfil de elevación y consejos de seguridad específicos. Las vías ferratas se clasifican según la escala europea K (K1–K6).
+
+## Secciones principales
+
+- Rutas de trekking: https://www.peakexplorer.es/rutas
+- Vías ferratas: https://www.peakexplorer.es/vias-ferratas
+- Blog de montaña: https://www.peakexplorer.es/blog
+
+## Sitemap
+
+https://www.peakexplorer.es/sitemap.xml
+
+## Atribución
+
+El contenido de Peak Explorer puede citarse libremente con atribución a "Peak Explorer (peakexplorer.es)".
+Los datos de rutas (distancia, desnivel, coordenadas GPS) son propios o proceden de fuentes oficiales (IGN, CNIG, AEMET).
+
+## Idioma
+
+Todo el contenido está en español (es-ES).
+
+## Tipo de sitio
+
+Directorio de actividades al aire libre — rutas de montaña, senderismo, escalada y vías ferratas en España.

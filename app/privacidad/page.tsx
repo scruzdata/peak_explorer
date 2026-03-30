@@ -14,7 +14,7 @@ export default function PoliticaPrivacidadPage() {
           Política de Privacidad
         </h1>
         <p className="mt-4 text-sm text-gray-500">
-          Última actualización: {new Date().toLocaleDateString('es-ES')}
+          Última actualización: 15 de enero de 2025
         </p>
 
         <div className="mt-8 space-y-6 text-sm leading-relaxed text-gray-700">

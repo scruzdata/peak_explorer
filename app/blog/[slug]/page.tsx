@@ -15,14 +15,14 @@ import { RelatedPosts } from '@/components/blog/RelatedPosts'
 import { TableOfContents } from '@/components/blog/TableOfContents'
 import { extractHeadingsFromJson } from '@/lib/blogHeadings'
 
-// Heavy Tiptap renderer — lazy loaded, client only
+// Tiptap renderer — SSR enabled so article body is crawlable
 const BlogRenderer = dynamicImport(
   () =>
     import('@/components/blog/renderers/BlogRenderer').then((m) => ({
       default: m.BlogRenderer,
     })),
   {
-    ssr: false,
+    ssr: true,
     loading: () => (
       <div className="animate-pulse space-y-4 py-4">
         {[...Array(6)].map((_, i) => (
@@ -51,13 +51,23 @@ export async function generateMetadata({
     title: blog.seo.metaTitle || `${blog.title} — Peak Explorer`,
     description: blog.seo.metaDescription || blog.excerpt,
     keywords: blog.seo.keywords,
+    alternates: {
+      canonical: `https://www.peakexplorer.es/blog/${params.slug}`,
+    },
     openGraph: {
       title: blog.title,
       description: blog.excerpt,
-      images: blog.featuredImage ? [blog.featuredImage.url] : [],
+      images: blog.featuredImage ? [{ url: blog.featuredImage.url, alt: blog.title }] : [],
       type: 'article',
+      url: `https://www.peakexplorer.es/blog/${params.slug}`,
       publishedTime: blog.publishedAt,
       modifiedTime: blog.updatedAt,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: blog.seo.metaTitle || blog.title,
+      description: blog.seo.metaDescription || blog.excerpt,
+      images: blog.featuredImage ? [blog.featuredImage.url] : ['https://www.peakexplorer.es/bento-guias.jpg'],
     },
   }
 }
@@ -82,7 +92,50 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     day: 'numeric',
   })
 
+  const pageUrl = `https://www.peakexplorer.es/blog/${params.slug}`
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'BlogPosting',
+        '@id': `${pageUrl}#article`,
+        headline: blog.title,
+        description: blog.excerpt,
+        url: pageUrl,
+        image: blog.featuredImage?.url ?? 'https://www.peakexplorer.es/bento-guias.jpg',
+        datePublished: blog.publishedAt ?? blog.createdAt,
+        dateModified: blog.updatedAt,
+        author: {
+          '@type': 'Organization',
+          name: blog.author?.name ?? 'Peak Explorer',
+          url: 'https://www.peakexplorer.es',
+        },
+        publisher: {
+          '@type': 'Organization',
+          '@id': 'https://www.peakexplorer.es/#organization',
+          name: 'Peak Explorer',
+          url: 'https://www.peakexplorer.es',
+        },
+        inLanguage: 'es-ES',
+        keywords: blog.tags.join(', '),
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Inicio', item: 'https://www.peakexplorer.es' },
+          { '@type': 'ListItem', position: 2, name: 'Blog', item: 'https://www.peakexplorer.es/blog' },
+          { '@type': 'ListItem', position: 3, name: blog.title, item: pageUrl },
+        ],
+      },
+    ],
+  }
+
   return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
     <article className="min-h-screen bg-editorial-50">
 
       {/* ── Hero image — full width, no container ── */}
@@ -231,15 +284,42 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               {blog.author?.name && (
                 <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
                   <p className="section-label">Autor</p>
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-100 font-display font-bold text-primary-700 text-lg shrink-0">
-                      {blog.author.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
+                  <div className="flex items-start gap-3">
+                    {blog.author.avatarUrl ? (
+                      <img
+                        src={blog.author.avatarUrl}
+                        alt={blog.author.name}
+                        className="h-10 w-10 rounded-full object-cover shrink-0"
+                        width={40}
+                        height={40}
+                      />
+                    ) : (
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-100 font-display font-bold text-primary-700 text-lg shrink-0">
+                        {blog.author.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="min-w-0">
                       <p className="font-semibold text-sm text-slate-800">
                         {blog.author.name}
                       </p>
                       <p className="text-xs text-slate-400">Peak Explorer</p>
+                      {blog.author.bio && (
+                        <p className="mt-2 text-xs text-slate-500 leading-relaxed">
+                          {blog.author.bio}
+                        </p>
+                      )}
+                      {blog.author.expertise && blog.author.expertise.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {blog.author.expertise.map((item) => (
+                            <span
+                              key={item}
+                              className="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
+                            >
+                              {item}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -255,5 +335,6 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         <RelatedPosts posts={recentBlogs} />
       )}
     </article>
+    </>
   )
 }

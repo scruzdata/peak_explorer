@@ -110,26 +110,16 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
   const [mapHoveredTrackIndex, setMapHoveredTrackIndex] = useState<number | null>(null) // Desde el mapa
   const [selectedWaypoint, setSelectedWaypoint] = useState<number | null>(null) // Waypoint seleccionado desde el perfil de elevación
   const [showDogsInfo, setShowDogsInfo] = useState(false)
-  const [showApproachInfo, setShowApproachInfo] = useState(false)
-  const [showReturnInfo, setShowReturnInfo] = useState(false)
-  const [showBestSeasonInfo, setShowBestSeasonInfo] = useState(false)
-  const [showOrientationInfo, setShowOrientationInfo] = useState(false)
-  const [showFoodInfo, setShowFoodInfo] = useState(false)
   const [selectedWebcamIndex, setSelectedWebcamIndex] = useState(0)
   const [showWebcamImageModal, setShowWebcamImageModal] = useState(false)
   const [isDownloadingGPX, setIsDownloadingGPX] = useState(false)
-  
-  // Refs para los botones de información
+
+  // Refs para el tooltip de perros
   const dogsInfoButtonRef = useRef<HTMLButtonElement>(null)
-  const approachInfoButtonRef = useRef<HTMLButtonElement>(null)
-  const returnInfoButtonRef = useRef<HTMLButtonElement>(null)
-  const bestSeasonInfoButtonRef = useRef<HTMLButtonElement>(null)
-  const orientationInfoButtonRef = useRef<HTMLButtonElement>(null)
-  const foodInfoButtonRef = useRef<HTMLButtonElement>(null)
-  
+
   // Estados para las posiciones de los tooltips
   const [tooltipPositions, setTooltipPositions] = useState<Record<string, { top: number; left: number; arrowLeft: number }>>({})
-  
+
   // Función para calcular la posición del tooltip
   const calculateTooltipPosition = (buttonRef: React.RefObject<HTMLButtonElement>, key: string) => {
     if (!buttonRef.current || typeof window === 'undefined') return
@@ -569,276 +559,41 @@ export function RouteDetail({ route, recentRoutes = [] }: RouteDetailProps) {
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-6">
                 <h3 className="mb-4 text-lg font-semibold">Información</h3>
                 <dl className="space-y-3 text-sm">
-                  <div className="relative">
-                    <dt className="font-medium text-gray-600 flex items-center gap-1">
-                      Aproximación
-                      {route.approachInfo && (
-                        <div 
-                          className="relative inline-block"
-                          onMouseEnter={() => {
-                            calculateTooltipPosition(approachInfoButtonRef, 'approach')
-                            setShowApproachInfo(true)
-                          }}
-                          onMouseLeave={() => setShowApproachInfo(false)}
-                        >
-                          <button
-                            ref={approachInfoButtonRef}
-                            onClick={() => {
-                              calculateTooltipPosition(approachInfoButtonRef, 'approach')
-                              setShowApproachInfo(!showApproachInfo)
-                            }}
-                            className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none flex items-center"
-                            aria-label="Información adicional sobre aproximación"
-                          >
-                            <Info className="h-4 w-4" />
-                          </button>
-                          {showApproachInfo && (
-                            <>
-                              <div className="fixed inset-0 z-40 bg-black/20 sm:hidden" onClick={() => setShowApproachInfo(false)} />
-                              <div 
-                                className={`z-50 mx-auto max-w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl ${
-                                  tooltipPositions.approach ? 'fixed' : 'fixed sm:absolute sm:left-0 sm:right-auto sm:top-5 sm:mx-0 sm:w-64 sm:translate-y-0'
-                                }`}
-                                style={tooltipPositions.approach ? {
-                                  top: `${tooltipPositions.approach.top}px`,
-                                  left: `${tooltipPositions.approach.left}px`,
-                                  transform: 'translateX(-50%)'
-                                } : undefined}
-                              >
-                                <p>{route.approachInfo}</p>
-                                <div 
-                                  className={`absolute -top-1 w-2 h-2 rotate-45 bg-gray-900 ${
-                                    !tooltipPositions.approach ? 'sm:left-4 sm:translate-x-0' : ''
-                                  }`}
-                                  style={tooltipPositions.approach?.arrowLeft !== undefined ? {
-                                    left: `calc(50% + ${tooltipPositions.approach.arrowLeft}px)`,
-                                    transform: 'translateX(-50%) rotate(45deg)'
-                                  } : undefined}
-                                ></div>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </dt>
+                  <div>
+                    <dt className="font-medium text-gray-600">Aproximación</dt>
                     <dd className="text-gray-900">{route.approach || 'No especificada'}</dd>
+                    {route.approachInfo && (
+                      <p className="mt-1 text-xs text-gray-500 leading-relaxed">{route.approachInfo}</p>
+                    )}
                   </div>
-                  <div className="relative">
-                    <dt className="font-medium text-gray-600 flex items-center gap-1">
-                      Retorno
-                      {route.returnInfo && (
-                        <div 
-                          className="relative inline-block"
-                          onMouseEnter={() => {
-                            calculateTooltipPosition(returnInfoButtonRef, 'return')
-                            setShowReturnInfo(true)
-                          }}
-                          onMouseLeave={() => setShowReturnInfo(false)}
-                        >
-                          <button
-                            ref={returnInfoButtonRef}
-                            onClick={() => {
-                              calculateTooltipPosition(returnInfoButtonRef, 'return')
-                              setShowReturnInfo(!showReturnInfo)
-                            }}
-                            className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none flex items-center"
-                            aria-label="Información adicional sobre retorno"
-                          >
-                            <Info className="h-4 w-4" />
-                          </button>
-                          {showReturnInfo && (
-                            <>
-                              <div className="fixed inset-0 z-40 bg-black/20 sm:hidden" onClick={() => setShowReturnInfo(false)} />
-                              <div 
-                                className={`z-50 mx-auto max-w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl ${
-                                  tooltipPositions.return ? 'fixed' : 'fixed sm:absolute sm:left-0 sm:right-auto sm:top-5 sm:mx-0 sm:w-64 sm:translate-y-0'
-                                }`}
-                                style={tooltipPositions.return ? {
-                                  top: `${tooltipPositions.return.top}px`,
-                                  left: `${tooltipPositions.return.left}px`,
-                                  transform: 'translateX(-50%)'
-                                } : undefined}
-                              >
-                                <p>{route.returnInfo}</p>
-                                <div 
-                                  className={`absolute -top-1 w-2 h-2 rotate-45 bg-gray-900 ${
-                                    !tooltipPositions.return ? 'sm:left-4 sm:translate-x-0' : ''
-                                  }`}
-                                  style={tooltipPositions.return?.arrowLeft !== undefined ? {
-                                    left: `calc(50% + ${tooltipPositions.return.arrowLeft}px)`,
-                                    transform: 'translateX(-50%) rotate(45deg)'
-                                  } : undefined}
-                                ></div>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </dt>
+                  <div>
+                    <dt className="font-medium text-gray-600">Retorno</dt>
                     <dd className="text-gray-900">{route.return || 'No especificado'}</dd>
+                    {route.returnInfo && (
+                      <p className="mt-1 text-xs text-gray-500 leading-relaxed">{route.returnInfo}</p>
+                    )}
                   </div>
-                  <div className="relative">
-                    <dt className="font-medium text-gray-600 flex items-center gap-1">
-                      Mejor Época
-                      {route.bestSeasonInfo && (
-                        <div 
-                          className="relative inline-block"
-                          onMouseEnter={() => {
-                            calculateTooltipPosition(bestSeasonInfoButtonRef, 'bestSeason')
-                            setShowBestSeasonInfo(true)
-                          }}
-                          onMouseLeave={() => setShowBestSeasonInfo(false)}
-                        >
-                          <button
-                            ref={bestSeasonInfoButtonRef}
-                            onClick={() => {
-                              calculateTooltipPosition(bestSeasonInfoButtonRef, 'bestSeason')
-                              setShowBestSeasonInfo(!showBestSeasonInfo)
-                            }}
-                            className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none flex items-center"
-                            aria-label="Información adicional sobre mejor época"
-                          >
-                            <Info className="h-4 w-4" />
-                          </button>
-                          {showBestSeasonInfo && (
-                            <>
-                              <div className="fixed inset-0 z-40 bg-black/20 sm:hidden" onClick={() => setShowBestSeasonInfo(false)} />
-                              <div 
-                                className={`z-50 mx-auto max-w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl ${
-                                  tooltipPositions.bestSeason ? 'fixed' : 'fixed sm:absolute sm:left-0 sm:right-auto sm:top-5 sm:mx-0 sm:w-64 sm:translate-y-0'
-                                }`}
-                                style={tooltipPositions.bestSeason ? {
-                                  top: `${tooltipPositions.bestSeason.top}px`,
-                                  left: `${tooltipPositions.bestSeason.left}px`,
-                                  transform: 'translateX(-50%)'
-                                } : undefined}
-                              >
-                                <p>{route.bestSeasonInfo}</p>
-                                <div 
-                                  className={`absolute -top-1 w-2 h-2 rotate-45 bg-gray-900 ${
-                                    !tooltipPositions.bestSeason ? 'sm:left-4 sm:translate-x-0' : ''
-                                  }`}
-                                  style={tooltipPositions.bestSeason?.arrowLeft !== undefined ? {
-                                    left: `calc(50% + ${tooltipPositions.bestSeason.arrowLeft}px)`,
-                                    transform: 'translateX(-50%) rotate(45deg)'
-                                  } : undefined}
-                                ></div>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </dt>
+                  <div>
+                    <dt className="font-medium text-gray-600">Mejor Época</dt>
                     <dd className="text-gray-900">{route.bestSeason.join(', ')}</dd>
+                    {route.bestSeasonInfo && (
+                      <p className="mt-1 text-xs text-gray-500 leading-relaxed">{route.bestSeasonInfo}</p>
+                    )}
                   </div>
-                  <div className="relative">
-                    <dt className="font-medium text-gray-600 flex items-center gap-1">
-                      Orientación
-                      {route.orientationInfo && (
-                        <div 
-                          className="relative inline-block"
-                          onMouseEnter={() => {
-                            calculateTooltipPosition(orientationInfoButtonRef, 'orientation')
-                            setShowOrientationInfo(true)
-                          }}
-                          onMouseLeave={() => setShowOrientationInfo(false)}
-                        >
-                          <button
-                            ref={orientationInfoButtonRef}
-                            onClick={() => {
-                              calculateTooltipPosition(orientationInfoButtonRef, 'orientation')
-                              setShowOrientationInfo(!showOrientationInfo)
-                            }}
-                            className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none flex items-center"
-                            aria-label="Información adicional sobre orientación"
-                          >
-                            <Info className="h-4 w-4" />
-                          </button>
-                          {showOrientationInfo && (
-                            <>
-                              <div className="fixed inset-0 z-40 bg-black/20 sm:hidden" onClick={() => setShowOrientationInfo(false)} />
-                              <div 
-                                className={`z-50 mx-auto max-w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl ${
-                                  tooltipPositions.orientation ? 'fixed' : 'fixed sm:absolute sm:left-0 sm:right-auto sm:top-5 sm:mx-0 sm:w-64 sm:translate-y-0'
-                                }`}
-                                style={tooltipPositions.orientation ? {
-                                  top: `${tooltipPositions.orientation.top}px`,
-                                  left: `${tooltipPositions.orientation.left}px`,
-                                  transform: 'translateX(-50%)'
-                                } : undefined}
-                              >
-                                <p>{route.orientationInfo}</p>
-                                <div 
-                                  className={`absolute -top-1 w-2 h-2 rotate-45 bg-gray-900 ${
-                                    !tooltipPositions.orientation ? 'sm:left-4 sm:translate-x-0' : ''
-                                  }`}
-                                  style={tooltipPositions.orientation?.arrowLeft !== undefined ? {
-                                    left: `calc(50% + ${tooltipPositions.orientation.arrowLeft}px)`,
-                                    transform: 'translateX(-50%) rotate(45deg)'
-                                  } : undefined}
-                                ></div>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </dt>
+                  <div>
+                    <dt className="font-medium text-gray-600">Orientación</dt>
                     <dd className="text-gray-900">{route.orientation}</dd>
+                    {route.orientationInfo && (
+                      <p className="mt-1 text-xs text-gray-500 leading-relaxed">{route.orientationInfo}</p>
+                    )}
                   </div>
                   {route.food && (
-                    <div className="relative">
-                      <dt className="font-medium text-gray-600 flex items-center gap-1">
-                        Comida
-                        {route.foodInfo && (
-                          <div 
-                            className="relative inline-block"
-                            onMouseEnter={() => {
-                              calculateTooltipPosition(foodInfoButtonRef, 'food')
-                              setShowFoodInfo(true)
-                            }}
-                            onMouseLeave={() => setShowFoodInfo(false)}
-                          >
-                            <button
-                              ref={foodInfoButtonRef}
-                              onClick={() => {
-                                calculateTooltipPosition(foodInfoButtonRef, 'food')
-                                setShowFoodInfo(!showFoodInfo)
-                              }}
-                              className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none flex items-center"
-                              aria-label="Información adicional sobre comida"
-                            >
-                              <Info className="h-4 w-4" />
-                            </button>
-                            {showFoodInfo && (
-                              <>
-                                <div className="fixed inset-0 z-40 bg-black/20 sm:hidden" onClick={() => setShowFoodInfo(false)} />
-                                <div 
-                                  className={`z-50 mx-auto max-w-64 rounded-lg bg-gray-900 text-white p-3 text-xs shadow-xl ${
-                                    tooltipPositions.food ? 'fixed' : 'fixed sm:absolute sm:left-0 sm:right-auto sm:top-5 sm:mx-0 sm:w-64 sm:translate-y-0'
-                                  }`}
-                                  style={tooltipPositions.food ? {
-                                    top: `${tooltipPositions.food.top}px`,
-                                    left: `${tooltipPositions.food.left}px`,
-                                    transform: 'translateX(-50%)'
-                                  } : undefined}
-                                >
-                                  <p>{route.foodInfo}</p>
-                                  <div 
-                                    className={`absolute -top-1 w-2 h-2 rotate-45 bg-gray-900 ${
-                                      !tooltipPositions.food ? 'sm:left-4 sm:translate-x-0' : ''
-                                    }`}
-                                    style={tooltipPositions.food?.arrowLeft !== undefined ? {
-                                      left: `calc(50% + ${tooltipPositions.food.arrowLeft}px)`,
-                                      transform: 'translateX(-50%) rotate(45deg)'
-                                    } : undefined}
-                                  ></div>
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        )}
-                      </dt>
+                    <div>
+                      <dt className="font-medium text-gray-600">Comida</dt>
                       <dd className="text-gray-900">{route.food}</dd>
+                      {route.foodInfo && (
+                        <p className="mt-1 text-xs text-gray-500 leading-relaxed">{route.foodInfo}</p>
+                      )}
                     </div>
                   )}
                 </dl>

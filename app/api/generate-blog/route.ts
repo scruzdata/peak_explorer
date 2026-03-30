@@ -70,7 +70,7 @@ DO NOT USE:
 
 CONTENT REQUIREMENTS:
 - Topic: mountaineering / hiking / via ferratas (safety-focused, practical, and engaging).
-- Minimum 900 words of useful, well-structured content.
+- Minimum 1500 words of useful, well-structured content.
 - Include in the body:
   - An engaging introduction (2-3 short paragraphs) that hooks the reader.
   - Clear main sections with "##" headings and optional "###" subsections.
@@ -79,6 +79,10 @@ CONTENT REQUIREMENTS:
   - Numbered lists for step-by-step processes.
   - Blockquotes for expert tips and safety warnings.
   - Safety focus and real-world, practical advice.
+  - At least one reference to a named Spanish authority relevant to the topic, such as:
+    AEMET (Agencia Estatal de Meteorología), FEDME (Federación Española de Deportes de Montaña y Escalada),
+    IGN (Instituto Geográfico Nacional), CNIG (Centro Nacional de Información Geográfica),
+    or the relevant national park administration (Parque Nacional / Parque Natural). Use the reference naturally in context.
   - A conclusion that summarizes key ideas and invites the reader to action.
 
 RESPONSE FORMAT:

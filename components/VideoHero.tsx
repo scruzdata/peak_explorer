@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 
 interface VideoHeroProps {
   src: string
+  posterSrc?: string
   className?: string
 }
 
@@ -14,7 +15,7 @@ interface VideoHeroProps {
  * - Usa Intersection Observer para detección eficiente
  * - Mejora el rendimiento y reduce el uso de ancho de banda
  */
-export function VideoHero({ src, className = '' }: VideoHeroProps) {
+export function VideoHero({ src, posterSrc, className = '' }: VideoHeroProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [isLoaded, setIsLoaded] = useState(false)
@@ -115,11 +116,24 @@ export function VideoHero({ src, className = '' }: VideoHeroProps) {
 
   return (
     <div ref={containerRef} className={`relative ${className}`}>
-      {/* Fallback visual mientras carga */}
-      {!isLoaded && (
+      {/* Static poster — always rendered in SSR HTML, acts as LCP candidate */}
+      {posterSrc && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={posterSrc}
+          alt=""
+          aria-hidden="true"
+          fetchPriority="high"
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ opacity: isLoaded ? 0 : 1, transition: 'opacity 0.3s ease-in-out' }}
+        />
+      )}
+
+      {/* Gray pulse fallback when no poster provided */}
+      {!posterSrc && !isLoaded && (
         <div className="absolute inset-0 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 animate-pulse" />
       )}
-      
+
       <video
         ref={videoRef}
         autoPlay

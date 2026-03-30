@@ -1,81 +1,63 @@
 import { MetadataRoute } from 'next'
 import { getAllRoutesAsync } from '@/lib/routes'
 
+async function getBlogsForSitemap() {
+  try {
+    const { getAllBlogsFromFirestore } = await import('@/lib/firebase/blogs')
+    return await getAllBlogsFromFirestore(true) // published only
+  } catch {
+    return []
+  }
+}
+
+function safeDate(value: string | undefined, fallback: Date): Date {
+  if (!value) return fallback
+  const d = new Date(value)
+  return isNaN(d.getTime()) ? fallback : d
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://peakexplorer.es'
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.peakexplorer.es'
+
+  const staticLastMod = new Date('2026-02-01')
 
   try {
-    // Obtener rutas desde Firestore (con fallback a datos estáticos si no está configurado)
-    const allRoutes = await getAllRoutesAsync()
-    const now = new Date()
-    const routes = allRoutes
-      .filter((route) => route.slug) // Filtrar rutas sin slug
-      .map((route) => {
-        // Validar que updatedAt sea una fecha válida
-        let lastModified: Date
-        try {
-          const date = new Date(route.updatedAt)
-          // Verificar si la fecha es válida
-          if (isNaN(date.getTime())) {
-            lastModified = now
-          } else {
-            lastModified = date
-          }
-        } catch {
-          lastModified = now
-        }
+    const [allRoutes, allBlogs] = await Promise.all([
+      getAllRoutesAsync(),
+      getBlogsForSitemap(),
+    ])
 
-        return {
-          url: `${baseUrl}/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`,
-          lastModified,
-          changeFrequency: 'monthly' as const,
-          priority: 0.8,
-        }
-      })
+    const now = new Date()
+
+    const routeEntries = allRoutes
+      .filter((route) => route.slug)
+      .map((route) => ({
+        url: `${baseUrl}/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`,
+        lastModified: safeDate(route.updatedAt, now),
+      }))
+
+    const blogEntries = allBlogs
+      .filter((blog) => blog.slug)
+      .map((blog) => ({
+        url: `${baseUrl}/blog/${blog.slug}`,
+        lastModified: safeDate(blog.updatedAt, now),
+      }))
 
     return [
-      {
-        url: baseUrl,
-        lastModified: new Date(),
-        changeFrequency: 'daily',
-        priority: 1,
-      },
-      {
-        url: `${baseUrl}/rutas`,
-        lastModified: new Date(),
-        changeFrequency: 'weekly',
-        priority: 0.9,
-      },
-      {
-        url: `${baseUrl}/vias-ferratas`,
-        lastModified: new Date(),
-        changeFrequency: 'weekly',
-        priority: 0.9,
-      },
-      ...routes,
+      { url: baseUrl, lastModified: staticLastMod },
+      { url: `${baseUrl}/rutas`, lastModified: staticLastMod },
+      { url: `${baseUrl}/vias-ferratas`, lastModified: staticLastMod },
+      { url: `${baseUrl}/blog`, lastModified: staticLastMod },
+      ...routeEntries,
+      ...blogEntries,
     ]
   } catch (error) {
     console.error('Error generando sitemap:', error)
-    // Devolver sitemap básico si hay error
     return [
-      {
-        url: baseUrl,
-        lastModified: new Date(),
-        changeFrequency: 'daily',
-        priority: 1,
-      },
-      {
-        url: `${baseUrl}/rutas`,
-        lastModified: new Date(),
-        changeFrequency: 'weekly',
-        priority: 0.9,
-      },
-      {
-        url: `${baseUrl}/vias-ferratas`,
-        lastModified: new Date(),
-        changeFrequency: 'weekly',
-        priority: 0.9,
-      },
+      { url: baseUrl, lastModified: staticLastMod },
+      { url: `${baseUrl}/rutas`, lastModified: staticLastMod },
+      { url: `${baseUrl}/vias-ferratas`, lastModified: staticLastMod },
+      { url: `${baseUrl}/blog`, lastModified: staticLastMod },
     ]
   }
 }

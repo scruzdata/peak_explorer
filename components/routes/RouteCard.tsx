@@ -250,6 +250,7 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
                     src={src}
                     alt={img.alt || route.title}
                     fill
+                    priority={priority}
                     className="object-cover transition-transform duration-500 group-hover:scale-110 pointer-events-none"
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 33vw"
                   />
@@ -627,6 +628,7 @@ export function RouteCard({ route, compact = false, onMouseEnter, onMouseLeave, 
                     src={src}
                     alt={img.alt || route.title}
                     fill
+                    priority={priority}
                     className="object-cover transition-transform duration-500 group-hover:scale-110 pointer-events-none"
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   />

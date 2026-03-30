@@ -20,9 +20,7 @@ const RouteDetail = dynamicImport(
   }
 )
 
-// Forzar recarga dinámica para obtener datos frescos de Firestore
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+export const revalidate = 60
 
 interface PageProps {
   params: {
@@ -43,11 +41,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: route.seo.metaTitle,
     description: route.seo.metaDescription,
     keywords: route.seo.keywords,
+    alternates: {
+      canonical: `https://www.peakexplorer.es/rutas/${params.slug}`,
+    },
     openGraph: {
       title: route.seo.metaTitle,
       description: route.seo.metaDescription,
-      images: [route.heroImage.url],
+      images: [{ url: route.heroImage.url, alt: route.title }],
       type: 'article',
+      url: `https://www.peakexplorer.es/rutas/${params.slug}`,
     },
     twitter: {
       card: 'summary_large_image',
@@ -65,9 +67,53 @@ export default async function RoutePage({ params }: PageProps) {
     notFound()
   }
 
-  // Obtener rutas más cercanas por distancia (excluyendo la actual)
   const recentRoutes = await getClosestRoutesAsync(route, 6)
 
-  return <RouteDetail route={route} recentRoutes={recentRoutes} />
+  const pageUrl = `https://www.peakexplorer.es/rutas/${params.slug}`
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'SportsActivity',
+        '@id': `${pageUrl}#activity`,
+        name: route.title,
+        description: route.seo.metaDescription || route.summary,
+        url: pageUrl,
+        image: route.heroImage.url,
+        location: {
+          '@type': 'Place',
+          name: route.location.region,
+          address: {
+            '@type': 'PostalAddress',
+            addressRegion: route.location.province,
+            addressCountry: 'ES',
+          },
+          geo: {
+            '@type': 'GeoCoordinates',
+            latitude: route.location.coordinates.lat,
+            longitude: route.location.coordinates.lng,
+          },
+        },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Inicio', item: 'https://www.peakexplorer.es' },
+          { '@type': 'ListItem', position: 2, name: 'Rutas de Trekking', item: 'https://www.peakexplorer.es/rutas' },
+          { '@type': 'ListItem', position: 3, name: route.title, item: pageUrl },
+        ],
+      },
+    ],
+  }
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <RouteDetail route={route} recentRoutes={recentRoutes} />
+    </>
+  )
 }
 

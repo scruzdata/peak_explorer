@@ -17,6 +17,9 @@ export interface BlogPost {
   author?: {
     name: string
     email?: string
+    bio?: string
+    expertise?: string[]
+    avatarUrl?: string
   }
   seo: {
     metaTitle: string
