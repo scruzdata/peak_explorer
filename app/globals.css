@@ -1,3 +1,6 @@
+/* Barlow Condensed — editorial display font for headings */
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400;1,700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -40,6 +43,39 @@
   .badge {
     @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
   }
+
+  /* ── Editorial Blog Design System ── */
+
+  /* Category chip — base state */
+  .blog-chip {
+    @apply inline-flex items-center px-4 py-1.5 rounded-full text-sm font-medium cursor-pointer transition-all duration-200 border;
+  }
+  .blog-chip-inactive {
+    @apply bg-white text-slate-600 border-slate-200 hover:border-primary-400 hover:text-primary-700;
+  }
+  .blog-chip-active {
+    @apply bg-primary-600 text-white border-primary-600;
+  }
+
+  /* Content block variants (tip/warning/info/gear) */
+  .content-block {
+    @apply rounded-2xl p-5 my-6 flex gap-4;
+  }
+  .content-block-tip    { @apply bg-emerald-50 border border-emerald-200; }
+  .content-block-warning { @apply bg-red-50 border border-red-200; }
+  .content-block-info   { @apply bg-sky-50 border border-sky-200; }
+  .content-block-gear   { @apply bg-amber-50 border border-amber-200; }
+
+  /* Post card hover */
+  .post-card {
+    @apply bg-white rounded-2xl overflow-hidden border border-slate-100
+           shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer;
+  }
+
+  /* Editorial section heading */
+  .section-label {
+    @apply inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-slate-400 mb-3;
+  }
 }
 
 @layer utilities {
@@ -80,6 +116,12 @@
   height: 100%;
   width: 100%;
   z-index: 0;
+}
+
+/* Blog heading anchor offset — clears the fixed navbar on scroll */
+[data-blog-content] h2,
+[data-blog-content] h3 {
+  scroll-margin-top: 88px;
 }
 
 /* Reading progress bar */

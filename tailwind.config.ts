@@ -1,8 +1,6 @@
 import type { Config } from 'tailwindcss'
 
 const config: Config = {
-  // Optimización: Content paths para purging agresivo de CSS no utilizado
-  // Tailwind v3+ usa 'content' en lugar de 'purge'
   content: [
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
@@ -45,16 +43,32 @@ const config: Config = {
           800: '#991b1b',
           900: '#7f1d1d',
         },
+        // Editorial dark tones for hero + dark sections
+        editorial: {
+          50: '#f8fafc',
+          100: '#f1f5f9',
+          200: '#e2e8f0',
+          900: '#0f172a',
+          950: '#020617',
+        },
+        // Adventure amber — CTAs, highlights
+        cta: {
+          400: '#fbbf24',
+          500: '#f59e0b',
+          600: '#d97706',
+        },
       },
       fontFamily: {
         sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
-        display: ['var(--font-display)', 'system-ui', 'sans-serif'],
+        // Barlow Condensed: sports/athletic/editorial headings
+        display: ['Barlow Condensed', 'system-ui', 'sans-serif'],
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',
         'slide-up': 'slideUp 0.5s ease-out',
         'scale-in': 'scaleIn 0.3s ease-out',
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'reveal': 'reveal 0.6s ease-out forwards',
       },
       keyframes: {
         fadeIn: {
@@ -69,10 +83,13 @@ const config: Config = {
           '0%': { transform: 'scale(0.95)', opacity: '0' },
           '100%': { transform: 'scale(1)', opacity: '1' },
         },
+        reveal: {
+          '0%': { transform: 'translateY(24px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
       },
     },
   },
   plugins: [],
 }
 export default config
-
