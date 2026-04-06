@@ -23,7 +23,7 @@ const BlogCard = dynamicImport(
 import { VideoHero } from '@/components/VideoHero'
 
 const FerrataClimberIcon = dynamicImport(
-  () => import('@/components/routes/RoutesMapView').then((mod) => ({ default: mod.FerrataClimberIcon })),
+  () => import('@/components/routes/FerrataClimberIcon').then((mod) => ({ default: mod.FerrataClimberIcon })),
   { ssr: false }
 )
 
@@ -74,7 +74,7 @@ export default async function HomePage() {
         </div>
 
         {/* Hero content */}
-        <div className="relative z-10 mx-auto max-w-4xl px-4 text-center text-white">
+        <div className="relative z-10 mx-auto max-w-4xl px-4 text-center text-white pb-20 sm:pb-0">
           {/* Eyebrow */}
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-sm px-4 py-1.5 text-sm font-medium text-white/90 animate-fade-in">
             <Mountain className="h-4 w-4 text-primary-300" />

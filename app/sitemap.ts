@@ -34,6 +34,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .map((route) => ({
         url: `${baseUrl}/${route.type === 'trekking' ? 'rutas' : 'vias-ferratas'}/${route.slug}`,
         lastModified: safeDate(route.updatedAt, now),
+        ...(route.heroImage?.url ? { images: [route.heroImage.url] } : {}),
       }))
 
     const blogEntries = allBlogs
@@ -41,6 +42,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .map((blog) => ({
         url: `${baseUrl}/blog/${blog.slug}`,
         lastModified: safeDate(blog.updatedAt, now),
+        ...(blog.featuredImage?.url ? { images: [blog.featuredImage.url] } : {}),
       }))
 
     return [

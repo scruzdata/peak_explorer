@@ -74,6 +74,11 @@ CONTENT REQUIREMENTS:
 - Include in the body:
   - An engaging introduction (2-3 short paragraphs) that hooks the reader.
   - Clear main sections with "##" headings and optional "###" subsections.
+    IMPORTANT: At least 80% of "##" H2 headings MUST be written as questions in Spanish
+    (e.g., "## ¿Qué equipo necesitas para una vía ferrata?", "## ¿Cuándo es la mejor época para hacer senderismo en invierno?",
+    "## ¿Cómo elegir el calzado adecuado?", "## ¿Por qué es importante el seguro de montaña?").
+    This dramatically increases eligibility for Google AI Overviews and People Also Ask boxes.
+    Only one H2 (typically the conclusion) may be a statement instead of a question.
   - Short, scannable paragraphs (max ~3-4 sentences) with blank lines between them.
   - Bullet lists for equipment, tips, and key points.
   - Numbered lists for step-by-step processes.
@@ -122,7 +127,8 @@ CRITICAL FORMATTING REQUIREMENTS:
 - Avoid long walls of text - break content into digestible chunks
 
 CONTENT REQUIREMENTS:
-- Minimum 900 words of useful, well-formatted content in Spanish
+- Minimum 1500 words of useful, well-formatted content in Spanish
+- H2 HEADINGS RULE: At least 80% of "##" headings must be questions (¿Qué...?, ¿Cómo...?, ¿Por qué...?, ¿Cuándo...?, ¿Cuáles son...?, ¿Dónde...?). Example: "## ¿Qué debes llevar en tu mochila?" instead of "## Equipamiento necesario". This is mandatory for AI search visibility.
 - Include:
   - Engaging introduction that hooks the reader (2-3 short paragraphs)
   - Previous preparation and planning (with lists and clear structure)
@@ -140,7 +146,7 @@ CONTENT REQUIREMENTS:
 - Professional, engaging, and visually appealing writing style
 
 FORMATTING STYLE:
-- Use ## for main sections (H2)
+- Use ## for main sections (H2) — write at least 80% of them as questions: "## ¿Cómo...?", "## ¿Qué...?", "## ¿Por qué...?"
 - Use ### for subsections (H3)
 - Use **bold** for equipment names, important terms, and key concepts
 - Use *italic* for emphasis
