@@ -115,6 +115,7 @@ const nextConfig = {
         'https://meteocercedilla.com', // Meteocercedilla.com (imágenes/iconos)
         'http://meteocercedilla.com', // Meteocercedilla.com (algunos recursos pueden usar http)
         'https://infocar.dgt.es',
+        'https://etraffic.dgt.es',
         'https://www.alberguesyrefugios.com',
         'https://camareando.com',
         'https://cantur.com',
@@ -132,6 +133,7 @@ const nextConfig = {
         'https://meteocercedilla.com', // Meteocercedilla.com (imágenes/iconos)
         'http://meteocercedilla.com', // Meteocercedilla.com (algunos recursos pueden usar http)
         'https://infocar.dgt.es',
+        'https://etraffic.dgt.es',
         'https://www.alberguesyrefugios.com',
         'https://camareando.com',
         'https://cantur.com',
