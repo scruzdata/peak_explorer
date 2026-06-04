@@ -83,6 +83,7 @@ const nextConfig = {
         'https://*.googleapis.com', // Google APIs (imágenes)
         'https://*.gstatic.com', // Google static content
         'https://infocar.dgt.es',
+        'https://etraffic.dgt.es',
         'https://www.alberguesyrefugios.com',
         'https://camareando.com',
         'https://cantur.com',
