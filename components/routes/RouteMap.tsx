@@ -25,8 +25,8 @@ import { RouteElevationProfile } from './RouteElevationProfile'
 import { calculateSlope, getSlopeColor } from '@/lib/utils'
 import type { MapRef } from 'react-map-gl'
 import type { WaypointType } from '@/types'
-import camerasJson from '../../public/cameras.json'
 import { getAllRefugios, Refugio } from '@/lib/firebase/refugios'
+import { getAllCameras } from '@/lib/firebase/cameras'
 
 /**
  * Obtiene el icono apropiado para un tipo de waypoint
@@ -114,23 +114,7 @@ interface DgtCameraPOI {
   provincia: string
 }
 
-const DGT_CAMERAS: DgtCameraPOI[] = (camerasJson as any[])
-  .map((item: any) => {
-    const lat = Number(item.latitud)
-    const lng = Number(item.longitud)
-    if (Number.isNaN(lat) || Number.isNaN(lng)) return null
-    return {
-      latitud: lat,
-      longitud: lng,
-      imagen: String(item.imagen ?? ''),
-      carretera: String(item.carretera ?? ''),
-      pk: String(item.pk ?? ''),
-      provincia: String(item.provincia ?? ''),
-    }
-  })
-  .filter((item: DgtCameraPOI | null): item is DgtCameraPOI => {
-    return !!item && item.latitud !== 0 && item.longitud !== 0
-  })
+
 
 
 interface RouteMapProps {
@@ -158,6 +142,7 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
   const [showSlopeColors, setShowSlopeColors] = useState(false)
   const [selectedRestaurant, setSelectedRestaurant] = useState<number | null>(null)
   const [internalSelectedWaypoint, setInternalSelectedWaypoint] = useState<number | null>(null)
+  const [dgtCameras, setDgtCameras] = useState<DgtCameraPOI[]>([])
   const [showDgtCameras, setShowDgtCameras] = useState(false)
   const [selectedDgtCameraIndex, setSelectedDgtCameraIndex] = useState<number | null>(null)
   const [refugios, setRefugios] = useState<Refugio[]>([])
@@ -279,9 +264,9 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
   }, [viewState])
 
   const visibleDgtCameras = useMemo(() => {
-    if (!mapBounds) return []
+    if (!mapBounds || dgtCameras.length === 0) return []
     const { north, south, east, west } = mapBounds
-    return DGT_CAMERAS.filter((camera) => {
+    return dgtCameras.filter((camera) => {
       const lat = camera.latitud
       const lng = camera.longitud
       const inLat = lat >= south && lat <= north
@@ -291,7 +276,7 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
           : lng >= west || lng <= east
       return inLat && inLng
     })
-  }, [mapBounds])
+  }, [mapBounds, dgtCameras])
 
   // Sincronizar automáticamente showDgtCameras con el zoom
   // Las cámaras aparecen automáticamente cuando zoom >= 11 y desaparecen cuando zoom < 11
@@ -319,6 +304,29 @@ export function RouteMap({ route, hoveredTrackIndex, onMapHoverTrackIndex, selec
   // Cargar refugios desde Firestore
   useEffect(() => {
     getAllRefugios().then(setRefugios).catch(console.error)
+  }, [])
+
+  // Cargar cámaras DGT desde Firestore
+  useEffect(() => {
+    getAllCameras().then((items) => {
+      setDgtCameras(
+        items
+          .map((item) => {
+            const lat = Number(item.latitud)
+            const lng = Number(item.longitud)
+            if (Number.isNaN(lat) || Number.isNaN(lng)) return null
+            return {
+              latitud: lat,
+              longitud: lng,
+              imagen: String(item.imagen ?? ''),
+              carretera: String(item.carretera ?? ''),
+              pk: String(item.pk ?? ''),
+              provincia: String(item.provincia ?? ''),
+            }
+          })
+          .filter((c): c is DgtCameraPOI => !!c && c.latitud !== 0 && c.longitud !== 0)
+      )
+    }).catch(console.error)
   }, [])
 
   // Filtrar refugios visibles según los bounds del mapa

@@ -9,8 +9,8 @@ import { Mountain, Star, X, RotateCcw, Eye, EyeOff, MapPin, ZoomIn, Clock, Trend
 import { getDifficultyColor, getFerrataGradeColor, formatDistance, formatElevation, formatArrayWithDashes } from '@/lib/utils'
 import type { MapRef } from 'react-map-gl'
 import { RouteElevationProfile } from './RouteElevationProfile'
-import camerasJson from '../../public/cameras.json'
 import { getAllRefugios, Refugio } from '@/lib/firebase/refugios'
+import { getAllCameras } from '@/lib/firebase/cameras'
 import { FaHome } from 'react-icons/fa'
 import { FerrataClimberIcon } from './FerrataClimberIcon'
 
@@ -139,24 +139,6 @@ interface DgtCameraPOI {
   provincia: string
 }
 
-// Datos estáticos de cámaras DGT basados en el JSON de /public/cameras.json
-const DGT_CAMERAS: DgtCameraPOI[] = (camerasJson as any[])
-  .map((item: any) => {
-    const lat = Number(item.latitud)
-    const lng = Number(item.longitud)
-    if (Number.isNaN(lat) || Number.isNaN(lng)) return null
-    return {
-      latitud: lat,
-      longitud: lng,
-      imagen: String(item.imagen ?? ''),
-      carretera: String(item.carretera ?? ''),
-      pk: String(item.pk ?? ''),
-      provincia: String(item.provincia ?? ''),
-    }
-  })
-  .filter((item: DgtCameraPOI | null): item is DgtCameraPOI => {
-    return !!item && item.latitud !== 0 && item.longitud !== 0
-  })
 
 const AVALANCHE_BULLETIN_POIS: AvalancheBulletinPOI[] = [
   {
@@ -398,6 +380,7 @@ export function RoutesMapView({
   const [showRefugios, setShowRefugios] = useState(false)
   const [selectedRefugioIndex, setSelectedRefugioIndex] = useState<number | null>(null)
   const refugioPopupScrollRef = useRef<HTMLDivElement | null>(null)
+  const [dgtCameras, setDgtCameras] = useState<DgtCameraPOI[]>([])
   // Estado para mostrar/ocultar cámaras DGT
   // Nota: showDgtCameras se sincroniza automáticamente con isDgtZoomEnabled
   // pero el usuario puede forzar el estado cuando el zoom es suficiente
@@ -618,6 +601,29 @@ export function RoutesMapView({
     getAllRefugios().then(setRefugios).catch(console.error)
   }, [])
 
+  // Cargar cámaras DGT desde Firestore
+  useEffect(() => {
+    getAllCameras().then((items) => {
+      setDgtCameras(
+        items
+          .map((item) => {
+            const lat = Number(item.latitud)
+            const lng = Number(item.longitud)
+            if (Number.isNaN(lat) || Number.isNaN(lng)) return null
+            return {
+              latitud: lat,
+              longitud: lng,
+              imagen: String(item.imagen ?? ''),
+              carretera: String(item.carretera ?? ''),
+              pk: String(item.pk ?? ''),
+              provincia: String(item.provincia ?? ''),
+            }
+          })
+          .filter((c): c is DgtCameraPOI => !!c && c.latitud !== 0 && c.longitud !== 0)
+      )
+    }).catch(console.error)
+  }, [])
+
   // Filtrar refugios visibles según los bounds del mapa
   const visibleRefugios = useMemo(() => {
     if (!mapBounds || refugios.length === 0) return []
@@ -685,20 +691,19 @@ export function RoutesMapView({
 
   // Cámaras DGT dentro del recuadro actual del mapa
   const visibleDgtCameras = useMemo(() => {
-    if (!mapBounds) return []
+    if (!mapBounds || dgtCameras.length === 0) return []
     const { north, south, east, west } = mapBounds
-    return DGT_CAMERAS.filter((camera) => {
+    return dgtCameras.filter((camera) => {
       const lat = camera.latitud
       const lng = camera.longitud
       const inLat = lat >= south && lat <= north
-      // Manejar cruces de meridiano 180 (no es el caso de España, pero lo dejamos genérico)
       const inLng =
         east >= west
           ? lng >= west && lng <= east
           : lng >= west || lng <= east
       return inLat && inLng
     })
-  }, [mapBounds])
+  }, [mapBounds, dgtCameras])
 
   // Calcular clusters basándose en el estado actual del mapa
   const { clusters, individualRoutes } = useMemo(() => {

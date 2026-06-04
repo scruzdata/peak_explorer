@@ -2,7 +2,8 @@
 
 import { useAuth } from '@/components/providers/AuthProvider'
 import { useState, useEffect, useMemo } from 'react'
-import { Plus, Edit, Trash2, Eye, Loader2, Filter, FileText, Route as RouteIcon, Search } from 'lucide-react'
+import { Plus, Edit, Trash2, Eye, Loader2, Filter, FileText, Route as RouteIcon, Search, Camera, CheckCircle, AlertCircle } from 'lucide-react'
+import { saveCamerasToFirestore } from '@/lib/firebase/cameras'
 import { getAllRoutesForAdmin, deleteRouteFromFirestore } from '@/lib/routes'
 import { deleteStorageFileByUrl } from '@/lib/firebase/storage'
 import { Route, RouteType, Difficulty } from '@/types'
@@ -19,6 +20,8 @@ export function AdminPanel() {
   const [showForm, setShowForm] = useState(false)
   const [editingRoute, setEditingRoute] = useState<Route | undefined>()
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [refreshingCameras, setRefreshingCameras] = useState(false)
+  const [camerasStatus, setCamerasStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   
   // Estados para los filtros
   const [filterType, setFilterType] = useState<RouteType | 'all'>('all')
@@ -159,6 +162,26 @@ export function AdminPanel() {
    * Maneja el éxito del procesamiento de GPX
    * Crea una ruta temporal con los datos procesados y abre el formulario
    */
+  const handleRefreshCameras = async () => {
+    setRefreshingCameras(true)
+    setCamerasStatus(null)
+    try {
+      const response = await fetch('/api/refresh-cameras')
+      const data = await response.json()
+      if (!response.ok) {
+        setCamerasStatus({ type: 'error', message: data.error || 'Error al obtener datos de la DGT' })
+        return
+      }
+      await saveCamerasToFirestore(data.cameras)
+      setCamerasStatus({ type: 'success', message: `${data.cameras.length} cámaras actualizadas correctamente` })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setCamerasStatus({ type: 'error', message: msg })
+    } finally {
+      setRefreshingCameras(false)
+    }
+  }
+
   const handleGPXSuccess = (routeData: Partial<Route>) => {
     // Crear una ruta temporal con los datos del GPX procesado
     const tempRoute: Route = {
@@ -386,6 +409,35 @@ export function AdminPanel() {
               console.error('Error procesando GPX:', error)
             }}
           />
+        </div>
+
+        {/* Herramientas */}
+        <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6 shadow-md">
+          <h2 className="mb-4 text-lg font-semibold text-gray-800">Herramientas</h2>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handleRefreshCameras}
+              disabled={refreshingCameras}
+              className="flex items-center space-x-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {refreshingCameras ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Camera className="h-4 w-4" />
+              )}
+              <span>Actualizar cámaras DGT</span>
+            </button>
+            {camerasStatus && (
+              <div className={`flex items-center gap-1.5 text-sm ${camerasStatus.type === 'success' ? 'text-green-700' : 'text-red-700'}`}>
+                {camerasStatus.type === 'success' ? (
+                  <CheckCircle className="h-4 w-4" />
+                ) : (
+                  <AlertCircle className="h-4 w-4" />
+                )}
+                <span>{camerasStatus.message}</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Stats */}
